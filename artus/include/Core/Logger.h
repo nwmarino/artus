@@ -1,11 +1,7 @@
 #ifndef ARTUS_CORE_LOGGER_H
 #define ARTUS_CORE_LOGGER_H
 
-#pragma once
-
-#include <string> 
-
-#include "../Core/Span.h"
+#include "../Core/SourceLocation.h"
 
 using std::string;
 

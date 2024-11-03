@@ -7,7 +7,6 @@
 
 #include "../Core/Span.h"
 
-using std::find;
 using std::size_t;
 using std::string;
 using std::vector;
@@ -22,7 +21,8 @@ inline vector<string> __RESERVED = {
 
 /// Returns 1 if the provided identifier is a reserved keyword, and 0 otherwise.
 inline int is_reserved(const string &kw) {
-  return find(__RESERVED.begin(), __RESERVED.end(), kw) != __RESERVED.end();
+  return std::find(__RESERVED.begin(), __RESERVED.end(), kw) \
+    != __RESERVED.end();
 }
 
 namespace artus {
@@ -30,7 +30,7 @@ namespace artus {
 /// The different kinds of tokens that the lexer can produce.
 enum class TokenKind {
   /// // Line Comments
-  LineComment,
+  LineComment = 0,
 
   /// Identifiers
   Identifier,
@@ -63,7 +63,7 @@ enum class TokenKind {
 /// The different kinds of literal lexemmes that the lexer can produce.
 enum class LiteralKind {
   /// 0, 1, ...
-  Integer,
+  Integer = 0,
 };
 
 /// A token produced by the lexer.
@@ -80,9 +80,18 @@ struct Token {
   /// The optional, literal kind represented by this token.
   LiteralKind literalKind;
 
-  inline int is_ident() const { return kind == TokenKind::Identifier; }
-  inline int is_keyword(const string &kw) const { return kind == TokenKind::Identifier && value == kw && is_reserved(kw); }
-  inline int is_integer() const { return kind == TokenKind::Literal && literalKind == LiteralKind::Integer; }
+  /// Returns true if the token is an identifier, and false otherwise.
+  inline bool isIdentifier() const { return kind == TokenKind::Identifier; }
+
+  /// Returns true if the token is a reserved keyword, and false otherwise.
+  inline bool isKeyword(const string &kw) const { 
+    return kind == TokenKind::Identifier && value == kw && is_reserved(kw); 
+  }
+
+  /// Returns true if the token is an integer literal, and false otherwise.
+  inline bool isInteger() const { 
+    return kind == TokenKind::Literal && literalKind == LiteralKind::Integer; 
+  }
 };
 
 } // namespace artus

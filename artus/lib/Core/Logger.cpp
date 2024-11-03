@@ -9,8 +9,8 @@ using namespace artus;
   exit(EXIT_FAILURE); 
 }
 
-[[noreturn]] void artus::fatal(const string &msg, const Span &sp) {
-  printf("%s:%zu:%zu: %s%s\n", sp.file.c_str(), sp.line, sp.col, 
+[[noreturn]] void artus::fatal(const string &msg, const SourceLocation &loc) {
+  printf("%s:%zu:%zu: %s%s\n", loc.file.c_str(), loc.line, loc.col,
       FATAL, msg.c_str());
   exit(EXIT_FAILURE);
 }

@@ -1,7 +1,7 @@
 #ifndef ARTUS_LEX_LEXER_H
 #define ARTUS_LEX_LEXER_H
 
-#include "../Core/Span.h"
+#include "../Core/SourceLocation.h"
 #include "Token.h"
 
 using std::size_t;

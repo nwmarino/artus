@@ -1,14 +1,13 @@
 #include <utility>
 
 #include "../../include/Core/CContext.h"
-#include "../../include/Sema/Type.h"
 
 using std::string;
 using std::vector;
 
 using namespace artus;
 
-CContext::CContext(vector<SrcFile> &files) : files(std::move(files)), 
+CContext::CContext(vector<SourceFile> &files) : files(std::move(files)), 
     previousToken(Token()), currentToken(Token()), eof(0) {
   InitTypes();
   InitLexer();
@@ -29,7 +28,7 @@ void CContext::InitLexer() {
   if (files.empty())
     return;
 
-  const SrcFile file = files.back();
+  const SourceFile file = files.back();
   files.pop_back();
 
   lexer = new Lexer(file.name, file.BufferStart);

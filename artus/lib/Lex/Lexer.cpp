@@ -2,6 +2,7 @@
 #include <cctype>
 
 #include "../../include/Core/Logger.h"
+#include "../../include/Core/Span.h"
 #include "../../include/Lex/Lexer.h"
 
 using std::size_t;
@@ -11,19 +12,19 @@ using namespace artus;
 
 Lexer::Lexer(const string &file, const char *BufferStart) 
     : BufferPos(BufferStart), loc(file, 1, 1), previousChar('\0'), 
-    previousToken(Token(TokenKind::Eof, Span(file))) {}
+    previousToken({ .kind = TokenKind::Eof }) {}
 
 Lexer::Lexer(SourceLocation loc, const char *BufferPos) 
     : BufferPos(BufferPos), loc(loc), 
     previousChar(*BufferPos != '\0' ? BufferPos[-1] : '\0'), 
-    previousToken(Token(TokenKind::Eof, Span(loc.file))) {}
+    previousToken({ .kind = TokenKind::Eof }) {}
 
 string Lexer::peek(size_t n) const { return string(BufferPos + 1, n); }
 
 void Lexer::initToken(Token &next) {
   next.kind = TokenKind::Eof;
   next.value = "";
-  next.span = Span(loc.file, loc.line, loc.col);
+  next.span = { .file = loc.file, .line = loc.line, .col = loc.col };
 }
 
 bool Lexer::Lex(Token &next) {
