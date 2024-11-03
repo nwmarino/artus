@@ -27,7 +27,7 @@ public:
 
 /// Class to represent basic, built-in types, such as `i64` or `char`.
 class BasicType final : public Type {
-  friend class CContext;
+  friend class Context;
 
   /// Possible kinds of basic types.
   enum BasicTypeKind {

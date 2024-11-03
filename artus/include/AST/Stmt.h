@@ -42,7 +42,7 @@ public:
 };
 
 /// Represents a list of statements, enclosed by braces.
-class CompoundStmt : public Stmt {
+class CompoundStmt final : public Stmt {
   /// The list of statements.
   const std::vector<std::unique_ptr<Stmt>> stmts;
 
@@ -62,7 +62,7 @@ public:
 };
 
 /// Represents a label statement. For example, `label:`.
-class LabelStmt : public Stmt {
+class LabelStmt final : public Stmt {
   /// The name of the label.
   const string name;
 
@@ -91,7 +91,7 @@ public:
 };
 
 /// Represents a return statement. For example, `ret 0`.
-class RetStmt : public ValueStmt {
+class RetStmt final : public ValueStmt {
   /// The expression to return.
   const std::unique_ptr<Expr> expr;
 

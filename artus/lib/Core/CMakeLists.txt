@@ -1,5 +1,5 @@
 add_library(artus_core
     STATIC
-        CContext.cpp
+        Context.cpp
         Logger.cpp
 )
