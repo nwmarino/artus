@@ -58,7 +58,11 @@ std::unique_ptr<Decl> Parser::ParseFunctionDeclaration() {
     fatal("expected '(' symbol after function identifier", lastLoc);
   }
 
+  // Enter into a new function scope.
+  this->inFunction = 1;
   enterScope({ .isFunctionScope = 1 });
+
+  // Parse the function parameters.
   vector<std::unique_ptr<ParamVarDecl>> params = ParseFunctionParams();
 
   /* Redo until line 80 when void return type is supported. */
@@ -92,8 +96,9 @@ std::unique_ptr<Decl> Parser::ParseFunctionDeclaration() {
     fatal("expected statement after function declaration", lastLoc);
   }
 
-  // Create the function declaration.
+  // Exit from the function scope.
   Scope *scope = this->scope;
+  this->inFunction = 0;
   exitScope();
 
   std::unique_ptr<FunctionDecl> fnDecl = std::make_unique<FunctionDecl>(
