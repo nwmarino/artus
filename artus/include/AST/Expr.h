@@ -27,6 +27,8 @@ public:
       : Expr(T, span), value(value), 
       signedness(signedness ? signedness : value < 0) {}
 
+  void pass(ASTVisitor *visitor) { visitor->visit(this); }
+
   /// Returns the value nested in this node.
   const int getValue() const { return value; }
 };

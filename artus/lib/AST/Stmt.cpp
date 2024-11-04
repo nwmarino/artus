@@ -24,6 +24,8 @@ CompoundStmt::CompoundStmt(vector<std::unique_ptr<Stmt>> stmts, Scope *scope,
                            const Span &span)
     : Stmt(span), stmts(std::move(stmts)), scope(scope) {}
 
+void CompoundStmt::pass(ASTVisitor *visitor) { visitor->visit(this); }
+
 const vector<std::unique_ptr<Stmt>> &CompoundStmt::getStmts() const { 
   return stmts; 
 }
@@ -35,6 +37,8 @@ Scope *CompoundStmt::getScope() const { return scope; }
 LabelStmt::LabelStmt(const string &name, const Decl *decl, const Span &span) 
     : Stmt(span), name(name), decl(decl) {}
 
+void LabelStmt::pass(ASTVisitor *visitor) { visitor->visit(this); }
+
 const string &LabelStmt::getName() const { return name; }
 
 const Decl *LabelStmt::getDecl() const { return decl; }
@@ -45,5 +49,7 @@ void LabelStmt::setDecl(const Decl *decl) { this->decl = decl; }
 
 RetStmt::RetStmt(std::unique_ptr<Expr> expr, const Span &span)
     : ValueStmt(expr->getType(), span), expr(std::move(expr)) {}
+
+void RetStmt::pass(ASTVisitor *visitor) { visitor->visit(this); }
 
 const Expr *RetStmt::getExpr() const { return expr.get(); }

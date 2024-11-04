@@ -6,6 +6,7 @@
 #include <utility>
 #include <vector>
 
+#include "ASTPrinter.h"
 #include "../Core/Context.h"
 
 using std::string;
@@ -27,6 +28,8 @@ public:
 /// Represents a package declaration. A package represents a singular source
 /// file, and may import the declarations of other packages in a source tree.
 class PackageUnitDecl final : public DeclBase {
+  friend class ASTPrinter;
+
   /// The unique name or identifier associated with this package.
   const string identifier;
 
@@ -45,14 +48,13 @@ public:
       : identifier(id), imports(std::move(imports)), decls(std::move(decls)),
         scope(scope) {}
 
+  void pass(ASTVisitor *visitor) { visitor->visit(this); }
+
   /// Returns the identifier of this package unit.
   const string &getIdentifier() const { return identifier; }
 
   /// Returns the names of imported package units.
   const vector<string> &getImports() const { return imports; }
-
-  /// Returns the declarations of this package unit.
-  const vector<std::unique_ptr<Decl>> &getDecls() const { return decls; }
 
   /// Adds a declaration to this package unit.
   void addDecl(std::unique_ptr<Decl> decl) { decls.push_back(std::move(decl)); }

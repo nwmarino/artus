@@ -2,7 +2,6 @@
 #define ARTUS_AST_STMT_H
 
 #include <memory>
-#include <utility>
 
 #include "Decl.h"
 #include "../Core/Span.h"
@@ -54,6 +53,8 @@ public:
   CompoundStmt(vector<std::unique_ptr<Stmt>> stmts, Scope *scope, 
                const Span &span);
 
+  void pass(ASTVisitor *visitor);
+
   /// Returns the list of statements.
   const vector<std::unique_ptr<Stmt>> &getStmts() const;
 
@@ -72,6 +73,8 @@ class LabelStmt final : public Stmt {
 public:
   LabelStmt(const string &name, const Decl *decl, const Span &span);
 
+  void pass(ASTVisitor *visitor);
+
   /// Returns the name of the label.
   const string &getName() const;
 
@@ -89,6 +92,8 @@ class RetStmt final : public ValueStmt {
 
 public:
   RetStmt(std::unique_ptr<Expr> expr, const Span &span);
+
+  void pass(ASTVisitor *visitor);
 
   /// Returns the expression to return.
   const Expr *getExpr() const;

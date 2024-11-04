@@ -1,6 +1,7 @@
 #ifndef ARTUS_AST_DECL_H
 #define ARTUS_AST_DECL_H
 
+#include "ASTVisitor.h"
 #include "DeclBase.h"
 #include "../Core/Span.h"
 #include "../Sema/Type.h"
@@ -12,10 +13,11 @@ using std::vector;
 namespace artus {
 
 /// Forward declarations.
+class ASTPrinter;
 class Scope;
 class Stmt;
 
-/// Base class for all in-line Declaration nodes.
+/// Base class for all in-line declaration nodes.
 class Decl : public DeclBase {
 protected:
   /// Positional information about this node.
@@ -23,6 +25,8 @@ protected:
 
 public:
   Decl(const Span &span) : span(span) {}
+
+  virtual void pass(ASTVisitor *visitor) = 0;
 
   /// Returns the span of this declaration.
   const Span &getSpan() const { return span; }
@@ -66,6 +70,8 @@ public:
   LabelDecl(const string &name, const Span &span)
       : NamedDecl(name, span), stmt(nullptr) {}
 
+  void pass(ASTVisitor *visitor) { visitor->visit(this); }
+
   /// Returns the associated label statement.
   const Stmt *getStmt() const { return stmt; }
 
@@ -82,12 +88,16 @@ public:
   ParamVarDecl(const string &name, const Type *T, const Span &span)
       : NamedDecl(name, span), T(T) {}
 
+  void pass(ASTVisitor *visitor) { visitor->visit(this); }
+
   /// Returns the type of this parameter.
   const Type *getType() const { return T; }
 };
 
 /// Represents a function declaration.
 class FunctionDecl final : public ScopedDecl {
+  friend class ASTPrinter;
+
   /// The return type of this function declaration.
   const Type *T;
 
@@ -103,6 +113,8 @@ public:
                std::unique_ptr<Stmt> body, Scope *scope, const Span &span)
       : ScopedDecl(name, scope, span), T(T), params(std::move(params)),
         body(std::move(body)) {}
+
+  void pass(ASTVisitor *visitor) { visitor->visit(this); }
 
   /// Returns the return type of this function declaration.
   const Type *getType() const { return T; }
