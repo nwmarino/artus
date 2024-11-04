@@ -34,12 +34,3 @@ const Type *Context::getType(const string &name) {
 
   return nullptr;
 }
-
-const Token &Context::next() {
-  previousToken = currentToken;
-  if (lexer->Lex(currentToken))
-    return currentToken;
-
-  eof = 1;
-  return currentToken;
-}

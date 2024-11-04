@@ -5,7 +5,7 @@
 #include <cstddef>
 #include <vector>
 
-#include "../Core/Span.h"
+#include "../Core/SourceLocation.h"
 
 using std::size_t;
 using std::string;
@@ -72,7 +72,7 @@ struct Token {
   TokenKind kind;
 
   /// Positional information about the token in the source code.
-  Span span;
+  SourceLocation loc;
 
   /// The optional, embedded value in this token.
   string value;
@@ -80,17 +80,17 @@ struct Token {
   /// The optional, literal kind represented by this token.
   LiteralKind literalKind;
 
-  /// Returns true if the token is an identifier, and false otherwise.
-  inline bool isIdentifier() const { return kind == TokenKind::Identifier; }
+  /// Returns true if the token is of the provided kind, and false otherwise.
+  inline bool is(TokenKind k) const { return kind == k; }
+
+  /// Returns true if the token is a literal of the provided kind, and false 
+  /// otherwise.
+  inline bool is(LiteralKind lk) const { return kind == TokenKind::Literal && \
+    literalKind == lk; }
 
   /// Returns true if the token is a reserved keyword, and false otherwise.
   inline bool isKeyword(const string &kw) const { 
     return kind == TokenKind::Identifier && value == kw && is_reserved(kw); 
-  }
-
-  /// Returns true if the token is an integer literal, and false otherwise.
-  inline bool isInteger() const { 
-    return kind == TokenKind::Literal && literalKind == LiteralKind::Integer; 
   }
 };
 

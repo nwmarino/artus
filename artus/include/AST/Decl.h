@@ -9,11 +9,11 @@ using std::size_t;
 using std::string;
 using std::vector;
 
+namespace artus {
+
 /// Forward declarations.
 class Scope;
 class Stmt;
-
-namespace artus {
 
 /// Base class for all in-line Declaration nodes.
 class Decl : public DeclBase {
@@ -63,8 +63,8 @@ class LabelDecl final : public NamedDecl {
   const Stmt *stmt;
 
 public:
-  LabelDecl(const string &name, const Stmt *stmt, const Span &span)
-      : NamedDecl(name, span), stmt(stmt) {}
+  LabelDecl(const string &name, const Span &span)
+      : NamedDecl(name, span), stmt(nullptr) {}
 
   /// Returns the associated label statement.
   const Stmt *getStmt() const { return stmt; }

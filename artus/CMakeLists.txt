@@ -4,15 +4,26 @@ project(artus)
 
 add_subdirectory(lib)
 
+set(INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+target_include_directories(artus_ast
+    PUBLIC
+        ${INCLUDE_DIR}/AST
+)
+
 target_include_directories(artus_core
     PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/Core
-        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${INCLUDE_DIR}/Core
 )
 
 target_include_directories(artus_lexer
     PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/Lex
+        ${INCLUDE_DIR}/Lex
+)
+
+target_include_directories(artus_parser
+    PUBLIC
+        ${INCLUDE_DIR}/Parse
 )
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
@@ -20,5 +31,8 @@ add_executable(artus artus.cpp)
 
 target_link_libraries(artus 
     PRIVATE 
-        artus_core artus_lexer
+        artus_ast 
+        artus_core 
+        artus_lexer 
+        artus_parser
 )

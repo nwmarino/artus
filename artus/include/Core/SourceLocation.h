@@ -11,12 +11,9 @@ namespace artus {
 /// Represents a singular location in the source code.
 /// Used for error reporting and span maintenance.
 struct SourceLocation {
-  const string file;
+  string file;
   size_t line;
   size_t col;
-
-  SourceLocation(const string &file, size_t line, size_t col) 
-      : file(file), line(line), col(col) {}
 };
 
 } // namespace artus

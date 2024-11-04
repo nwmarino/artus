@@ -26,7 +26,7 @@ struct ScopeContext {
 /// in that it is only related to the AST and destroyed after semantic analysis.
 class Scope {
   /// The parent scope of this scope.
-  Scope *parent;
+  Scope *parent = nullptr;
 
   /// The declarations within this local scope.
   vector<NamedDecl *> decls;
@@ -52,6 +52,15 @@ public:
     auto d = std::find(decls.begin(), decls.end(), decl);
     if (d != decls.end())
       decls.erase(d);
+  }
+
+  /// Retrieves a declaration by name, if it exists, and `nullptr` otherwise.
+  Decl *getDecl(const string &name) const {
+    for (auto decl : decls) {
+      if (decl->getName() == name)
+        return decl;
+    }
+    return nullptr;
   }
 
   /// Returns true if this is a global scope, and false otherwise.

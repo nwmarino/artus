@@ -18,9 +18,14 @@ class IntegerLiteral final : public Expr {
   /// The literal value nested in this node.
   const int value;
 
+  /// If this literal is signed.
+  const unsigned signedness : 1;
+
 public:
-  IntegerLiteral(const int value, const Type *T, const Span &span) 
-      : Expr(T, span), value(value) {}
+  IntegerLiteral(const int value, const Type *T, const unsigned signedness, 
+                 const Span &span) 
+      : Expr(T, span), value(value), 
+      signedness(signedness ? signedness : value < 0) {}
 
   /// Returns the value nested in this node.
   const int getValue() const { return value; }

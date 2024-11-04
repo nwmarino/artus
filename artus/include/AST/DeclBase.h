@@ -11,11 +11,11 @@
 using std::string;
 using std::vector;
 
+namespace artus {
+
 /// Forward declarations.
 class Decl;
 class Scope;
-
-namespace artus {
 
 /// Base class for all Declaration nodes. Primarily used to distinguish inline
 /// declarations and that of packages and the like.

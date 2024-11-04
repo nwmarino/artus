@@ -24,15 +24,13 @@ struct SourceFile {
 /// Context used during analysis phases of the compilation process.
 class Context final {
   friend class BasicType;
-
-  /// Most recent lexed token.
-  Token currentToken = { .kind = TokenKind::Eof };
-  
-  /// The token canonically previous to the current token.
-  Token previousToken = { .kind = TokenKind::Eof };
+  friend class Parser;
 
   /// The source files to be compiled.
   vector<SourceFile> files;
+
+  /// The currently active source file.
+  SourceFile active;
 
   /// A lexer instance used to tokenize the source code.
   std::unique_ptr<Lexer> lexer;
@@ -53,14 +51,11 @@ public:
   /// a type refernce to a possibly qualified type.
   const Type *getType(const string &name);
 
-  /// Returns the next token from the lexer. Consumes the previous token.
-  const Token &next();
+  /// Returns the name of the currently active source file.
+  inline const string &getActiveFileName() const { return active.name; }
 
-  /// Returns the currently lexed token. Does not discard the token.
-  const Token &curr() const { return currentToken; }
-
-  /// Returns the previously lexed token. Does not discard the token.
-  const Token &prev() const { return previousToken; }
+  /// Returns the path of the currently active source file.
+  inline const string &getActiveFilePath() const { return active.path; }
 };
 
 }; // namespace artus

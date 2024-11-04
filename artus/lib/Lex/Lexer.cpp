@@ -11,20 +11,19 @@ using std::string;
 using namespace artus;
 
 Lexer::Lexer(const string &file, const char *BufferStart) 
-    : BufferPos(BufferStart), loc(file, 1, 1), previousChar('\0'), 
-    previousToken({ .kind = TokenKind::Eof }) {}
+    : BufferPos(BufferStart), loc({ .file = file, .line = 1, .col = 1}), 
+    previousToken({ .kind = TokenKind::Eof }), previousChar('\0') {}
 
 Lexer::Lexer(SourceLocation loc, const char *BufferPos) 
-    : BufferPos(BufferPos), loc(loc), 
-    previousChar(*BufferPos != '\0' ? BufferPos[-1] : '\0'), 
-    previousToken({ .kind = TokenKind::Eof }) {}
+    : BufferPos(BufferPos), loc(loc), previousToken({ .kind = TokenKind::Eof }),
+    previousChar(*BufferPos != '\0' ? BufferPos[-1] : '\0') {}
 
 string Lexer::peek(size_t n) const { return string(BufferPos + 1, n); }
 
 void Lexer::initToken(Token &next) {
   next.kind = TokenKind::Eof;
   next.value = "";
-  next.span = { .file = loc.file, .line = loc.line, .col = loc.col };
+  next.loc = loc;
 }
 
 bool Lexer::Lex(Token &next) {
@@ -120,10 +119,10 @@ const string Lexer::dump() {
   string result;
 
   string tmp;
-  string span;
+  string loc;
   while (Lex(curr)) {
-    span = curr.span.file + ":" + std::to_string(curr.span.line) +
-        ":" + std::to_string(curr.span.col);
+    loc = curr.loc.file + ":" + std::to_string(curr.loc.line) +
+        ":" + std::to_string(curr.loc.col);
 
     switch (curr.kind) {
       case TokenKind::LineComment: tmp = "LineComment"; break;
@@ -139,7 +138,7 @@ const string Lexer::dump() {
       case TokenKind::Eof: tmp = "Eof"; break;
     }
 
-    result += std::format("{:15}{}\n", span, tmp);
+    result += std::format("{:15}{}\n", loc, tmp);
   }
 
   return result;

@@ -18,3 +18,13 @@ using namespace artus;
 void artus::warn(const string &msg) {
   printf("artus: %s%s\n", WARN, msg.c_str());
 }
+
+void artus::warn(const string &msg, const SourceLocation &loc) {
+  printf("%s:%zu:%zu: %s%s\n", loc.file.c_str(), loc.line, loc.col,
+      WARN, msg.c_str());
+}
+
+void artus::trace(const string &msg, const SourceLocation &loc) {
+  printf("%s:%zu:%zu: %s%s\n", loc.file.c_str(), loc.line, loc.col,
+      TRACE, msg.c_str());
+}
