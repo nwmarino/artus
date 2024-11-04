@@ -2,6 +2,7 @@
 
 #include "../../include/Core/Logger.h"
 #include "../../include/Parse/Parser.h"
+#include "../../include/Sema/Type.h"
 
 using std::string;
 using std::vector;
@@ -22,10 +23,13 @@ std::unique_ptr<Decl> Parser::ParseDeclaration() {
 ///   'fn' '@' <identifier> '(' [params] ')' '->' [return-type] <stmt>
 ///
 /// params:
-///   <type> <param> [',' <type> <param>]*
+///   [type] <param> [',' [type] <param>]*
+///
+/// type:
+///   <identfier>
 ///
 /// return-type:
-///   <type>
+///   <identifier>
 ///
 /// Expects the current token to be a 'fn' keyword.
 std::unique_ptr<Decl> Parser::ParseFunctionDeclaration() {
@@ -57,7 +61,7 @@ std::unique_ptr<Decl> Parser::ParseFunctionDeclaration() {
   enterScope({ .isFunctionScope = 1 });
   vector<std::unique_ptr<ParamVarDecl>> params = ParseFunctionParams();
 
-  /* Redo until line x when void return type is supported. */
+  /* Redo until line 80 when void return type is supported. */
 
   // Unrecoverable error if the next token is not a '->' symbol. (No void types)
   if (!tok.is(TokenKind::Arrow)) {
@@ -71,8 +75,13 @@ std::unique_ptr<Decl> Parser::ParseFunctionDeclaration() {
     fatal("expected type after '->' symbol", lastLoc);
   }
 
-  const Type *T = ctx.getType(tok.value);
+  const Type *returnType = ctx.getType(tok.value);
   nextToken(); // Consume the type token.
+
+  // Create the function type.
+  const Type *T = new FunctionType(returnType, {});
+
+  /* Cut here. */
 
   // Parse the function body.
   std::unique_ptr<Stmt> body = ParseStatement();

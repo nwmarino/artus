@@ -105,7 +105,7 @@ class Parser final {
 
   std::unique_ptr<Decl> ParseDeclaration();
   std::unique_ptr<Decl> ParseFunctionDeclaration();
-  std::vector<std::unique_ptr<Decl>> ParseFunctionParams();
+  std::vector<std::unique_ptr<ParamVarDecl>> ParseFunctionParams();
 
   std::unique_ptr<PackageUnitDecl> ParsePackageUnit();
 
