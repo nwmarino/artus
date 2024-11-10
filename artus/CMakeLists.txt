@@ -26,6 +26,11 @@ target_include_directories(artus_parser
         ${INCLUDE_DIR}/Parse
 )
 
+target_include_directories(artus_sema
+    PUBLIC
+        ${INCLUDE_DIR}/Sema
+) 
+
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_executable(artus 
@@ -38,6 +43,7 @@ add_executable(artus
     lib/Parse/ParseDecl.cpp
     lib/Parse/ParseExpr.cpp
     lib/Parse/ParseStmt.cpp
+    lib/Sema/Sema.cpp
 )
 
 include_directories(${INCLUDE_DIR})
@@ -48,4 +54,5 @@ target_link_libraries(artus
         artus_core 
         artus_lexer 
         artus_parser
+        artus_sema
 )
