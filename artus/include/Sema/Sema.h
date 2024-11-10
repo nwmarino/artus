@@ -1,5 +1,5 @@
-#ifndef ARTUS_SEMA_H
-#define ARTUS_SEMA_H
+#ifndef ARTUS_SEMA_SEMA_H
+#define ARTUS_SEMA_SEMA_H
 
 #include "../AST/ASTVisitor.h"
 #include "Scope.h"
@@ -9,14 +9,6 @@ namespace artus {
 /// This class implements a Semantic Analysis pass over an AST. The checks
 /// involved include name resolution, type checking, and control flow analysis.
 class Sema final : public ASTVisitor {
-  friend class PackageUnitDecl;
-  friend class FunctionDecl;
-  friend class LabelDecl;
-  friend class IntegerLiteral;
-  friend class CompoundStmt;
-  friend class LabelStmt;
-  friend class RetStmt;
-
   /// The possible kinds of loop that the visitor can be traversing.
   enum class LoopKind {
     /// No loop.
@@ -32,23 +24,23 @@ class Sema final : public ASTVisitor {
 
   /// Relevant scope quantifiers.
   Scope *globalScope;
-  Scope *currentScope;
+  Scope *localScope;
 
-  /// The return type of the top-level function, if it exists.
-  const Type *returnType;
+  /// The type of the top-level function, if it exists.
+  const FunctionType *parentFunctionType = nullptr;
 
+public:
   void visit(PackageUnitDecl *decl) override;
   void visit(FunctionDecl *decl) override;
   void visit(LabelDecl *decl) override;
+
   void visit(IntegerLiteral *expr) override;
+
   void visit(CompoundStmt *stmt) override;
   void visit(LabelStmt *stmt) override;
   void visit(RetStmt *stmt) override;
-  
-public:
-  Sema();
 };
 
 } // namespace artus
 
-#endif // ARTUS_SEMA_H
+#endif // ARTUS_SEMA_SEMA_H

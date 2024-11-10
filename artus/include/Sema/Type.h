@@ -27,6 +27,12 @@ public:
   /// to the identifier parsed.
   virtual string toString() const = 0;
 
+  /// Compare two types for equality. Returns 0 if the types are not equal, 1
+  /// if they are exactly equivelant, and 2 if they are suitable for implicit
+  /// conversion. For example, enums and primitive integers are implicitly
+  /// convertible.
+  virtual int compare(const Type *other) const = 0;
+
   /// TODO: Returns the equivelant LLVM type for the given type.
   /// virtual llvm::Type *toLLVMType() const = 0;
 };
@@ -77,6 +83,22 @@ public:
     return "unknown";
   }
 
+  /// Compare two basic types for equality. Returns 0 if the types aren't equal,
+  /// 1 if they are exactly equivelant, and 2 if they are suitable for implicit
+  /// conversion. For example, enums and primitive integers are implicitly
+  /// convertible.
+  int compare(const Type *other) const override {
+    if (const BasicType *otherType = dynamic_cast<const BasicType *>(other)) {
+      if (kind == otherType->kind)
+        return 1;
+
+      if (isIntegerType() && otherType->isIntegerType())
+        return 2;
+    }
+    // TODO: support enums
+    return 0;
+  }
+
   /// llvm::Type *toLLVMType() const override;
 };
 
@@ -117,7 +139,29 @@ public:
     }
   
     return str.append(") -> " + returnType->toString());
-  } 
+  }
+
+  /// Compare a function type with another type. Function types match if and
+  /// only if all paremeters and the return type match. The return value of
+  /// this function is never 2 due to explicitness of function types.
+  int compare(const Type *other) const override {
+    if (const FunctionType 
+          *otherType = dynamic_cast<const FunctionType *>(other)) {
+      if (returnType->compare(otherType->returnType) == 0)
+        return 0;
+
+      if (paramTypes.size() != otherType->paramTypes.size())
+        return 0;
+
+      for (size_t i = 0; i < paramTypes.size(); i++) {
+        if (paramTypes[i]->compare(otherType->paramTypes[i]) == 0)
+          return 0;
+      }
+
+      return 1;
+    }
+    return 0;
+  }
 
   /// llvm::Type *toLLVMType() const override;
 };
