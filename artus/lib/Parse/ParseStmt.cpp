@@ -13,13 +13,11 @@ std::unique_ptr<Stmt> Parser::ParseStatement() {
   if (!tok.is(TokenKind::Identifier))
     return ParseExpression();
 
-  Token token = tok;
-  nextToken(); // Consume the identifier token.
-
-  if (tok.is(TokenKind::Colon))
+  peekToken();
+  if (peek.is(TokenKind::Colon))
     return ParseLabelStatement();
 
-  return nullptr;
+  return ParseRetStatement();
 }
 
 /// Parse a compound statement.

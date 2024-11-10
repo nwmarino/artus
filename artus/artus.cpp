@@ -1,19 +1,24 @@
+#include "include/AST/ASTPrinter.h"
+#include "include/Core/Context.h"
 #include "include/Core/Logger.h"
 #include "include/Lex/Lexer.h"
+#include "include/Parse/Parser.h"
 
 #include <cstdlib>
 #include <fstream>
-#include <fstream>
 
 using std::ofstream;
+using std::fstream;
+using std::string;
 
 using namespace artus;
 
 int main(int argc, char **argv) {
-  std::fstream file("./sample/main.s");
+  const string path = "../sample/RetZero.s";
+  fstream file(path);
 
   if (!file.is_open()) {
-    fatal(std::string("file not found: ") + "./sample/main.s");
+    fatal(string("file not found: ") + path);
   }
 
   char *SrcBuffer;
@@ -28,12 +33,27 @@ int main(int argc, char **argv) {
   file.read(SrcBuffer, len);
   file.close();
 
-  Lexer lexer("main.s", SrcBuffer);
-
+  /*
   ofstream buf("dump.txt");
   buf << lexer.dump();
   buf.close();
+  */
 
-  free(SrcBuffer);
+  SourceFile src = { .name = "main.s", .path = path, .BufferStart = SrcBuffer };
+  Context *ctx = new Context(vector({ src }));
+
+  Parser parser = Parser(ctx);
+  parser.buildAST();
+
+  ctx->printAST();
+
+  /*
+  parser.buildAST();
+
+  ctx->printAST();
+  */
+ 
+  delete ctx;
+  delete SrcBuffer;
   return EXIT_SUCCESS;
 }

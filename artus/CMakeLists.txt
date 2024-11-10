@@ -18,7 +18,7 @@ target_include_directories(artus_core
 
 target_include_directories(artus_lexer
     PUBLIC
-        ${INCLUDE_DIR}/Lex
+        ${INCLUDE_DIR}/Lexer
 )
 
 target_include_directories(artus_parser
@@ -27,9 +27,22 @@ target_include_directories(artus_parser
 )
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-add_executable(artus artus.cpp)
 
-target_link_libraries(artus 
+add_executable(artus 
+    artus.cpp 
+    lib/AST/ASTPrinter.cpp 
+    lib/AST/Stmt.cpp
+    lib/Core/Context.cpp
+    lib/Core/Logger.cpp
+    lib/Lex/Lexer.cpp
+    lib/Parse/ParseDecl.cpp
+    lib/Parse/ParseExpr.cpp
+    lib/Parse/ParseStmt.cpp
+)
+
+include_directories(${INCLUDE_DIR})
+
+target_link_libraries(artus
     PRIVATE 
         artus_ast 
         artus_core 

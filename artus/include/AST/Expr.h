@@ -1,6 +1,7 @@
 #ifndef ARTUS_AST_EXPR_H
 #define ARTUS_AST_EXPR_H
 
+#include "ASTPrinter.h"
 #include "Stmt.h"
 #include "../Core/Span.h"
 #include "../Sema/Type.h"
@@ -15,6 +16,8 @@ public:
 
 /// An integer literal. For example, `0`, `1`, etc.
 class IntegerLiteral final : public Expr {
+  friend class ASTPrinter;
+
   /// The literal value nested in this node.
   const int value;
 
@@ -27,7 +30,7 @@ public:
       : Expr(T, span), value(value), 
       signedness(signedness ? signedness : value < 0) {}
 
-  void pass(ASTVisitor *visitor) { visitor->visit(this); }
+  void pass(ASTVisitor *visitor) override { visitor->visit(this); }
 
   /// Returns the value nested in this node.
   const int getValue() const { return value; }

@@ -74,6 +74,7 @@ public:
       case UINT64: return "u64";
       case FP64: return "f64";
     }
+    return "unknown";
   }
 
   /// llvm::Type *toLLVMType() const override;
@@ -110,8 +111,10 @@ public:
     }
   
     // Remove the last comma and space.
-    if (str != "(")
-      str.pop_back(); str.pop_back();
+    if (str.size() > 1) {
+      str.pop_back(); 
+      str.pop_back();
+    }
   
     return str.append(") -> " + returnType->toString());
   } 

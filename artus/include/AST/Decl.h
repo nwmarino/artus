@@ -1,9 +1,9 @@
 #ifndef ARTUS_AST_DECL_H
 #define ARTUS_AST_DECL_H
 
+#include "ASTPrinter.h"
 #include "ASTVisitor.h"
 #include "DeclBase.h"
-#include "../Core/Span.h"
 #include "../Sema/Type.h"
 
 using std::size_t;
@@ -13,24 +13,8 @@ using std::vector;
 namespace artus {
 
 /// Forward declarations.
-class ASTPrinter;
 class Scope;
 class Stmt;
-
-/// Base class for all in-line declaration nodes.
-class Decl : public DeclBase {
-protected:
-  /// Positional information about this node.
-  const Span span;
-
-public:
-  Decl(const Span &span) : span(span) {}
-
-  virtual void pass(ASTVisitor *visitor) = 0;
-
-  /// Returns the span of this declaration.
-  const Span &getSpan() const { return span; }
-};
 
 /// Base class for all declarations. Named declarations are those which exist in
 /// a scope, and sometimes define a symbol.
@@ -70,7 +54,7 @@ public:
   LabelDecl(const string &name, const Span &span)
       : NamedDecl(name, span), stmt(nullptr) {}
 
-  void pass(ASTVisitor *visitor) { visitor->visit(this); }
+  void pass(ASTVisitor *visitor) override { visitor->visit(this); }
 
   /// Returns the associated label statement.
   const Stmt *getStmt() const { return stmt; }
@@ -81,6 +65,8 @@ public:
 
 /// Represents a parameter to a function.
 class ParamVarDecl final : public NamedDecl {
+  friend class ASTPrinter;
+
   /// The type of this parameter.
   const Type *T;
 
@@ -88,7 +74,7 @@ public:
   ParamVarDecl(const string &name, const Type *T, const Span &span)
       : NamedDecl(name, span), T(T) {}
 
-  void pass(ASTVisitor *visitor) { visitor->visit(this); }
+  void pass(ASTVisitor *visitor) override { visitor->visit(this); }
 
   /// Returns the type of this parameter.
   const Type *getType() const { return T; }
@@ -114,7 +100,7 @@ public:
       : ScopedDecl(name, scope, span), T(T), params(std::move(params)),
         body(std::move(body)) {}
 
-  void pass(ASTVisitor *visitor) { visitor->visit(this); }
+  void pass(ASTVisitor *visitor) override { visitor->visit(this); }
 
   /// Returns the return type of this function declaration.
   const Type *getType() const { return T; }
@@ -127,9 +113,6 @@ public:
   inline const ParamVarDecl *getParam(size_t i) const {
     return i < params.size() ? params[i].get() : nullptr;
   }
-
-  /// Returns the body of this function declaration.
-  const Stmt *getBody() const { return body.get(); }
 };
 
 } // namespace artus

@@ -7,7 +7,7 @@
 #include <vector>
 
 #include "ASTPrinter.h"
-#include "../Core/Context.h"
+#include "../Core/Span.h"
 
 using std::string;
 using std::vector;
@@ -23,6 +23,21 @@ class Scope;
 class DeclBase {
 public:
   virtual ~DeclBase() = default;
+
+  virtual void pass(ASTVisitor *visitor) = 0;
+};
+
+/// Base class for all in-line declaration nodes.
+class Decl : public DeclBase {
+protected:
+  /// Positional information about this node.
+  const Span span;
+
+public:
+  Decl(const Span &span) : span(span) {}
+
+  /// Returns the span of this declaration.
+  const Span &getSpan() const { return span; }
 };
 
 /// Represents a package declaration. A package represents a singular source
@@ -48,7 +63,7 @@ public:
       : identifier(id), imports(std::move(imports)), decls(std::move(decls)),
         scope(scope) {}
 
-  void pass(ASTVisitor *visitor) { visitor->visit(this); }
+  void pass(ASTVisitor *visitor) override { visitor->visit(this); }
 
   /// Returns the identifier of this package unit.
   const string &getIdentifier() const { return identifier; }

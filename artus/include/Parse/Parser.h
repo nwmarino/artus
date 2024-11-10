@@ -12,7 +12,7 @@ class Parser final {
   friend class Context;
 
   /// Relevant context used during parsing.
-  Context &ctx;
+  Context *ctx;
 
   /// The current token being parsed.
   Token tok;
@@ -29,13 +29,13 @@ class Parser final {
   unsigned inFunction : 1;
 
   /// The last recorded location in the source code.
-  SourceLocation lastLoc = { ctx.getActiveFileName(), 0, 0 };
+  SourceLocation lastLoc = { ctx->getActiveFileName(), 0, 0 };
 
   /// The current scope of the parser.
   Scope *scope;
 
   /// The type of the parent function declaration, if it exists.
-  FunctionType *parentFunctionType = nullptr;
+  const FunctionType *parentFunctionType = nullptr;
 
   /// Consumes the current token and moves to the next token in the stream.
   /// Returns `true` if the parser has begun lexing a new unit, and `false`
@@ -48,13 +48,13 @@ class Parser final {
       return false;
     }
 
-    if (ctx.lexer->Lex(tok)) {
-      lastLoc = { ctx.getActiveFileName(), tok.loc.line, 
+    if (ctx->lexer->Lex(tok)) {
+      lastLoc = { ctx->getActiveFileName(), tok.loc.line, 
                   tok.loc.col };
       return false;
     }
 
-    return ctx.nextFile();
+    return ctx->nextFile();
   }
 
   /// Peeks at the next token in the stream. Does not consume the current token.
@@ -62,12 +62,7 @@ class Parser final {
   /// if it has already been peeked at. Returns `true` if there was a token to
   /// peek at, and `false` otherwise.
   bool peekToken() {
-    if (!peeking) {
-      if (ctx.lexer->Lex(peek))
-        return ++peeking;
-    }
-
-    return false;
+    return !peeking && ctx->lexer->Lex(peek) ? ++peeking : false;
   }
 
   /// Generate a span from the provided location to the last location seen by
@@ -110,7 +105,14 @@ class Parser final {
   std::unique_ptr<PackageUnitDecl> ParsePackageUnit();
 
 public:
-  Parser(Context &ctx) : ctx(ctx) {}
+  Parser(Context *ctx) : ctx(ctx) {}
+
+  /// Creates an AST from the token stream and embeds the package units into
+  /// the context attached to this parser interface.
+  void buildAST() { 
+    while (ctx->nextFile()) 
+      ctx->addPackage(ParsePackageUnit()); 
+  }
 };
 
 } // namespace artus

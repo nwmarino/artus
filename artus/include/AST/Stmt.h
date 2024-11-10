@@ -3,6 +3,7 @@
 
 #include <memory>
 
+#include "ASTPrinter.h"
 #include "Decl.h"
 #include "../Core/Span.h"
 #include "../Sema/Type.h"
@@ -24,6 +25,9 @@ protected:
 public:
   Stmt(const Span &span);
 
+  virtual ~Stmt() = default;
+  virtual void pass(ASTVisitor *visitor) = 0;
+
   /// Returns the span of this statement.
   const Span &getSpan() const;
 };
@@ -43,6 +47,8 @@ public:
 
 /// Represents a list of statements, enclosed by braces.
 class CompoundStmt final : public Stmt {
+  friend class ASTPrinter;
+
   /// The list of statements.
   const vector<std::unique_ptr<Stmt>> stmts;
 
@@ -53,7 +59,7 @@ public:
   CompoundStmt(vector<std::unique_ptr<Stmt>> stmts, Scope *scope, 
                const Span &span);
 
-  void pass(ASTVisitor *visitor);
+  void pass(ASTVisitor *visitor) override;
 
   /// Returns the list of statements.
   const vector<std::unique_ptr<Stmt>> &getStmts() const;
@@ -64,6 +70,8 @@ public:
 
 /// Represents a label statement. For example, `label:`.
 class LabelStmt final : public Stmt {
+  friend class ASTPrinter;
+
   /// The name of the label.
   const string name;
 
@@ -73,7 +81,7 @@ class LabelStmt final : public Stmt {
 public:
   LabelStmt(const string &name, const Decl *decl, const Span &span);
 
-  void pass(ASTVisitor *visitor);
+  void pass(ASTVisitor *visitor) override;
 
   /// Returns the name of the label.
   const string &getName() const;
@@ -87,13 +95,15 @@ public:
 
 /// Represents a return statement. For example, `ret 0`.
 class RetStmt final : public ValueStmt {
+  friend class ASTPrinter;
+
   /// The expression to return.
   const std::unique_ptr<Expr> expr;
 
 public:
   RetStmt(std::unique_ptr<Expr> expr, const Span &span);
 
-  void pass(ASTVisitor *visitor);
+  void pass(ASTVisitor *visitor) override;
 
   /// Returns the expression to return.
   const Expr *getExpr() const;

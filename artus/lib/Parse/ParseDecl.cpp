@@ -79,11 +79,12 @@ std::unique_ptr<Decl> Parser::ParseFunctionDeclaration() {
     fatal("expected type after '->' symbol", lastLoc);
   }
 
-  const Type *returnType = ctx.getType(tok.value);
+  const Type *returnType = ctx->getType(tok.value);
   nextToken(); // Consume the type token.
 
   // Create the function type.
-  const Type *T = new FunctionType(returnType, {});
+  const FunctionType *T = new FunctionType(returnType, {});
+  this->parentFunctionType = T;
 
   /* Cut here. */
 
@@ -99,6 +100,7 @@ std::unique_ptr<Decl> Parser::ParseFunctionDeclaration() {
   // Exit from the function scope.
   Scope *scope = this->scope;
   this->inFunction = 0;
+  this->parentFunctionType = nullptr;
   exitScope();
 
   std::unique_ptr<FunctionDecl> fnDecl = std::make_unique<FunctionDecl>(
@@ -127,7 +129,7 @@ std::vector<std::unique_ptr<ParamVarDecl>> Parser::ParseFunctionParams() {
 
 /// Parse a package unit.
 std::unique_ptr<PackageUnitDecl> Parser::ParsePackageUnit() {
-  const string id = ctx.getActiveFilePath();
+  const string id = ctx->getActiveFilePath();
 
   // Declare a new scope for the package.
   enterScope({ .isUnitScope = 1 });

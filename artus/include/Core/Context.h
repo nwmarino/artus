@@ -1,9 +1,10 @@
-#ifndef ARTUS_CORE_CCONTEXT_H
-#define ARTUS_CORE_CCONTEXT_H
+#ifndef ARTUS_CORE_CONTEXT_H
+#define ARTUS_CORE_CONTEXT_H
 
 #include <map>
 #include <memory>
 
+#include "../AST/DeclBase.h"
 #include "../Lex/Lexer.h"
 #include "../Lex/Token.h"
 #include "../Sema/Type.h"
@@ -13,6 +14,9 @@ using std::string;
 using std::vector;
 
 namespace artus {
+
+/// Forward declarations.
+class PackageUnitDecl;
  
 /// Represents an input source file to the compiler.
 struct SourceFile {
@@ -35,6 +39,9 @@ class Context final {
   /// A lexer instance used to tokenize the source code.
   std::unique_ptr<Lexer> lexer;
 
+  /// A list of parsed package units.
+  vector<std::unique_ptr<PackageUnitDecl>> pkgs;
+
   /// A map of all types in the current context.
   mutable map<string, const Type *> types;
 
@@ -47,6 +54,9 @@ public:
   /// Iterates to the next source file in the context.
   bool nextFile();
 
+  /// Adds a package unit to the lifetime of this context.
+  void addPackage(std::unique_ptr<PackageUnitDecl> pkg);
+
   /// Returns the type most similar to `name`. If no type is found, returns
   /// a type refernce to a possibly qualified type.
   const Type *getType(const string &name);
@@ -56,8 +66,11 @@ public:
 
   /// Returns the path of the currently active source file.
   inline const string &getActiveFilePath() const { return active.path; }
+
+  /// Prints the current state of the AST embedded in this context.
+  void printAST();
 };
 
 }; // namespace artus
 
-#endif // ARTUS_CORE_CCONTEXT_H
+#endif // ARTUS_CORE_CONTEXT_H

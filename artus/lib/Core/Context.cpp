@@ -1,3 +1,6 @@
+#include "../../include/AST/ASTPrinter.h"
+#include "../../include/AST/Decl.h"
+#include "../../include/AST/Stmt.h"
 #include "../../include/Core/Context.h"
 
 using std::string;
@@ -28,9 +31,20 @@ bool Context::nextFile() {
   return true;
 }
 
+void Context::addPackage(std::unique_ptr<PackageUnitDecl> pkg) {
+  pkgs.push_back(std::move(pkg));
+}
+
 const Type *Context::getType(const string &name) {
   if (types.find(name) != types.end())
     return types[name];
 
   return nullptr;
+}
+
+void Context::printAST() {
+  ASTPrinter printer;
+  for (const auto &pkg : pkgs) {
+    printer.visit(pkg.get());
+  }
 }
