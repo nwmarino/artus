@@ -1,31 +1,15 @@
 #include <cstdlib>
 #include <fstream>
 
-#include "llvm/CodeGen/CommandFlags.h"
-#include "llvm/IR/IRPrintingPasses.h"
-#include "llvm/IR/LegacyPassManager.h"
-#include <llvm/Analysis/AliasAnalysis.h>
-#include <llvm/IR/PassManager.h>
-#include "llvm/MC/TargetRegistry.h"
-#include "llvm/Pass.h"
-#include "llvm/Passes/PassBuilder.h"
-#include "llvm/Passes/PassPlugin.h"
-#include <llvm/IR/Verifier.h>
-#include <llvm/Support/CodeGen.h>
-#include "llvm/Support/FileSystem.h"
 #include "llvm/Support/TargetSelect.h"
-#include "llvm/Support/ToolOutputFile.h"
-#include "llvm/Target/TargetMachine.h"
-#include "llvm/Target/TargetOptions.h"
-#include "llvm/TargetParser/Host.h"
 
+#include "Driver.h"
+#include "Input.h"
 #include "include/AST/ASTPrinter.h"
 #include "include/Codegen/Codegen.h"
 #include "include/Core/Context.h"
 #include "include/Core/Logger.h"
 #include "include/Lex/Lexer.h"
-#include "include/Parse/Parser.h"
-#include "include/Sema/Sema.h"
 
 using std::ofstream;
 using std::fstream;
@@ -33,34 +17,28 @@ using std::string;
 
 using namespace artus;
 
-/// Creates a target machine for the current host.
-[[nodiscard]] llvm::TargetMachine *createTM() {
-  llvm::Triple triple = llvm::Triple(llvm::sys::getDefaultTargetTriple());
-
-  llvm::TargetOptions opts;
-  std::string cpu_str = "generic";
-  std::string feat_str = "";
-
-  std::string err;
-  const llvm::Target *target = llvm::TargetRegistry::lookupTarget(
-      llvm::sys::getDefaultTargetTriple(), err);
-
-  if (!target) {
-    fatal(err);
+[[noreturn]] void printHelp(bool basic = false) {
+  printf("usage: artus [options] <input files>\n");
+  if (basic == true) {
+    exit(EXIT_SUCCESS);
   }
 
-  return target->createTargetMachine(triple.getTriple(), cpu_str, 
-      feat_str, opts, llvm::Reloc::PIC_);
+  printf("Options:\n");
+  printf("  -d: Enable debug mode\n");
+  printf("  -ll: Emit LLVM IR\n");
+  printf("  -S: Emit assembly\n");
+  printf("  --print-ast: Print the AST\n");
+  exit(EXIT_FAILURE);
 }
 
-int main(int argc, char **argv) {
-  const string path = "../sample/RetZero.s";
+SourceFile static parseInputFile(const string &path) {
   fstream file(path);
 
   if (!file.is_open()) {
     fatal(string("file not found: ") + path);
   }
 
+  const string name = path.substr(path.find_last_of('/') + 1);
   char *SrcBuffer;
   int len;
   
@@ -68,31 +46,59 @@ int main(int argc, char **argv) {
   SrcBuffer = new char[file.tellg()];
   len = file.tellg();
 
-  // read the whole file to bufstart
   file.seekg(0, std::ios::beg);
   file.read(SrcBuffer, len);
   file.close();
 
-  /*
-  ofstream buf("dump.txt");
-  buf << lexer.dump();
-  buf.close();
-  */
 
-  llvm::TargetMachine *TM = createTM();
+  return { .name = name.substr(0, name.find_last_of('.')), 
+      .path = path, .BufferStart = SrcBuffer };
+}
 
-  SourceFile src = { .name = "main.s", .path = path, .BufferStart = SrcBuffer };
-  Context *ctx = new Context(vector({ src }), TM);
+InputContainer parseCommandArgs(int argc, char **argv) {
+  CompilerFlags flags = CompilerFlags();
+  vector<SourceFile> files;
 
-  Parser parser = Parser(ctx);
-  parser.buildAST();
-  
-  Sema sema = Sema(ctx);
-  
-  ctx->printAST();
+  for (int i = 1; i < argc; ++i) {
+    if (strcmp(argv[i], "-h") == 0) {
+      printHelp();
+    }
+    
+    if (strcmp(argv[i], "-d") == 0)
+      flags.debug = 1;
+    else if (strcmp(argv[i], "-S") == 0)
+      flags.emitASM = 1;
+    else if (strcmp(argv[i], "-ll") == 0)
+      flags.emitLLVM = 1;
+    else if (strcmp(argv[i], "--print-ast") == 0)
+      flags.printAST = 1;
 
- 
-  delete ctx;
-  delete SrcBuffer;
+    if (argv[i][0] != '-') {
+      files.push_back(parseInputFile(argv[i]));
+    }
+  }
+
+  if (files.empty()) {
+    fatal("no input files");
+  }
+
+  return { .flags = flags, .files = files };
+}
+
+int main(int argc, char **argv) {
+  if (argc < 2) {
+    printHelp(true);
+  }
+
+  InputContainer input = parseCommandArgs(argc, argv);
+
+  llvm::InitializeAllTargets();
+  llvm::InitializeAllTargetMCs();
+  llvm::InitializeAllTargetInfos();
+  llvm::InitializeAllAsmPrinters();
+  llvm::InitializeAllAsmParsers();
+
+  Driver driver = Driver(input);
+
   return EXIT_SUCCESS;
 }

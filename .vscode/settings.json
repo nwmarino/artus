@@ -1,5 +1,5 @@
 {
-    "cmake.sourceDirectory": "/home/nwmar/Repos/artus/artus",
+    "cmake.sourceDirectory": "/home/nwmar/Repositories/artus/artus",
     "files.associations": {
         "string": "cpp",
         "array": "cpp",
@@ -76,5 +76,10 @@
         "variant": "cpp",
         "cassert": "cpp",
         "shared_mutex": "cpp"
+    },
+    "cmake.debugConfig": {
+        "args": [
+            "../sample/RetZero.s",
+        ]
     }
 }

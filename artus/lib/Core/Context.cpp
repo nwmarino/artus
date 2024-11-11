@@ -1,14 +1,14 @@
 #include "../../include/AST/ASTPrinter.h"
 #include "../../include/AST/Decl.h"
 #include "../../include/AST/Stmt.h"
+#include "Input.h"
 #include "../../include/Core/Context.h"
 
 using std::string;
 
 using namespace artus;
 
-Context::Context(vector<SourceFile> files, llvm::TargetMachine *TM) 
-    : files(std::move(files)), TM(TM), eof(0) {
+Context::Context(vector<SourceFile> files) : files(std::move(files)), eof(0) {
   this->cache = std::make_unique<UnitCache>();
 
   // Add basic types to the context.
@@ -32,6 +32,9 @@ bool Context::nextFile() {
   lexer = std::make_unique<Lexer>(next_file.name, 
       next_file.BufferStart);
   eof = 0;
+  active.BufferStart = next_file.BufferStart;
+  active.name = next_file.name;
+  active.path = next_file.path;
   return true;
 }
 
@@ -48,7 +51,7 @@ const Type *Context::getType(const string &name) {
 
 void Context::printAST() {
   ASTPrinter printer;
-  for (PackageUnitDecl *pkg : cache->getAllUnits()) {
+  for (PackageUnitDecl *pkg : cache->getUnits()) {
     printer.visit(pkg);
   }
 }

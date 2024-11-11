@@ -56,6 +56,7 @@ add_executable(artus
     lib/AST/Stmt.cpp
     lib/Codegen/Codegen.cpp
     lib/Core/Context.cpp
+    lib/Core/Driver.cpp
     lib/Core/Logger.cpp
     lib/Lex/Lexer.cpp
     lib/Parse/ParseDecl.cpp

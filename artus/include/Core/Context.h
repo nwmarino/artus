@@ -6,6 +6,7 @@
 
 #include "llvm/Target/TargetMachine.h"
 
+#include "Input.h"
 #include "UnitCache.h"
 #include "../AST/DeclBase.h"
 #include "../Lex/Lexer.h"
@@ -20,18 +21,12 @@ namespace artus {
 
 /// Forward declarations.
 class PackageUnitDecl;
- 
-/// Represents an input source file to the compiler.
-struct SourceFile {
-  const string name;
-  const string path;
-  const char *BufferStart;
-};
 
 /// Context used during analysis phases of the compilation process.
 class Context final {
   friend class BasicType;
   friend class Codegen;
+  friend class Driver;
   friend class Parser;
   friend class Sema;
 
@@ -50,14 +45,11 @@ class Context final {
   /// A map of all types in the current context.
   mutable map<string, const Type *> types;
 
-  /// The target machine to generate code for.
-  llvm::TargetMachine *TM;
-
   /// If the lexer has reached the end of the current source stream.
   unsigned int eof : 1;
 
 public:
-  Context(vector<SourceFile> files, llvm::TargetMachine *TM);
+  Context(vector<SourceFile> files);
 
   /// Iterates to the next source file in the context.
   bool nextFile();
@@ -74,9 +66,6 @@ public:
 
   /// Returns the path of the currently active source file.
   inline const string &getActiveFilePath() const { return active.path; }
-
-  /// Returns the target machine instance associated with this context.
-  inline llvm::TargetMachine *getTargetMachine() const { return TM; }
 
   /// Prints the current state of the AST embedded in this context.
   void printAST();

@@ -1,15 +1,17 @@
+#include <cassert>
+
 #include "../../include/Sema/Sema.h"
 #include "../../include/Core/Logger.h"
 
 using namespace artus;
 
 Sema::Sema(Context *ctx) : ctx(ctx) {
-  for (PackageUnitDecl *pkg : ctx->cache->getAllUnits()) {
+  for (PackageUnitDecl *pkg : ctx->cache->getUnits()) {
     pkg->pass(this); // Sema on each package unit.
   }
 }
 /// Semantic Analysis over a PackageUnitDecl.
-///2
+///
 /// PackageUnitDecls are valid if and only if they have valid declarations.
 void Sema::visit(PackageUnitDecl *decl) {
   globalScope = decl->scope;

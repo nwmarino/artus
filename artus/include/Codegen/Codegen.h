@@ -43,9 +43,10 @@ class Codegen : public ASTVisitor {
                                 llvm::Type *T);
 
 public:
-  Codegen(llvm::TargetMachine *TM, PackageUnitDecl *unit);
+  Codegen(Context *ctx, llvm::TargetMachine *TM);
+  ~Codegen();
   
-  llvm::Module *getModule() const { return module.get(); }
+  llvm::Module *getModule() { return module.get(); }
 
   void visit(PackageUnitDecl *decl) override;
   void visit(FunctionDecl *decl) override;

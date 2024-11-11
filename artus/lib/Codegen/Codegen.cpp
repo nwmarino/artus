@@ -9,17 +9,24 @@
 
 using namespace artus;
 
-Codegen::Codegen(llvm::TargetMachine *TM, PackageUnitDecl *unit) {
+Codegen::Codegen(Context *ctx, llvm::TargetMachine *TM) {
   // Instantiate the LLVM context, IR builder, and module.
   context = std::make_unique<llvm::LLVMContext>();
   builder = std::make_unique<llvm::IRBuilder<>>(*context);
-  module = std::make_unique<llvm::Module>("", *context);
+  module = std::make_unique<llvm::Module>(
+      ctx->cache->getActive()->getIdentifier(), *context);
 
   // Setup the target triple and data layout for the module.
   module->setTargetTriple(TM->getTargetTriple().getTriple());
   module->setDataLayout(TM->createDataLayout());
 
-  unit->pass(this);
+  ctx->cache->getActive()->pass(this);
+}
+
+Codegen::~Codegen() {
+  this->module.reset();
+  this->builder.reset();
+  this->context.reset();
 }
 
 llvm::AllocaInst *Codegen::createAlloca(llvm::Function *fn, 

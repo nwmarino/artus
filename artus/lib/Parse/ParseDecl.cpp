@@ -129,13 +129,13 @@ std::vector<std::unique_ptr<ParamVarDecl>> Parser::ParseFunctionParams() {
 
 /// Parse a package unit.
 std::unique_ptr<PackageUnitDecl> Parser::ParsePackageUnit() {
-  const string id = ctx->getActiveFilePath();
+  const string id = ctx->getActiveFileName();
 
   // Declare a new scope for the package.
   enterScope({ .isUnitScope = 1 });
   nextToken(); // Begin lexing tokens of the package unit.
 
-  // Parse the imports of the package. (unsupported)
+  /// TODO: Parse the imports of the package.
   vector<string> imports = {};
 
   // Parse the declarations of the package.
