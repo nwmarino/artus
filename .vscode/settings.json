@@ -1,5 +1,5 @@
 {
-    "cmake.sourceDirectory": "/home/nwmar/Repositories/artus/artus",
+    "cmake.sourceDirectory": "/home/nwmar/Repos/artus/artus",
     "files.associations": {
         "string": "cpp",
         "array": "cpp",

@@ -29,6 +29,7 @@ struct SourceFile {
 class Context final {
   friend class BasicType;
   friend class Parser;
+  friend class Sema;
 
   /// The source files to be compiled.
   vector<SourceFile> files;

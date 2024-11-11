@@ -3,6 +3,7 @@
 #include "include/Core/Logger.h"
 #include "include/Lex/Lexer.h"
 #include "include/Parse/Parser.h"
+#include "include/Sema/Sema.h"
 
 #include <cstdlib>
 #include <fstream>
@@ -44,14 +45,11 @@ int main(int argc, char **argv) {
 
   Parser parser = Parser(ctx);
   parser.buildAST();
-
+  
+  Sema sema = Sema(ctx);
+  
   ctx->printAST();
 
-  /*
-  parser.buildAST();
-
-  ctx->printAST();
-  */
  
   delete ctx;
   delete SrcBuffer;

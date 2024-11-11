@@ -1,10 +1,13 @@
-#include "Decl.h"
-#include "Logger.h"
-#include "Sema.h"
-#include "Type.h"
+#include "../../include/Sema/Sema.h"
+#include "../../include/Core/Logger.h"
 
 using namespace artus;
 
+Sema::Sema(Context *ctx) : ctx(ctx) {
+  for (const std::unique_ptr<PackageUnitDecl> &pkg : ctx->pkgs) {
+    pkg->pass(this); // Sema on each package unit.
+  }
+}
 /// Semantic Analysis over a PackageUnitDecl.
 ///2
 /// PackageUnitDecls are valid if and only if they have valid declarations.

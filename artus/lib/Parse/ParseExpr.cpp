@@ -40,7 +40,7 @@ std::unique_ptr<Expr> Parser::ParseIntegerExpression() {
 
   // Determine the type of the integer literal.
   const Type *T = parentFunctionType && parentFunctionType->isIntegerType() ? \
-      parentFunctionType : ctx->getType("i32");
+      parentFunctionType->getReturnType() : ctx->getType("i32");
 
   return std::make_unique<IntegerLiteral>(
     std::stoi(intToken.value, 0, 10), T, false,

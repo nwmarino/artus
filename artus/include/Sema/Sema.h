@@ -4,6 +4,7 @@
 #include "../AST/ASTVisitor.h"
 #include "../AST/Decl.h"
 #include "../AST/Expr.h"
+#include "../Core/Context.h"
 #include "Scope.h"
 
 using std::size_t;
@@ -13,6 +14,9 @@ namespace artus {
 /// This class implements a Semantic Analysis pass over an AST. The checks
 /// involved include name resolution, type checking, and control flow analysis.
 class Sema final : public ASTVisitor {
+  /// The context associated with the semantic analysis pass.
+  Context *ctx;
+
   /// The possible kinds of loop that the visitor can be traversing.
   enum class LoopKind {
     /// No loop.
@@ -40,6 +44,8 @@ class Sema final : public ASTVisitor {
   size_t paramIndex;
 
 public:
+  Sema(Context *ctx);
+
   void visit(PackageUnitDecl *decl) override;
   void visit(FunctionDecl *decl) override;
   void visit(ParamVarDecl *decl) override;
