@@ -4,6 +4,10 @@
 #include <string>
 #include <vector>
 
+#include "llvm/IR/LLVMContext.h"
+#include "llvm/IR/Type.h"
+#include "llvm/IR/DerivedTypes.h"
+
 using std::string;
 using std::vector;
 
@@ -23,6 +27,9 @@ public:
   /// evaluted to otherwise, and false otherwise.
   virtual bool isFloatingPointType() const = 0;
 
+  /// Returns the bit width of the type. For example, an `i64` would return 64.
+  virtual unsigned getBitWidth() const = 0;
+
   /// Returns a string representation of the type. This identifier is identical
   /// to the identifier parsed.
   virtual string toString() const = 0;
@@ -33,8 +40,8 @@ public:
   /// convertible.
   virtual int compare(const Type *other) const = 0;
 
-  /// TODO: Returns the equivelant LLVM type for the given type.
-  /// virtual llvm::Type *toLLVMType() const = 0;
+  /// Returns the equivelant LLVM type for the given type.
+  virtual llvm::Type *toLLVMType(llvm::LLVMContext &ctx) const = 0;
 };
 
 /// Class to represent basic, built-in types, such as `i64` or `char`.
@@ -68,6 +75,22 @@ public:
   /// otherwise.
   bool isFloatingPointType() const override { return kind == FP64; }
 
+  /// Returns the bit width of the basic type. For example, an `i64` would
+  /// return 64.
+  unsigned getBitWidth() const override {
+    switch (kind) {
+      case INT1: return 1;
+      case INT8: return 8;
+      case INT32: return 32;
+      case INT64: return 64;
+      case UINT8: return 8;
+      case UINT32: return 32;
+      case UINT64: return 64;
+      case FP64: return 64;
+    }
+    return 0;
+  }
+
   /// Returns a string representation of the basic type.
   string toString() const override {
     switch (kind) {
@@ -99,7 +122,20 @@ public:
     return 0;
   }
 
-  /// llvm::Type *toLLVMType() const override;
+  /// Returns a LLVM type equivelant to this basic type.
+  llvm::Type *toLLVMType(llvm::LLVMContext &ctx) const override {
+    switch (kind) {
+      case INT1: return llvm::Type::getInt1Ty(ctx);
+      case INT8: return llvm::Type::getInt8Ty(ctx);
+      case INT32: return llvm::Type::getInt32Ty(ctx);
+      case INT64: return llvm::Type::getInt64Ty(ctx);
+      case UINT8: return llvm::Type::getInt8Ty(ctx);
+      case UINT32: return llvm::Type::getInt32Ty(ctx);
+      case UINT64: return llvm::Type::getInt64Ty(ctx);
+      case FP64: return llvm::Type::getDoubleTy(ctx);
+    }
+    return nullptr;
+  }
 };
 
 /// Represents a function type. Function types are used to represent the type of
@@ -129,6 +165,9 @@ public:
   bool isFloatingPointType() const override { 
     return returnType->isFloatingPointType();
   }
+
+  /// Returns the bit width of the function return type.
+  unsigned getBitWidth() const override { return returnType->getBitWidth(); }
 
   /// Returns a string representation of the function type, including both the
   /// return type and each individual parameter type.
@@ -169,7 +208,16 @@ public:
     return 0;
   }
 
-  /// llvm::Type *toLLVMType() const override;
+  /// Returns a LLVM FunctionType equivelant of this function type.
+  llvm::Type *toLLVMType(llvm::LLVMContext &ctx) const override {
+    vector<llvm::Type *> paramTypes;
+    for (const Type *paramType : this->paramTypes) {
+      paramTypes.push_back(paramType->toLLVMType(ctx));
+    }
+
+    return llvm::FunctionType::get(returnType->toLLVMType(ctx), 
+        paramTypes, false);
+  }
 };
 
 } // namespace artus

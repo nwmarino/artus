@@ -44,6 +44,7 @@ public:
 /// file, and may import the declarations of other packages in a source tree.
 class PackageUnitDecl final : public DeclBase {
   friend class ASTPrinter;
+  friend class Codegen;
   friend class Sema;
 
   /// The unique name or identifier associated with this package.

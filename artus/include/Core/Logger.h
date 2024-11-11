@@ -7,16 +7,6 @@ using std::string;
 
 namespace artus {
 
-#define CLEAR "\033[0m"
-#define RED "\033[31m"
-#define YELLOW "\033[33m"
-#define ORANGE "\033[38;5;208m"
-#define BOLD "\033[1m"
-
-#define FATAL (BOLD RED "fatal: " CLEAR)
-#define WARN (BOLD YELLOW "warn: " CLEAR)
-#define TRACE (BOLD ORANGE "trace: " CLEAR)
-
 /// Crash the compiler with a fatal error message.
 [[noreturn]] void fatal(const string &msg);
 

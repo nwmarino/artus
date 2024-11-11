@@ -4,6 +4,9 @@
 #include <map>
 #include <memory>
 
+#include "llvm/Target/TargetMachine.h"
+
+#include "UnitCache.h"
 #include "../AST/DeclBase.h"
 #include "../Lex/Lexer.h"
 #include "../Lex/Token.h"
@@ -28,6 +31,7 @@ struct SourceFile {
 /// Context used during analysis phases of the compilation process.
 class Context final {
   friend class BasicType;
+  friend class Codegen;
   friend class Parser;
   friend class Sema;
 
@@ -41,16 +45,19 @@ class Context final {
   std::unique_ptr<Lexer> lexer;
 
   /// A list of parsed package units.
-  vector<std::unique_ptr<PackageUnitDecl>> pkgs;
+  std::unique_ptr<UnitCache> cache;
 
   /// A map of all types in the current context.
   mutable map<string, const Type *> types;
+
+  /// The target machine to generate code for.
+  llvm::TargetMachine *TM;
 
   /// If the lexer has reached the end of the current source stream.
   unsigned int eof : 1;
 
 public:
-  Context(vector<SourceFile> files);
+  Context(vector<SourceFile> files, llvm::TargetMachine *TM);
 
   /// Iterates to the next source file in the context.
   bool nextFile();
@@ -67,6 +74,9 @@ public:
 
   /// Returns the path of the currently active source file.
   inline const string &getActiveFilePath() const { return active.path; }
+
+  /// Returns the target machine instance associated with this context.
+  inline llvm::TargetMachine *getTargetMachine() const { return TM; }
 
   /// Prints the current state of the AST embedded in this context.
   void printAST();

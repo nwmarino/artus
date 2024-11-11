@@ -4,7 +4,7 @@
 using namespace artus;
 
 Sema::Sema(Context *ctx) : ctx(ctx) {
-  for (const std::unique_ptr<PackageUnitDecl> &pkg : ctx->pkgs) {
+  for (PackageUnitDecl *pkg : ctx->cache->getAllUnits()) {
     pkg->pass(this); // Sema on each package unit.
   }
 }
@@ -12,12 +12,16 @@ Sema::Sema(Context *ctx) : ctx(ctx) {
 ///2
 /// PackageUnitDecls are valid if and only if they have valid declarations.
 void Sema::visit(PackageUnitDecl *decl) {
+  globalScope = decl->scope;
+
   for (const std::unique_ptr<Decl> &d : decl->decls) {
     d->pass(this); // Sema on each declaration.
   }
 
   if (!hasMain)
     fatal("'main' function not found: " + decl->identifier);
+
+  globalScope = nullptr;
 }
 
 /// Semantic Analysis over a FunctionDecl.

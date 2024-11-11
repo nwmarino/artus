@@ -48,6 +48,7 @@ public:
 /// Represents a list of statements, enclosed by braces.
 class CompoundStmt final : public Stmt {
   friend class ASTPrinter;
+  friend class Codegen;
   friend class Sema;
 
   /// The list of statements.
@@ -72,6 +73,7 @@ public:
 /// Represents a label statement. For example, `label:`.
 class LabelStmt final : public Stmt {
   friend class ASTPrinter;
+  friend class Codegen;
   friend class Sema;
 
   /// The name of the label.
@@ -98,6 +100,7 @@ public:
 /// Represents a return statement. For example, `ret 0`.
 class RetStmt final : public ValueStmt {
   friend class ASTPrinter;
+  friend class Codegen;
   friend class Sema;
 
   /// The expression to return.

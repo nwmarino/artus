@@ -7,15 +7,19 @@ using std::string;
 
 using namespace artus;
 
-Context::Context(vector<SourceFile> files) : files(std::move(files)), eof(0) {
-  types["bool"] = new BasicType(BasicType::BasicTypeKind::INT1);
-  types["char"] = new BasicType(BasicType::BasicTypeKind::INT8);
-  types["i32"] = new BasicType(BasicType::BasicTypeKind::INT32);
-  types["i64"] = new BasicType(BasicType::BasicTypeKind::INT64);
-  types["u8"] = new BasicType(BasicType::BasicTypeKind::UINT8);
-  types["u32"] = new BasicType(BasicType::BasicTypeKind::UINT32);
-  types["u64"] = new BasicType(BasicType::BasicTypeKind::UINT64);
-  types["fp64"] = new BasicType(BasicType::BasicTypeKind::FP64);
+Context::Context(vector<SourceFile> files, llvm::TargetMachine *TM) 
+    : files(std::move(files)), TM(TM), eof(0) {
+  this->cache = std::make_unique<UnitCache>();
+
+  // Add basic types to the context.
+  this->types["bool"] = new BasicType(BasicType::BasicTypeKind::INT1);
+  this->types["char"] = new BasicType(BasicType::BasicTypeKind::INT8);
+  this->types["i32"] = new BasicType(BasicType::BasicTypeKind::INT32);
+  this->types["i64"] = new BasicType(BasicType::BasicTypeKind::INT64);
+  this->types["u8"] = new BasicType(BasicType::BasicTypeKind::UINT8);
+  this->types["u32"] = new BasicType(BasicType::BasicTypeKind::UINT32);
+  this->types["u64"] = new BasicType(BasicType::BasicTypeKind::UINT64);
+  this->types["fp64"] = new BasicType(BasicType::BasicTypeKind::FP64);
 }
 
 bool Context::nextFile() {
@@ -32,7 +36,7 @@ bool Context::nextFile() {
 }
 
 void Context::addPackage(std::unique_ptr<PackageUnitDecl> pkg) {
-  pkgs.push_back(std::move(pkg));
+  cache->addUnit(std::move(pkg));
 }
 
 const Type *Context::getType(const string &name) {
@@ -44,7 +48,7 @@ const Type *Context::getType(const string &name) {
 
 void Context::printAST() {
   ASTPrinter printer;
-  for (const auto &pkg : pkgs) {
-    printer.visit(pkg.get());
+  for (PackageUnitDecl *pkg : cache->getAllUnits()) {
+    printer.visit(pkg);
   }
 }
