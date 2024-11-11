@@ -48,6 +48,7 @@ public:
 /// Represents a list of statements, enclosed by braces.
 class CompoundStmt final : public Stmt {
   friend class ASTPrinter;
+  friend class Sema;
 
   /// The list of statements.
   const vector<std::unique_ptr<Stmt>> stmts;
@@ -71,6 +72,7 @@ public:
 /// Represents a label statement. For example, `label:`.
 class LabelStmt final : public Stmt {
   friend class ASTPrinter;
+  friend class Sema;
 
   /// The name of the label.
   const string name;
@@ -96,6 +98,7 @@ public:
 /// Represents a return statement. For example, `ret 0`.
 class RetStmt final : public ValueStmt {
   friend class ASTPrinter;
+  friend class Sema;
 
   /// The expression to return.
   const std::unique_ptr<Expr> expr;

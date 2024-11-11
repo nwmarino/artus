@@ -47,6 +47,8 @@ public:
 
 /// Represents the declaration of a label statement.
 class LabelDecl final : public NamedDecl {
+  friend class Sema;
+
   /// The associated label statement.
   const Stmt *stmt;
 
@@ -66,6 +68,7 @@ public:
 /// Represents a parameter to a function.
 class ParamVarDecl final : public NamedDecl {
   friend class ASTPrinter;
+  friend class Sema;
 
   /// The type of this parameter.
   const Type *T;
@@ -83,6 +86,7 @@ public:
 /// Represents a function declaration.
 class FunctionDecl final : public ScopedDecl {
   friend class ASTPrinter;
+  friend class Sema;
 
   /// The return type of this function declaration.
   const Type *T;

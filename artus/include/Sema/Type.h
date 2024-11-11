@@ -115,6 +115,12 @@ public:
   FunctionType(const Type *returnType, vector<const Type *> paramTypes)
       : returnType(returnType), paramTypes(paramTypes) {}
 
+  /// Returns the return type of the function.
+  const Type *getReturnType() const { return returnType; }
+
+  /// Returns the type of a parameter at the given index.
+  const Type *getParamType(size_t index) const { return paramTypes[index]; }
+
   /// Returns true if the function type returns an integer, and false otherwise.
   bool isIntegerType() const override { return returnType->isIntegerType(); }
 

@@ -2,7 +2,11 @@
 #define ARTUS_SEMA_SEMA_H
 
 #include "../AST/ASTVisitor.h"
+#include "../AST/Decl.h"
+#include "../AST/Expr.h"
 #include "Scope.h"
+
+using std::size_t;
 
 namespace artus {
 
@@ -18,6 +22,9 @@ class Sema final : public ASTVisitor {
   /// Flag to indicate if the main function has been found.
   unsigned hasMain : 1;
 
+  /// Flag to indicate if the visitor is currently traversing a function.
+  unsigned inFunction : 1;
+
   /// Flag to indicate if the visitor is currently traversing a loop.
   unsigned inLoop : 1;
   LoopKind loopKind = LoopKind::NOL;
@@ -27,11 +34,15 @@ class Sema final : public ASTVisitor {
   Scope *localScope;
 
   /// The type of the top-level function, if it exists.
-  const FunctionType *parentFunctionType = nullptr;
+  const FunctionType *parentFunctionType;
+
+  /// The index of the current parameter being visited.
+  size_t paramIndex;
 
 public:
   void visit(PackageUnitDecl *decl) override;
   void visit(FunctionDecl *decl) override;
+  void visit(ParamVarDecl *decl) override;
   void visit(LabelDecl *decl) override;
 
   void visit(IntegerLiteral *expr) override;

@@ -17,6 +17,7 @@ public:
 /// An integer literal. For example, `0`, `1`, etc.
 class IntegerLiteral final : public Expr {
   friend class ASTPrinter;
+  friend class Sema;
 
   /// The literal value nested in this node.
   const int value;
