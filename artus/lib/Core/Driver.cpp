@@ -76,7 +76,8 @@ int Driver::emitFile(llvm::Module *module) {
       llvm::CodeGenFileType::AssemblyFile : llvm::CodeGenFileType::ObjectFile;
 
   const std::string pkgName = module->getSourceFileName();
-  string outputFile = pkgName + ".o";
+  string outputFile = pkgName.substr(0, pkgName.find_last_of('.')) + \
+      ".o";
   if (flags.emitLLVM) {
     outputFile = pkgName + ".ll";
   } else if (flags.emitASM) {
@@ -107,6 +108,7 @@ int Driver::emitFile(llvm::Module *module) {
 
   /// Debugging for the module.
   if (llvm::verifyModule(*module, &llvm::errs()) && flags.debug) {
+    module->print(llvm::errs(), nullptr);
     fatal("bad codegen");
   }
 

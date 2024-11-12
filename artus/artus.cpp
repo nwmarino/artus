@@ -48,8 +48,7 @@ SourceFile static parseInputFile(const string &path) {
   file.read(SrcBuffer, len);
   file.close();
 
-  return { .name = name.substr(0, name.find_last_of('.')), 
-      .path = path, .BufferStart = SrcBuffer };
+  return { .name = name, .path = path, .BufferStart = SrcBuffer };
 }
 
 /// Parse the command line arguments into a struct.
