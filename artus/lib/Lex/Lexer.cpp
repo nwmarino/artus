@@ -138,6 +138,10 @@ const string Lexer::dump() {
       case TokenKind::CloseParen: tmp = "CloseParen"; break;
       case TokenKind::OpenBrace: tmp = "OpenBrace"; break;
       case TokenKind::CloseBrace: tmp = "CloseBrace"; break;
+      case TokenKind::Plus: tmp = "Plus"; break;
+      case TokenKind::Minus: tmp = "Minus"; break;
+      case TokenKind::Star: tmp = "Star"; break;
+      case TokenKind::Slash: tmp = "Slash"; break;
       case TokenKind::Colon: tmp = "Colon"; break;
       case TokenKind::At: tmp = "At"; break;
       case TokenKind::Arrow: tmp = "Arrow"; break;

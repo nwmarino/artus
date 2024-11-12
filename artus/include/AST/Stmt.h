@@ -99,6 +99,24 @@ public:
   void setDecl(const Decl *decl);
 };
 
+/// Represents a `jmp` statement. For example, `jmp label`.
+class JmpStmt final : public Stmt {
+  friend class ASTPrinter;
+  friend class Codegen;
+  friend class Sema;
+
+  /// The name of the label to jump to.
+  const string name;
+
+  /// The associated label declaration.
+  const Decl *decl;
+
+public:
+  JmpStmt(const string &name, const Decl *decl, const Span &span);
+
+  void pass(ASTVisitor *visitor) override;
+};
+
 /// Represents a return statement. For example, `ret 0`.
 class RetStmt final : public ValueStmt {
   friend class ASTPrinter;

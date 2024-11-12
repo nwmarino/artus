@@ -16,6 +16,7 @@ class IntegerLiteral;
 
 class CompoundStmt;
 class LabelStmt;
+class JmpStmt;
 class RetStmt;
 
 /// This class defines a visitor pattern interface to traverse a built AST.
@@ -35,6 +36,7 @@ public:
 
   virtual void visit(CompoundStmt *stmt) = 0;
   virtual void visit(LabelStmt *stmt) = 0;
+  virtual void visit(JmpStmt *stmt) = 0;
   virtual void visit(RetStmt *stmt) = 0;
 };
 

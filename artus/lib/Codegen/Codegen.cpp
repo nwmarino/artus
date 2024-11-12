@@ -159,6 +159,28 @@ void Codegen::visit(LabelStmt *stmt) {
   builder->SetInsertPoint(labelBB);
 }
 
+void Codegen::visit(JmpStmt *stmt) {
+  /*
+  llvm::BasicBlock *jmpBB = nullptr;
+  for (llvm::BasicBlock &BB : *FN) {
+    if (BB.getName() == stmt->name) {
+      jmpBB = &BB;
+      break;
+    }
+  }
+
+  if (!jmpBB) {
+    fatal("label not found in function: " + stmt->name);
+  }
+
+  builder->CreateBr(jmpBB);*/
+
+  llvm::BasicBlock *jmpBB = llvm::BasicBlock::Create(*context, 
+    stmt->name, FN);
+  builder->CreateBr(jmpBB);
+  builder->SetInsertPoint(jmpBB);
+}
+
 void Codegen::visit(RetStmt *stmt) {
   stmt->expr->pass(this);
   builder->CreateRet(tmp);

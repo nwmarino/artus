@@ -173,6 +173,20 @@ void Sema::visit(LabelStmt *stmt) {
   }
 }
 
+/// Semantic Analysis over a JmpStmt.
+//
+/// JmpStmts are valid if and only if the label they are jumping to is declared.
+void Sema::visit(JmpStmt *stmt) {
+  // Check that the label is not already declared.
+  const LabelDecl *decl = dynamic_cast<const LabelDecl *>(
+      localScope->getDecl(stmt->name));
+
+  if (!decl) {
+    fatal("unresolved label: " + stmt->name, { stmt->span.file,
+        stmt->span.line, stmt->span.col });
+  }
+}
+
 /// Semantic Analysis over a RetStmt.
 ///
 /// RetStmts are valid if and only if the statement matches the function's

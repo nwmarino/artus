@@ -17,7 +17,12 @@ std::unique_ptr<Stmt> Parser::ParseStatement() {
   if (peek.is(TokenKind::Colon))
     return ParseLabelStatement();
 
-  return ParseRetStatement();
+  if (tok.isKeyword("ret"))
+    return ParseRetStatement();
+  else if (tok.isKeyword("jmp"))
+    return ParseJmpStatement();
+
+  return nullptr;
 }
 
 /// Parse a compound statement.
@@ -89,6 +94,30 @@ std::unique_ptr<Stmt> Parser::ParseLabelStatement() {
   labelDecl->setStmt(labelStmt.get());
 
   return labelStmt;
+}
+
+/// Parse a jmp statement.
+///
+/// jmp:
+///   'jmp' <identifier>
+///
+/// Expects the current token to be a 'jmp' keyword.
+std::unique_ptr<Stmt> Parser::ParseJmpStatement() {
+  assert(tok.isKeyword("jmp") && "expected 'jmp' keyword");
+
+  const SourceLocation firstLoc = lastLoc;
+  nextToken(); // Consume the 'jmp' token.
+
+  if (!tok.is(TokenKind::Identifier)) {
+    trace("expected identifier after 'jmp' statement", lastLoc);
+    return nullptr;
+  }
+
+  Token idToken = tok; // Store the identifier token.
+  nextToken();
+
+  return std::make_unique<JmpStmt>(idToken.value, nullptr, 
+      createSpan(firstLoc));
 }
 
 /// Parse a ret statement.

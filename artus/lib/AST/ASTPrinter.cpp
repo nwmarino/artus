@@ -2,6 +2,7 @@
 #include <iostream>
 
 #include "../../include/AST/Expr.h"
+#include "Stmt.h"
 
 using std::cout;
 using std::size_t;
@@ -45,8 +46,8 @@ inline void ASTPrinter::setLastChild() { isLastChild = 1; }
 inline void ASTPrinter::resetLastChild() { isLastChild = 0; }
 
 void ASTPrinter::visit(PackageUnitDecl *decl) {
-  cout << unitColor << "PackageUnitDecl " << clear << nameColor << \
-      decl->identifier << clear << '\n';
+  cout << unitColor << "PackageUnitDecl " << clear << nameColor \
+       << decl->identifier << clear << '\n';
   
   setPiping(indent);
   size_t declCount = decl->decls.size();
@@ -65,9 +66,9 @@ void ASTPrinter::visit(PackageUnitDecl *decl) {
 
 void ASTPrinter::visit(FunctionDecl *decl) {
   printPiping();
-  cout << declColor << "FunctionDecl " << clear << nameColor << \
-      decl->getName() << clear << typeColor << " '" << decl->T->toString() \
-      << "' " << clear << '\n';
+  cout << declColor << "FunctionDecl " << clear << nameColor << decl->name \
+       << clear << typeColor << " '" << decl->T->toString() << "' " << clear \
+       << '\n';
 
   size_t paramsCount = decl->params.size();
   for (unsigned idx = 0; idx < paramsCount; idx++) {
@@ -81,9 +82,8 @@ void ASTPrinter::visit(FunctionDecl *decl) {
 }
 
 void ASTPrinter::visit(ParamVarDecl *decl) {
-  cout << declColor << "ParamVarDecl " << clear << nameColor << \
-      decl->getName() << clear << typeColor << '\'' << decl->T->toString() \
-      <<  clear << '\n';
+  cout << declColor << "ParamVarDecl " << clear << nameColor << decl->name \
+       << clear << typeColor << '\'' << decl->T->toString() << clear << '\n';
 }
 
 void ASTPrinter::visit(LabelDecl *decl) {
@@ -94,8 +94,8 @@ void ASTPrinter::visit(LabelDecl *decl) {
 
 void ASTPrinter::visit(ImplicitCastExpr *expr) {
   printPiping();
-  cout << exprColor << "ImplicitCastExpr " << clear << typeColor << "'" << \
-      expr->T->toString() << "' " << clear << '\n';
+  cout << exprColor << "ImplicitCastExpr " << clear << typeColor << "'" \
+       << expr->T->toString() << "' " << clear << '\n';
 
   setLastChild();
   increaseIndent();
@@ -105,8 +105,8 @@ void ASTPrinter::visit(ImplicitCastExpr *expr) {
 
 void ASTPrinter::visit(ExplicitCastExpr *expr)  {
   printPiping();
-  cout << exprColor << "ExplicitCastExpr " << clear << typeColor << "'" << \
-      expr->T->toString() << "' " << clear << '\n';
+  cout << exprColor << "ExplicitCastExpr " << clear << typeColor << "'" \
+       << expr->T->toString() << "' " << clear << '\n';
 
   setLastChild();
   increaseIndent();
@@ -116,8 +116,8 @@ void ASTPrinter::visit(ExplicitCastExpr *expr)  {
 
 void ASTPrinter::visit(BinaryExpr *expr) {
   printPiping();
-  cout << exprColor << "BinaryExpr " << clear << typeColor << "'" << \
-      expr->T->toString() << "' " << clear << '\n';
+  cout << exprColor << "BinaryExpr " << clear << typeColor << "'" \
+       << expr->T->toString() << "' " << clear << '\n';
 
   resetLastChild();
   increaseIndent();
@@ -129,9 +129,9 @@ void ASTPrinter::visit(BinaryExpr *expr) {
 
 void ASTPrinter::visit(IntegerLiteral *expr) {
   printPiping();
-  cout << exprColor << "IntegerLiteral " << clear << typeColor << "'" << \
-      expr->T->toString() << "' " << clear << literalColor << \
-      expr->value << clear << '\n';
+  cout << exprColor << "IntegerLiteral " << clear << typeColor << "'" \
+       << expr->T->toString() << "' " << clear << literalColor << expr->value \
+       << clear << '\n';
 }
 
 void ASTPrinter::visit(CompoundStmt *stmt) {
@@ -153,8 +153,14 @@ void ASTPrinter::visit(CompoundStmt *stmt) {
 
 void ASTPrinter::visit(LabelStmt *stmt) {
   printPiping();
-  cout << stmtColor << "LabelStmt " << clear << nameColor << \
-      stmt->getName() << clear << '\n';
+  cout << stmtColor << "LabelStmt " << clear << nameColor << stmt->name \
+       << clear << '\n';
+}
+
+void ASTPrinter::visit(JmpStmt *stmt) {
+  printPiping();
+  cout << stmtColor << "JmpStmt " << clear << nameColor << stmt->name << clear \
+       << '\n';
 }
 
 void ASTPrinter::visit(RetStmt *stmt) {

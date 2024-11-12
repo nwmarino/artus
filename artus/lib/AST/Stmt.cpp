@@ -1,3 +1,4 @@
+#include "Stmt.h"
 #include "../../include/AST/Expr.h"
 
 using std::string;
@@ -43,6 +44,13 @@ const string &LabelStmt::getName() const { return name; }
 const Decl *LabelStmt::getDecl() const { return decl; }
 
 void LabelStmt::setDecl(const Decl *decl) { this->decl = decl; }
+
+/* JmpStmt Implementation -------------------------------------------------===*/
+
+JmpStmt::JmpStmt(const string &name, const Decl *decl, const Span &span) 
+    : Stmt(span), name(name), decl(decl) {}
+
+void JmpStmt::pass(ASTVisitor *visitor) { visitor->visit(this); }
 
 /* RetStmt Implementation -------------------------------------------------===*/
 

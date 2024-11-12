@@ -16,6 +16,11 @@ inline vector<string> __RESERVED = {
   "fn",
   "function",
   "i32",
+  "i64",
+  "u8",
+  "u32",
+  "u64",
+  "jmp",
   "ret",
 };
 
