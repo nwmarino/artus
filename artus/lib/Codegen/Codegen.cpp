@@ -105,6 +105,14 @@ void Codegen::visit(ParamVarDecl *decl) {
 
 void Codegen::visit(LabelDecl *decl) { /* unused */ }
 
+void Codegen::visit(ImplicitCastExpr *expr) {
+  expr->expr->pass(this);
+}
+
+void Codegen::visit(ExplicitCastExpr *expr) {
+  expr->expr->pass(this);
+}
+
 void Codegen::visit(IntegerLiteral *expr) {
   tmp = llvm::ConstantInt::get(*context, llvm::APInt(
       expr->T->getBitWidth(), expr->value, true));

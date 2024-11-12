@@ -34,6 +34,8 @@ public:
 
 /// Base class for expressions, and statements which may possess a value.
 class ValueStmt : public Stmt {
+  friend class Sema;
+
 protected:
   /// The type of the associated value.
   const Type *T;

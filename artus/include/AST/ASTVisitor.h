@@ -9,6 +9,8 @@ class FunctionDecl;
 class ParamVarDecl;
 class LabelDecl;
 
+class ImplicitCastExpr;
+class ExplicitCastExpr;
 class IntegerLiteral;
 
 class CompoundStmt;
@@ -25,6 +27,8 @@ public:
   virtual void visit(ParamVarDecl *decl) = 0;
   virtual void visit(LabelDecl *decl) = 0;
 
+  virtual void visit(ImplicitCastExpr *expr) = 0;
+  virtual void visit(ExplicitCastExpr *expr) = 0;
   virtual void visit(IntegerLiteral *expr) = 0;
 
   virtual void visit(CompoundStmt *stmt) = 0;

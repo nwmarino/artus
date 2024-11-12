@@ -51,6 +51,8 @@ public:
   void visit(ParamVarDecl *decl) override;
   void visit(LabelDecl *decl) override;
 
+  void visit(ImplicitCastExpr *expr) override;
+  void visit(ExplicitCastExpr *expr) override;
   void visit(IntegerLiteral *expr) override;
 
   void visit(CompoundStmt *stmt) override;

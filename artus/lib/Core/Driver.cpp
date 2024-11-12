@@ -139,6 +139,10 @@ Driver::Driver(const InputContainer &input) : flags(input.flags) {
   if (flags.printAST) {
     ctx->printAST();
   }
+
+  if (flags.skipCGN) {
+    return;
+  }
   
   // Run code generation passes and emit output.
   while (ctx->cache->nextUnit()) {

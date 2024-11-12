@@ -26,9 +26,9 @@ inline void ASTPrinter::printPiping() {
   cout << str;
 
   if (isLastChild)
-    cout << "`-" << clr_clear;
+    cout << "`-" << clear;
   else
-    cout << "|-" << clr_clear;
+    cout << "|-" << clear;
 }
 
 inline void ASTPrinter::printIndent() { cout << string(indent * 2, ' '); }
@@ -44,8 +44,8 @@ inline void ASTPrinter::setLastChild() { isLastChild = 1; }
 inline void ASTPrinter::resetLastChild() { isLastChild = 0; }
 
 void ASTPrinter::visit(PackageUnitDecl *decl) {
-  cout << unitColor << "PackageUnitDecl " << clr_clear << nameColor << \
-      decl->identifier << clr_clear << '\n';
+  cout << unitColor << "PackageUnitDecl " << clear << nameColor << \
+      decl->identifier << clear << '\n';
   
   setPiping(indent);
   size_t declCount = decl->decls.size();
@@ -64,9 +64,9 @@ void ASTPrinter::visit(PackageUnitDecl *decl) {
 
 void ASTPrinter::visit(FunctionDecl *decl) {
   printPiping();
-  cout << declColor << "FunctionDecl " << clr_clear << nameColor << \
-      decl->getName() << clr_clear << typeColor << " '" << decl->T->toString() \
-      << "' " << clr_clear << '\n';
+  cout << declColor << "FunctionDecl " << clear << nameColor << \
+      decl->getName() << clear << typeColor << " '" << decl->T->toString() \
+      << "' " << clear << '\n';
 
   size_t paramsCount = decl->params.size();
   for (unsigned idx = 0; idx < paramsCount; idx++) {
@@ -80,30 +80,49 @@ void ASTPrinter::visit(FunctionDecl *decl) {
 }
 
 void ASTPrinter::visit(ParamVarDecl *decl) {
-  cout << "ParamVarDecl" << '\n';
-  /*
-  cout << declColor << "ParamVarDecl " << clr_clear << nameColor << \
-      decl->getName() << clr_clear << qualType << '\'' << decl->T->toString() \
-      <<  clr_clear << '\n';
-  */
+  cout << declColor << "ParamVarDecl " << clear << nameColor << \
+      decl->getName() << clear << typeColor << '\'' << decl->T->toString() \
+      <<  clear << '\n';
 }
 
 void ASTPrinter::visit(LabelDecl *decl) {
   printPiping();
-  cout << declColor << "LabelDecl " << clr_clear << nameColor << \
-      decl->getName() << clr_clear << '\n';
+  cout << declColor << "LabelDecl " << clear << nameColor << \
+      decl->getName() << clear << '\n';
+}
+
+void ASTPrinter::visit(ImplicitCastExpr *expr) {
+  printPiping();
+  cout << exprColor << "ImplicitCastExpr " << clear << typeColor << "'" << \
+      expr->T->toString() << "' " << clear << '\n';
+
+  setLastChild();
+  increaseIndent();
+  expr->expr->pass(this);
+  resetLastChild();
+}
+
+void ASTPrinter::visit(ExplicitCastExpr *expr)  {
+  printPiping();
+  cout << exprColor << "ExplicitCastExpr " << clear << typeColor << "'" << \
+      expr->T->toString() << "' " << clear << '\n';
+
+  setLastChild();
+  increaseIndent();
+  expr->expr->pass(this);
+  resetLastChild();
 }
 
 void ASTPrinter::visit(IntegerLiteral *expr) {
   printPiping();
-  cout << exprColor << "IntegerLiteral " << clr_clear << typeColor << "'" << \
-      expr->T->toString() << "' " << clr_clear << literalColor << \
-      expr->getValue() << clr_clear << '\n';
+  cout << exprColor << "IntegerLiteral " << clear << typeColor << "'" << \
+      expr->T->toString() << "' " << clear << literalColor << \
+      expr->value << clear << '\n';
 }
 
 void ASTPrinter::visit(CompoundStmt *stmt) {
   printPiping();
-  cout << stmtColor << "CompoundStmt " << clr_clear << '\n';
+  cout << stmtColor << "CompoundStmt " << clear << '\n';
 
   resetLastChild();
   increaseIndent();
@@ -120,13 +139,13 @@ void ASTPrinter::visit(CompoundStmt *stmt) {
 
 void ASTPrinter::visit(LabelStmt *stmt) {
   printPiping();
-  cout << stmtColor << "LabelStmt " << clr_clear << nameColor << \
-      stmt->getName() << clr_clear << '\n';
+  cout << stmtColor << "LabelStmt " << clear << nameColor << \
+      stmt->getName() << clear << '\n';
 }
 
 void ASTPrinter::visit(RetStmt *stmt) {
   printPiping();
-  cout << stmtColor << "RetStmt " << clr_clear << '\n';
+  cout << stmtColor << "RetStmt " << clear << '\n';
 
   setLastChild();
   increaseIndent();

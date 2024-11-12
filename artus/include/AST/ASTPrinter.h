@@ -15,7 +15,7 @@ namespace artus {
 /// prints it to standard output.
 class ASTPrinter final : public ASTVisitor {
   /// Colour constants.
-  const string clr_clear = "\033[0m";
+  const string clear = "\033[0m";
   const string clr_bold = "\033[1m";
   const string clr_italic = "\033[3m";
   const string clr_green = "\033[32m";
@@ -76,6 +76,8 @@ public:
   void visit(ParamVarDecl *decl) override;
   void visit(LabelDecl *decl) override;
 
+  void visit(ImplicitCastExpr *expr) override;
+  void visit(ExplicitCastExpr *expr) override;
   void visit(IntegerLiteral *expr) override;
 
   void visit(CompoundStmt *stmt) override;

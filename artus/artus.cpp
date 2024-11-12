@@ -22,6 +22,7 @@ using namespace artus;
   printf("Options:\n");
   printf("  -o: Specify the output file\n");
   printf("  -d: Enable debug mode\n");
+  printf("  -nc: Skip code generation\n");
   printf("  -ll: Emit LLVM IR\n");
   printf("  -S: Emit assembly\n");
   printf("  --print-ast: Print the AST\n");
@@ -68,6 +69,8 @@ InputContainer parseCommandArgs(int argc, char **argv) {
       flags.emitASM = 1;
     else if (strcmp(argv[i], "-ll") == 0)
       flags.emitLLVM = 1;
+    else if (strcmp(argv[i], "-nc") == 0)
+      flags.skipCGN = 1;
     else if (strcmp(argv[i], "--print-ast") == 0)
       flags.printAST = 1;
     else if (strcmp(argv[i], "-o") == 0) {

@@ -40,16 +40,23 @@ void Sema::visit(FunctionDecl *decl) {
     paramIndex++;
   }
   paramIndex = 0;
-
-  // Check if the function is the main function.
-  if (decl->name == "main")
-    hasMain = 1;
   
   // Resolve the function type for later type checking.
   parentFunctionType = dynamic_cast<const FunctionType *>(decl->T);
   if (!parentFunctionType) {
     fatal("expected function type: " + decl->name, 
     { decl->span.file, decl->span.line, decl->span.col });
+  }
+
+  // Check if the function is the main function.
+  if (decl->name == "main") {
+    hasMain = 1;
+
+    // Check if main function returns 'i64'.
+    if (parentFunctionType->getReturnType()->compare(ctx->getType("i64")) != 1) {
+      fatal("main function must return 'i64'", { decl->span.file, 
+          decl->span.line, decl->span.col });
+    }
   }
   
   decl->body->pass(this); // Sema on the body of the function.
@@ -74,6 +81,38 @@ void Sema::visit(ParamVarDecl *decl) {
 
 /// Semantic Analysis over a LabelDecl.
 void Sema::visit(LabelDecl *decl) { /* unused */ }
+
+/// Semantic Analysis over an ImplicitCastExpr.
+///
+/// ImplicitCastExprs are valid if and only if they are of the same type as the
+/// expression they are casting.
+void Sema::visit(ImplicitCastExpr *expr) {
+  expr->expr->pass(this); // Sema on the expression.
+
+  if (expr->T->compare(expr->expr->T) == 0) {
+    fatal("implicit cast type mismatch", { expr->span.file, 
+        expr->span.line, expr->span.col });
+  }
+
+  // Propagate the type of the expression.
+  expr->expr->T = expr->T;
+}
+
+/// Semantic Analysis over an ExplicitCastExpr.
+///
+/// ExplicitCastExprs are valid if and only if they are of the same type as the
+/// expression they are casting.
+void Sema::visit(ExplicitCastExpr *expr) {
+  expr->expr->pass(this); // Sema on the expression.
+
+  if (expr->T->compare(expr->expr->T) == 0) {
+    fatal("explicit cast type mismatch", { expr->span.file, 
+        expr->span.line, expr->span.col });
+  }
+
+  // Propagate the type of the expression.
+  expr->expr->T = expr->T;
+}
 
 /// Semantic Analysis over an IntegerLiteral.
 ///

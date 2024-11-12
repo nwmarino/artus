@@ -14,6 +14,44 @@ public:
   Expr(const Type *T, const Span &span) : ValueStmt(T, span) {}
 };
 
+/// Base class for all Cast Expressions. 
+class CastExpr : public Expr {
+protected:
+  /// The expression to cast.
+  std::unique_ptr<Expr> expr;
+
+public:
+  CastExpr(std::unique_ptr<Expr> expr, const Type *T, const Span &span)
+      : Expr(T, span), expr(std::move(expr)) {}
+};
+
+/// An implicit cast. Usually injected by the ompiler during sema to recover
+/// from type mismatches or undefined behaviour.
+class ImplicitCastExpr final : public CastExpr {
+  friend class ASTPrinter;
+  friend class Codegen;
+  friend class Sema;
+
+public:
+  ImplicitCastExpr(std::unique_ptr<Expr> expr, const Type *T, const Span &span)
+      : CastExpr(std::move(expr), T, span) {}
+
+  void pass(ASTVisitor *visitor) override { visitor->visit(this); }
+};
+
+/// An explicit cast. For example, `i64 0`.
+class ExplicitCastExpr final : public CastExpr {
+  friend class ASTPrinter;
+  friend class Codegen;
+  friend class Sema;
+
+public:
+  ExplicitCastExpr(std::unique_ptr<Expr> expr, const Type *T, const Span &span)
+      : CastExpr(std::move(expr), T, span) {}
+
+  void pass(ASTVisitor *visitor) override { visitor->visit(this); }
+};
+
 /// An integer literal. For example, `0`, `1`, etc.
 class IntegerLiteral final : public Expr {
   friend class ASTPrinter;
@@ -33,9 +71,6 @@ public:
       signedness(signedness ? signedness : value < 0) {}
 
   void pass(ASTVisitor *visitor) override { visitor->visit(this); }
-
-  /// Returns the value nested in this node.
-  const int getValue() const { return value; }
 };
 
 } // namespace artus

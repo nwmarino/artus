@@ -26,6 +26,9 @@ struct CompilerFlags {
   /// To include all debug logging.
   unsigned int debug : 1;
 
+  /// To skip code generation.
+  unsigned int skipCGN : 1;
+
   /// To emit LLVM IR.
   unsigned int emitLLVM : 1;
 

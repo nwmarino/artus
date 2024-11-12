@@ -28,6 +28,9 @@ class Parser final {
   unsigned inLoop : 1 = 0;
   unsigned inFunction : 1 = 0;
 
+  /// Flag used to indicate if the current expession is being casted.
+  unsigned isUnderCast : 1 = 0;
+
   /// The last recorded location in the source code.
   SourceLocation lastLoc = { ctx->getActiveFileName(), 0, 0 };
 
@@ -91,6 +94,7 @@ class Parser final {
 
   std::unique_ptr<Expr> ParseExpression();
   std::unique_ptr<Expr> ParsePrimaryExpression();
+  std::unique_ptr<Expr> ParseCastExpression();
   std::unique_ptr<Expr> ParseIntegerExpression();
 
   std::unique_ptr<Stmt> ParseStatement();
