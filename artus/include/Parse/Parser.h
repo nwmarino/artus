@@ -92,9 +92,38 @@ class Parser final {
     scope = new Scope(scope, {}, ctx); 
   }
 
+  /// Returns the precedence for the current token.
+  inline int getPrecedence() const {
+    switch (tok.kind) {
+      case TokenKind::Star:
+      case TokenKind::Slash:
+        return 2;
+      case TokenKind::Plus:
+      case TokenKind::Minus:
+        return 1;
+      default:
+        return -1;
+    }
+    return -1;
+  }
+
+  /// Returns the binary operator equivelant of the current token.
+  inline BinaryExpr::BinaryOp getBinaryOp() const {
+    switch (tok.kind) {
+      case TokenKind::Plus: return BinaryExpr::BinaryOp::Add;
+      case TokenKind::Minus: return BinaryExpr::BinaryOp::Sub;
+      case TokenKind::Star: return BinaryExpr::BinaryOp::Mult;
+      case TokenKind::Slash: return BinaryExpr::BinaryOp::Div;
+      default: return BinaryExpr::BinaryOp::Unknown;
+    }
+    return BinaryExpr::BinaryOp::Unknown;
+  }
+
   std::unique_ptr<Expr> ParseExpression();
   std::unique_ptr<Expr> ParsePrimaryExpression();
   std::unique_ptr<Expr> ParseCastExpression();
+  std::unique_ptr<Expr> ParseBinaryExpression(std::unique_ptr<Expr> base, 
+                                              int precedence = 0);
   std::unique_ptr<Expr> ParseIntegerExpression();
 
   std::unique_ptr<Stmt> ParseStatement();

@@ -52,6 +52,41 @@ public:
   void pass(ASTVisitor *visitor) override { visitor->visit(this); }
 };
 
+/// A binary expression. For example, `1 + 1`, `2 * 3`, etc.
+class BinaryExpr final : public Expr {
+  friend class ASTPrinter;
+  friend class Codegen;
+  friend class Sema;
+
+public:
+  /// Possible kinds of binary operations.
+  enum class BinaryOp {
+    Unknown = -1,
+    Add,
+    Sub,
+    Mult,
+    Div,
+  };
+
+private:
+  /// The left-hand side of the binary expression.
+  std::unique_ptr<Expr> lhs;
+
+  /// The right-hand side of the binary expression.
+  std::unique_ptr<Expr> rhs;
+
+  /// The operator of this binary expression.
+  const BinaryOp op;
+
+public:
+  BinaryExpr(std::unique_ptr<Expr> lhs, std::unique_ptr<Expr> rhs, 
+             BinaryOp op, const Span &span)
+      : Expr(lhs->getType(), span), lhs(std::move(lhs)), rhs(std::move(rhs)), 
+      op(op) {}
+
+  void pass(ASTVisitor *visitor) override { visitor->visit(this); }
+};
+
 /// An integer literal. For example, `0`, `1`, etc.
 class IntegerLiteral final : public Expr {
   friend class ASTPrinter;

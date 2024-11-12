@@ -55,6 +55,7 @@ public:
 
   void visit(ImplicitCastExpr *expr) override;
   void visit(ExplicitCastExpr *expr) override;
+  void visit(BinaryExpr *expr) override;
   void visit(IntegerLiteral *expr) override;
 
   void visit(CompoundStmt *stmt) override;

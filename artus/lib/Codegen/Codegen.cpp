@@ -113,6 +113,30 @@ void Codegen::visit(ExplicitCastExpr *expr) {
   expr->expr->pass(this);
 }
 
+void Codegen::visit(BinaryExpr *expr) {
+  expr->lhs->pass(this);
+  llvm::Value *lhs = tmp;
+  expr->rhs->pass(this);
+  llvm::Value *rhs = tmp;
+
+  switch (expr->op) {
+    case BinaryExpr::BinaryOp::Add:
+      tmp = builder->CreateAdd(lhs, rhs, "addtmp");
+      break;
+    case BinaryExpr::BinaryOp::Sub:
+      tmp = builder->CreateSub(lhs, rhs, "subtmp");
+      break;
+    case BinaryExpr::BinaryOp::Mult:
+      tmp = builder->CreateMul(lhs, rhs, "multmp");
+      break;
+    case BinaryExpr::BinaryOp::Div:
+      tmp = builder->CreateSDiv(lhs, rhs, "divtmp");
+      break;
+    default:
+      fatal("unknown binary operator");
+  }
+}
+
 void Codegen::visit(IntegerLiteral *expr) {
   tmp = llvm::ConstantInt::get(*context, llvm::APInt(
       expr->T->getBitWidth(), expr->value, true));

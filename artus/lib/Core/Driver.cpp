@@ -75,9 +75,9 @@ int Driver::emitFile(llvm::Module *module) {
   llvm::CodeGenFileType fileType = flags.emitLLVM || flags.emitASM ? \
       llvm::CodeGenFileType::AssemblyFile : llvm::CodeGenFileType::ObjectFile;
 
-  const std::string pkgName = module->getSourceFileName();
-  string outputFile = pkgName.substr(0, pkgName.find_last_of('.')) + \
-      ".o";
+  const std::string pkgName = module->getSourceFileName().substr(0, \
+      module->getSourceFileName().find_last_of('.'));
+  string outputFile = pkgName + ".o";
   if (flags.emitLLVM) {
     outputFile = pkgName + ".ll";
   } else if (flags.emitASM) {

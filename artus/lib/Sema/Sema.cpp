@@ -114,6 +114,23 @@ void Sema::visit(ExplicitCastExpr *expr) {
   expr->expr->T = expr->T;
 }
 
+/// Semantic Analysis over a BinaryExpr.
+///
+/// BinaryExprs are valid if and only if they are of the same type as their
+/// operands.
+void Sema::visit(BinaryExpr *expr) {
+  expr->lhs->pass(this); // Sema on the left-hand side.
+  expr->rhs->pass(this); // Sema on the right-hand side.
+
+  if (expr->lhs->T->compare(expr->rhs->T) == 0) {
+    fatal("binary expression type mismatch", { expr->span.file, 
+        expr->span.line, expr->span.col });
+  }
+
+  // Propagate the type of the expression.
+  expr->T = expr->lhs->T;
+}
+
 /// Semantic Analysis over an IntegerLiteral.
 ///
 /// IntegerLiterals are valid if and only if they are of an integer type.

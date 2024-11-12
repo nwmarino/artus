@@ -47,6 +47,14 @@ enum class TokenKind {
   OpenBrace,
   /// }
   CloseBrace,
+  /// +
+  Plus,
+  /// -
+  Minus,
+  /// *
+  Star,
+  /// /
+  Slash,
   /// :
   Colon,
   /// @

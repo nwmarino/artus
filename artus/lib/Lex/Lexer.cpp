@@ -60,6 +60,8 @@ entry:
       BufferPos++;
       skp++;
       next.kind = TokenKind::Arrow;
+    } else {
+      next.kind = TokenKind::Minus;
     }
     break;
 
@@ -69,6 +71,8 @@ entry:
       BufferPos++;
       skp++;
       next.kind = TokenKind::LineComment;
+    } else {
+      next.kind = TokenKind::Slash;
     }
     break;
 
@@ -77,6 +81,8 @@ entry:
   case ')': next.kind = TokenKind::CloseParen; break;
   case '{': next.kind = TokenKind::OpenBrace; break;
   case '}': next.kind = TokenKind::CloseBrace; break;
+  case '+': next.kind = TokenKind::Plus; break;
+  case '*': next.kind = TokenKind::Star; break;
   case ':': next.kind = TokenKind::Colon; break;
   case '@': next.kind = TokenKind::At; break;
 

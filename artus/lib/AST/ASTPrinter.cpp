@@ -1,3 +1,4 @@
+#include "ASTPrinter.h"
 #include <iostream>
 
 #include "../../include/AST/Expr.h"
@@ -110,6 +111,19 @@ void ASTPrinter::visit(ExplicitCastExpr *expr)  {
   setLastChild();
   increaseIndent();
   expr->expr->pass(this);
+  resetLastChild();
+}
+
+void ASTPrinter::visit(BinaryExpr *expr) {
+  printPiping();
+  cout << exprColor << "BinaryExpr " << clear << typeColor << "'" << \
+      expr->T->toString() << "' " << clear << '\n';
+
+  resetLastChild();
+  increaseIndent();
+  expr->lhs->pass(this);
+  setLastChild();
+  expr->rhs->pass(this);
   resetLastChild();
 }
 

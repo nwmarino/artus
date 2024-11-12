@@ -11,6 +11,7 @@ class LabelDecl;
 
 class ImplicitCastExpr;
 class ExplicitCastExpr;
+class BinaryExpr;
 class IntegerLiteral;
 
 class CompoundStmt;
@@ -29,6 +30,7 @@ public:
 
   virtual void visit(ImplicitCastExpr *expr) = 0;
   virtual void visit(ExplicitCastExpr *expr) = 0;
+  virtual void visit(BinaryExpr *expr) = 0;
   virtual void visit(IntegerLiteral *expr) = 0;
 
   virtual void visit(CompoundStmt *stmt) = 0;

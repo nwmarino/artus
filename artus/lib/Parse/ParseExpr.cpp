@@ -17,7 +17,7 @@ std::unique_ptr<Expr> Parser::ParseExpression() {
     return nullptr;
   }
 
-  return base;
+  return ParseBinaryExpression(std::move(base));
 }
 
 /// Parse a primary expression.
@@ -57,6 +57,43 @@ std::unique_ptr<Expr> Parser::ParseCastExpression() {
   isUnderCast = 0;
   return std::make_unique<ExplicitCastExpr>(std::move(baseExpr), 
       castType, createSpan(idToken.loc));
+}
+
+/// Parse a binary expression.
+///
+/// expr:
+///   <expr> binary-op <expr>
+std::unique_ptr<Expr> Parser::ParseBinaryExpression(std::unique_ptr<Expr> base,
+                                                    int precedence) {
+  while (true) {
+    int tokenPrecedence = getPrecedence();
+    if (tokenPrecedence < precedence)
+      return base;
+
+    BinaryExpr::BinaryOp op = getBinaryOp();
+    if (op == BinaryExpr::BinaryOp::Unknown) {
+      fatal("unresolved binary operator", tok.loc);
+    }
+
+    nextToken(); // Eat the operator token.
+
+    std::unique_ptr<Expr> rhs = ParsePrimaryExpression();
+    if (!rhs) {
+      fatal("expected expression after binary operator", tok.loc);
+    }
+
+    int nextPrecedence = getPrecedence();
+    if (tokenPrecedence < nextPrecedence) {
+      rhs = ParseBinaryExpression(std::move(rhs), tokenPrecedence + 1);
+      if (!rhs) {
+        fatal("expected expression after binary operator", tok.loc);
+      }
+    }
+    
+    base = std::make_unique<BinaryExpr>(std::move(base), std::move(rhs), 
+        op, createSpan({ base->getSpan().file, base->getSpan().line,
+        base->getSpan().col }, lastLoc));
+  }
 }
 
 /// Parse a numerical literal expression.
