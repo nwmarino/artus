@@ -13,6 +13,10 @@ using namespace artus;
 std::unique_ptr<Decl> Parser::ParseDeclaration() {
   if (tok.isKeyword("fn"))
     return ParseFunctionDeclaration();
+  else if (tok.isKeyword("fix"))
+    return ParseVarDeclaration();
+  else if (tok.isKeyword("mut"))
+    return ParseVarDeclaration(true);
 
   return nullptr;
 }
@@ -125,6 +129,63 @@ std::vector<std::unique_ptr<ParamVarDecl>> Parser::ParseFunctionParams() {
 
   nextToken(); // Consume the ')' token.
   return params;
+}
+
+/// Parse a variable declaration.
+///
+/// var-decl:
+///   'mut' <identifier> ':' <type> '=' <expr>
+///   'fix' <identifier> ':' <type> '=' <expr>
+std::unique_ptr<Decl> Parser::ParseVarDeclaration(bool isMut) {
+  assert ((tok.isKeyword("mut") || tok.isKeyword("fix")) && \
+      "expected 'mut' or 'fix' keyword");
+
+  Token varToken = tok; // Save the 'mut' or 'fix' token.
+  nextToken();
+
+  if (!tok.is(TokenKind::Identifier)) {
+    trace("expected identifier after 'mut' or 'fix' keyword", lastLoc);
+    return nullptr;
+  }
+
+  const string varName = tok.value;
+  nextToken(); // Consume the identifier token.
+
+  if (!tok.is(TokenKind::Colon)) {
+    trace("expected ':' symbol after variable identifier", lastLoc);
+    return nullptr;
+  }
+  nextToken(); // Consume the ':' token.
+
+  if (!tok.is(TokenKind::Identifier)) {
+    trace("expected type after ':' symbol", lastLoc);
+    return nullptr;
+  }
+
+  const Type *varType = ctx->getType(tok.value);
+  nextToken(); // Consume the type token.
+  std::unique_ptr<Expr> initExpr = nullptr;
+
+  /// UNRECOVERABLE: Immutable variables must be initialized.
+  if (tok.is(TokenKind::Equals)) {
+    nextToken(); // Eat the '=' token.
+    initExpr = ParseExpression();
+
+    if (!initExpr) {
+      trace("expected expression after '=' symbol", lastLoc);
+      return nullptr;
+    }
+  } else if (!isMut) {
+    trace("expected '=' symbol after variable type", lastLoc);
+    return nullptr;
+  }
+
+  // Instantiate the declaration and add it to the current scope.
+  std::unique_ptr<VarDecl> decl = std::make_unique<VarDecl>(varName, varType, 
+      std::move(initExpr), isMut, createSpan(varToken.loc));  
+  scope->addDecl(decl.get());
+
+  return decl;
 }
 
 /// Parse a package unit.

@@ -54,6 +54,17 @@ entry:
   size_t skp = 1;
   switch (*BufferPos) {
 
+  /// Equals operators or equality tokens.
+  case '=':
+    if (peek(1) == "=") {
+      BufferPos++;
+      skp++;
+      next.kind = TokenKind::EqualsEquals;
+    } else {
+      next.kind = TokenKind::Equals;
+    }
+    break;
+
   /// Subtraction operators or arrow tokens.
   case '-':
     if (peek(1) == ">") {
@@ -142,9 +153,11 @@ const string Lexer::dump() {
       case TokenKind::Minus: tmp = "Minus"; break;
       case TokenKind::Star: tmp = "Star"; break;
       case TokenKind::Slash: tmp = "Slash"; break;
+      case TokenKind::Equals: tmp = "Equals"; break;
       case TokenKind::Colon: tmp = "Colon"; break;
       case TokenKind::At: tmp = "At"; break;
       case TokenKind::Arrow: tmp = "Arrow"; break;
+      case TokenKind::EqualsEquals: tmp = "EqualsEquals"; break;
       case TokenKind::Eof: tmp = "Eof"; break;
     }
 

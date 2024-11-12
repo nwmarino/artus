@@ -82,6 +82,19 @@ void Sema::visit(ParamVarDecl *decl) {
 /// Semantic Analysis over a LabelDecl.
 void Sema::visit(LabelDecl *decl) { /* unused */ }
 
+/// Semantic Analysis over a VarDecl.
+///
+/// VarDecls are valid if and only if they are of the same type as their
+/// initializer.
+void Sema::visit(VarDecl *decl) {
+  decl->init->pass(this); // Sema on the initializer.
+
+  if (decl->T->compare(decl->init->T) == 0) {
+    fatal("variable type mismatch: " + decl->name, 
+    { decl->span.file, decl->span.line, decl->span.col });
+  }
+}
+
 /// Semantic Analysis over an ImplicitCastExpr.
 ///
 /// ImplicitCastExprs are valid if and only if they are of the same type as the
@@ -151,6 +164,13 @@ void Sema::visit(CompoundStmt *stmt) {
   }
 
   localScope = localScope->getParent();
+}
+
+/// Semantic Analysis over a DeclStmt.
+///
+/// DeclStmts are valid if and only if the declaration is valid.
+void Sema::visit(DeclStmt *stmt) {
+  stmt->decl->pass(this); // Sema on the declaration.
 }
 
 /// Semantic Analysis over a LabelStmt.

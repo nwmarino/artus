@@ -13,6 +13,7 @@ using std::vector;
 namespace artus {
 
 /// Forward declarations.
+class Expr;
 class Scope;
 class Stmt;
 
@@ -24,10 +25,10 @@ protected:
   const string name;
 
 public:
-  NamedDecl(const string &name, const Span &span) : Decl(span), name(name) {}
+  NamedDecl(const string &name, const Span &span);
 
   /// Returns the name of this declaration.
-  const string &getName() const { return name; }
+  const string &getName() const;
 };
 
 /// Base class for scoped declarations. Scoped declarations are those which
@@ -38,11 +39,10 @@ protected:
   Scope *scope;
 
 public:
-  ScopedDecl(const string &name, Scope *scope, const Span &span)
-      : NamedDecl(name, span), scope(scope) {}
+  ScopedDecl(const string &name, Scope *scope, const Span &span);
 
   /// Returns the scope in which this declaration resides.
-  Scope *getScope() const { return scope; }
+  Scope *getScope() const;
 };
 
 /// Represents the declaration of a label statement.
@@ -53,16 +53,15 @@ class LabelDecl final : public NamedDecl {
   const Stmt *stmt;
 
 public:
-  LabelDecl(const string &name, const Span &span)
-      : NamedDecl(name, span), stmt(nullptr) {}
+  LabelDecl(const string &name, const Span &span);
 
-  void pass(ASTVisitor *visitor) override { visitor->visit(this); }
+  void pass(ASTVisitor *visitor) override;
 
   /// Returns the associated label statement.
-  const Stmt *getStmt() const { return stmt; }
+  const Stmt *getStmt() const;
 
   /// Sets the associated label statement.
-  void setStmt(const Stmt *stmt) { this->stmt = stmt; }
+  void setStmt(const Stmt *stmt);
 };
 
 /// Represents a parameter to a function.
@@ -74,13 +73,12 @@ class ParamVarDecl final : public NamedDecl {
   const Type *T;
 
 public:
-  ParamVarDecl(const string &name, const Type *T, const Span &span)
-      : NamedDecl(name, span), T(T) {}
+  ParamVarDecl(const string &name, const Type *T, const Span &span);
 
-  void pass(ASTVisitor *visitor) override { visitor->visit(this); }
+  void pass(ASTVisitor *visitor) override;
 
   /// Returns the type of this parameter.
-  const Type *getType() const { return T; }
+  const Type *getType() const;
 };
 
 /// Represents a function declaration.
@@ -101,23 +99,47 @@ class FunctionDecl final : public ScopedDecl {
 public:
   FunctionDecl(const string &name, const Type *T,
                vector<std::unique_ptr<ParamVarDecl>> params,
-               std::unique_ptr<Stmt> body, Scope *scope, const Span &span)
-      : ScopedDecl(name, scope, span), T(T), params(std::move(params)),
-        body(std::move(body)) {}
+               std::unique_ptr<Stmt> body, Scope *scope, const Span &span);
 
-  void pass(ASTVisitor *visitor) override { visitor->visit(this); }
+  void pass(ASTVisitor *visitor) override;
 
-  /// Returns the return type of this function declaration.
-  const Type *getType() const { return T; }
+  /// Returns the function type of this function declaration.
+  const Type *getType() const;
 
   /// Returns the number of parameters in this function declaration.
-  inline size_t getNumParams() const { return params.size(); }
+  size_t getNumParams() const;
 
   /// Returns the parameter at the specified index, and `nullptr` if it does
   /// not exist.
-  inline const ParamVarDecl *getParam(size_t i) const {
-    return i < params.size() ? params[i].get() : nullptr;
-  }
+  const ParamVarDecl *getParam(size_t i) const;
+};
+
+/// Represents a variable declaration.
+class VarDecl final : public NamedDecl {
+  friend class ASTPrinter;
+  friend class Codegen;
+  friend class Sema;
+
+  /// The type of this variable.
+  const Type *T;
+
+  /// The initializer expression of this variable.
+  const std::unique_ptr<Expr> init;
+
+  /// If the variable is mutable.
+  const bool mut : 1;
+
+public:
+  VarDecl(const string &name, const Type *T, std::unique_ptr<Expr> init, 
+          const bool mut, const Span &span);
+      
+  void pass(ASTVisitor *visitor) override;
+
+  /// Returns ther type of this variable.
+  const Type *getType() const;
+
+  /// Returns true if the variable is mutable, and false otherwise.
+  unsigned isMutable() const;
 };
 
 } // namespace artus

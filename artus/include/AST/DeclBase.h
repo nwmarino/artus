@@ -34,10 +34,10 @@ protected:
   const Span span;
 
 public:
-  Decl(const Span &span) : span(span) {}
+  Decl(const Span &span);
 
   /// Returns the span of this declaration.
-  const Span &getSpan() const { return span; }
+  const Span &getSpan() const;
 };
 
 /// Represents a package declaration. A package represents a singular source
@@ -61,23 +61,21 @@ class PackageUnitDecl final : public DeclBase {
 
 public:
   PackageUnitDecl(const string &id, vector<string> imports, Scope *scope,
-                  vector<std::unique_ptr<Decl>> decls)
-      : identifier(id), imports(std::move(imports)), decls(std::move(decls)),
-        scope(scope) {}
+                  vector<std::unique_ptr<Decl>> decls);
 
-  void pass(ASTVisitor *visitor) override { visitor->visit(this); }
+  void pass(ASTVisitor *visitor) override;
 
   /// Returns the identifier of this package unit.
-  const string &getIdentifier() const { return identifier; }
+  const string &getIdentifier() const;
 
   /// Returns the names of imported package units.
-  const vector<string> &getImports() const { return imports; }
+  const vector<string> &getImports() const;
 
   /// Adds a declaration to this package unit.
-  void addDecl(std::unique_ptr<Decl> decl) { decls.push_back(std::move(decl)); }
+  void addDecl(std::unique_ptr<Decl> decl);
 
   /// Adds an imported package unit to this package unit.
-  void addImport(const string &import) { imports.push_back(import); }
+  void addImport(const string &import);
 };
 
 } // namespace artus

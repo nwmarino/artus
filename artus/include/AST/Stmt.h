@@ -72,6 +72,22 @@ public:
   Scope *getScope() const;
 };
 
+/// Represents a declaration statement. For example, `fix x: int = 0`. This
+/// node nests the declaration of a variable, as to not inline it.
+class DeclStmt final : public Stmt {
+  friend class ASTPrinter;
+  friend class Codegen;
+  friend class Sema;
+
+  /// The declaration of the variable.
+  const std::unique_ptr<Decl> decl;
+
+public:
+  DeclStmt(std::unique_ptr<Decl> decl, const Span &span);
+
+  void pass(ASTVisitor *visitor) override;
+};
+
 /// Represents a label statement. For example, `label:`.
 class LabelStmt final : public Stmt {
   friend class ASTPrinter;

@@ -92,6 +92,18 @@ void ASTPrinter::visit(LabelDecl *decl) {
       decl->getName() << clear << '\n';
 }
 
+void ASTPrinter::visit(VarDecl *decl) {
+  printPiping();
+  cout << declColor << "VarDecl " << clear << nameColor << decl->name \
+       << clear << typeColor << " '" << decl->T->toString() << "' " << clear \
+       << '\n';
+
+  setLastChild();
+  increaseIndent();
+  decl->init->pass(this);
+  resetLastChild();
+}
+
 void ASTPrinter::visit(ImplicitCastExpr *expr) {
   printPiping();
   cout << exprColor << "ImplicitCastExpr " << clear << typeColor << "'" \
@@ -148,6 +160,16 @@ void ASTPrinter::visit(CompoundStmt *stmt) {
     stmt->stmts[idx]->pass(this);
   }
 
+  resetLastChild();
+}
+
+void ASTPrinter::visit(DeclStmt *stmt) {
+  printPiping();
+  cout << stmtColor << "DeclStmt " << clear << '\n';
+
+  setLastChild();
+  increaseIndent();
+  stmt->decl->pass(this);
   resetLastChild();
 }
 

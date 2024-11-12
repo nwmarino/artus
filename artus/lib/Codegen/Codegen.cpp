@@ -105,6 +105,16 @@ void Codegen::visit(ParamVarDecl *decl) {
 
 void Codegen::visit(LabelDecl *decl) { /* unused */ }
 
+void Codegen::visit(VarDecl *decl) {
+  decl->init->pass(this);
+
+  llvm::AllocaInst *alloca = createAlloca(builder->GetInsertBlock()->getParent(),
+      decl->name, decl->T->toLLVMType(*context));
+
+  builder->CreateStore(tmp, alloca);
+  allocas[decl->name] = alloca;
+}
+
 void Codegen::visit(ImplicitCastExpr *expr) {
   expr->expr->pass(this);
 }
@@ -146,6 +156,10 @@ void Codegen::visit(CompoundStmt *stmt) {
   for (const std::unique_ptr<Stmt> &s : stmt->stmts) {
     s->pass(this);
   }
+}
+
+void Codegen::visit(DeclStmt *stmt) {
+  stmt->decl->pass(this);
 }
 
 void Codegen::visit(LabelStmt *stmt) {

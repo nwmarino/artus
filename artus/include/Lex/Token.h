@@ -13,14 +13,15 @@ using std::vector;
 
 /// Reference for reserved identifiers in the language.
 inline vector<string> __RESERVED = {
-  "fn",
-  "function",
   "i32",
   "i64",
   "u8",
   "u32",
   "u64",
+  "fix",
+  "fn",
   "jmp",
+  "mut",
   "ret",
 };
 
@@ -60,6 +61,8 @@ enum class TokenKind {
   Star,
   /// /
   Slash,
+  /// =
+  Equals,
   /// :
   Colon,
   /// @
@@ -68,6 +71,8 @@ enum class TokenKind {
   /// Compound Tokens
   /// ->
   Arrow,
+  /// ==
+  EqualsEquals,
 
   /// End of file
   Eof,

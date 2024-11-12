@@ -52,7 +52,8 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_executable(artus 
     artus.cpp 
-    lib/AST/ASTPrinter.cpp 
+    lib/AST/ASTPrinter.cpp
+    lib/AST/Decl.cpp
     lib/AST/Stmt.cpp
     lib/Codegen/Codegen.cpp
     lib/Core/Context.cpp

@@ -1,4 +1,3 @@
-#include "Stmt.h"
 #include "../../include/AST/Expr.h"
 
 using std::string;
@@ -31,6 +30,13 @@ const vector<std::unique_ptr<Stmt>> &CompoundStmt::getStmts() const {
 }
 
 Scope *CompoundStmt::getScope() const { return scope; }
+
+/* DeclStmt Implementation ------------------------------------------------===*/
+
+DeclStmt::DeclStmt(std::unique_ptr<Decl> decl, const Span &span) 
+    : Stmt(span), decl(std::move(decl)) {}
+
+void DeclStmt::pass(ASTVisitor *visitor) { visitor->visit(this); }
 
 /* LabelStmt Implementation -----------------------------------------------===*/
 

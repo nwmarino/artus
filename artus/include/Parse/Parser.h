@@ -128,6 +128,7 @@ class Parser final {
 
   std::unique_ptr<Stmt> ParseStatement();
   std::unique_ptr<Stmt> ParseCompoundStatement();
+  std::unique_ptr<Stmt> ParseDeclStatement();
   std::unique_ptr<Stmt> ParseLabelStatement();
   std::unique_ptr<Stmt> ParseJmpStatement();
   std::unique_ptr<Stmt> ParseRetStatement();
@@ -135,6 +136,7 @@ class Parser final {
   std::unique_ptr<Decl> ParseDeclaration();
   std::unique_ptr<Decl> ParseFunctionDeclaration();
   std::vector<std::unique_ptr<ParamVarDecl>> ParseFunctionParams();
+  std::unique_ptr<Decl> ParseVarDeclaration(bool isMut = 0);
 
   std::unique_ptr<PackageUnitDecl> ParsePackageUnit();
 

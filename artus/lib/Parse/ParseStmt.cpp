@@ -21,6 +21,8 @@ std::unique_ptr<Stmt> Parser::ParseStatement() {
     return ParseRetStatement();
   else if (tok.isKeyword("jmp"))
     return ParseJmpStatement();
+  else if (tok.isKeyword("fix") || tok.isKeyword("mut"))
+    return ParseDeclStatement();
 
   return nullptr;
 }
@@ -38,6 +40,7 @@ std::unique_ptr<Stmt> Parser::ParseCompoundStatement() {
   // Declare a new scope for this compound statement.
   enterScope({ .isCompoundScope = 1 });
 
+  // Parse the compound statement body.
   vector<std::unique_ptr<Stmt>> stmts;
   while (!tok.is(TokenKind::CloseBrace)) {
     std::unique_ptr<Stmt> stmt = ParseStatement();
@@ -58,6 +61,31 @@ std::unique_ptr<Stmt> Parser::ParseCompoundStatement() {
 
   return std::make_unique<CompoundStmt>(std::move(stmts), scope, 
                                         createSpan(firstLoc, lastLoc));
+}
+
+/// Parse a decl statement.
+///
+/// decl:
+///   <identifier> ':' <type> ['=' <expression>]
+///
+/// Expects the current token to be a 'fix' or 'mut' keyword.
+std::unique_ptr<Stmt> Parser::ParseDeclStatement() {
+  assert((tok.isKeyword("fix") || tok.isKeyword("mut")) && \
+      "expected 'fix' or 'mut' keyword");
+
+  // Parse the nested variable declaration.
+  std::unique_ptr<Decl> decl = nullptr;
+  if (tok.isKeyword("fix"))
+    decl = ParseVarDeclaration();
+  else if (tok.isKeyword("mut"))
+    decl = ParseVarDeclaration(1);
+
+  if (!decl) {
+    fatal("expected variable declaration after '" + tok.value + '\'', 
+        lastLoc);
+  }
+
+  return std::make_unique<DeclStmt>(std::move(decl), decl->getSpan());
 }
 
 /// Parse a label statement.

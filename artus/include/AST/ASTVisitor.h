@@ -8,6 +8,7 @@ class PackageUnitDecl;
 class FunctionDecl;
 class ParamVarDecl;
 class LabelDecl;
+class VarDecl;
 
 class ImplicitCastExpr;
 class ExplicitCastExpr;
@@ -15,6 +16,7 @@ class BinaryExpr;
 class IntegerLiteral;
 
 class CompoundStmt;
+class DeclStmt;
 class LabelStmt;
 class JmpStmt;
 class RetStmt;
@@ -28,6 +30,7 @@ public:
   virtual void visit(FunctionDecl *decl) = 0;
   virtual void visit(ParamVarDecl *decl) = 0;
   virtual void visit(LabelDecl *decl) = 0;
+  virtual void visit(VarDecl *decl) = 0;
 
   virtual void visit(ImplicitCastExpr *expr) = 0;
   virtual void visit(ExplicitCastExpr *expr) = 0;
@@ -35,6 +38,7 @@ public:
   virtual void visit(IntegerLiteral *expr) = 0;
 
   virtual void visit(CompoundStmt *stmt) = 0;
+  virtual void visit(DeclStmt *stmt) = 0;
   virtual void visit(LabelStmt *stmt) = 0;
   virtual void visit(JmpStmt *stmt) = 0;
   virtual void visit(RetStmt *stmt) = 0;
