@@ -4,8 +4,6 @@
 #include <map>
 #include <memory>
 
-#include "llvm/Target/TargetMachine.h"
-
 #include "Input.h"
 #include "UnitCache.h"
 #include "../AST/DeclBase.h"
@@ -50,6 +48,8 @@ class Context final {
 
 public:
   Context(vector<SourceFile> files);
+
+  ~Context();
 
   /// Iterates to the next source file in the context.
   bool nextFile();

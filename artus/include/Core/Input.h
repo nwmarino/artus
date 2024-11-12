@@ -32,6 +32,9 @@ struct CompilerFlags {
   /// To emit assembly code.
   unsigned int emitASM : 1;
 
+  /// To compile to an executable.
+  unsigned int compile : 1;
+
   /// To print the AST post-sema.
   unsigned int printAST : 1;
 };
@@ -43,6 +46,9 @@ struct InputContainer {
 
   /// Input source files to compile.
   const vector<SourceFile> files;
+
+  /// The name of the executable to compile to.
+  const string target;
 };
 
 } // namespace artus

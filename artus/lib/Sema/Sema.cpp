@@ -1,7 +1,7 @@
 #include <cassert>
 
-#include "../../include/Sema/Sema.h"
 #include "../../include/Core/Logger.h"
+#include "../../include/Sema/Sema.h"
 
 using namespace artus;
 

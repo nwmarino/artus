@@ -22,11 +22,11 @@ class Parser final {
 
   /// Flag used to indicate if the parser is currently peeking at a token.
   /// Signifies that the `tok` field will not be overriden by the next token.
-  unsigned peeking : 1;
+  unsigned peeking : 1 = 0;
 
   /// Basic parsing flags.
-  unsigned inLoop : 1;
-  unsigned inFunction : 1;
+  unsigned inLoop : 1 = 0;
+  unsigned inFunction : 1 = 0;
 
   /// The last recorded location in the source code.
   SourceLocation lastLoc = { ctx->getActiveFileName(), 0, 0 };

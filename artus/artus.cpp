@@ -3,13 +3,8 @@
 
 #include "llvm/Support/TargetSelect.h"
 
-#include "Driver.h"
-#include "Input.h"
-#include "include/AST/ASTPrinter.h"
-#include "include/Codegen/Codegen.h"
-#include "include/Core/Context.h"
+#include "include/Core/Driver.h"
 #include "include/Core/Logger.h"
-#include "include/Lex/Lexer.h"
 
 using std::ofstream;
 using std::fstream;
@@ -17,13 +12,15 @@ using std::string;
 
 using namespace artus;
 
+/// Print the help message for the compiler.
 [[noreturn]] void printHelp(bool basic = false) {
-  printf("usage: artus [options] <input files>\n");
+  printf("artus: usage: artus [options] <input files>\n");
   if (basic == true) {
     exit(EXIT_SUCCESS);
   }
 
   printf("Options:\n");
+  printf("  -o: Specify the output file\n");
   printf("  -d: Enable debug mode\n");
   printf("  -ll: Emit LLVM IR\n");
   printf("  -S: Emit assembly\n");
@@ -31,11 +28,12 @@ using namespace artus;
   exit(EXIT_FAILURE);
 }
 
+/// Parse an input file path into a SourceFile struct.
 SourceFile static parseInputFile(const string &path) {
   fstream file(path);
 
   if (!file.is_open()) {
-    fatal(string("file not found: ") + path);
+    fatal("file not found: " + path);
   }
 
   const string name = path.substr(path.find_last_of('/') + 1);
@@ -43,21 +41,22 @@ SourceFile static parseInputFile(const string &path) {
   int len;
   
   file.seekg(0, std::ios::end);
-  SrcBuffer = new char[file.tellg()];
   len = file.tellg();
+  SrcBuffer = new char[len + 1];
 
   file.seekg(0, std::ios::beg);
   file.read(SrcBuffer, len);
   file.close();
 
-
   return { .name = name.substr(0, name.find_last_of('.')), 
       .path = path, .BufferStart = SrcBuffer };
 }
 
+/// Parse the command line arguments into a struct.
 InputContainer parseCommandArgs(int argc, char **argv) {
   CompilerFlags flags = CompilerFlags();
   vector<SourceFile> files;
+  string target = "main";
 
   for (int i = 1; i < argc; ++i) {
     if (strcmp(argv[i], "-h") == 0) {
@@ -72,8 +71,13 @@ InputContainer parseCommandArgs(int argc, char **argv) {
       flags.emitLLVM = 1;
     else if (strcmp(argv[i], "--print-ast") == 0)
       flags.printAST = 1;
-
-    if (argv[i][0] != '-') {
+    else if (strcmp(argv[i], "-o") == 0) {
+      if (i + 1 < argc) {
+        target = argv[++i];
+      } else {
+        fatal("no output file specified");
+      }
+    } else if (argv[i][0] != '-') {
       files.push_back(parseInputFile(argv[i]));
     }
   }
@@ -82,7 +86,13 @@ InputContainer parseCommandArgs(int argc, char **argv) {
     fatal("no input files");
   }
 
-  return { .flags = flags, .files = files };
+  if (target.substr(0, target.find_last_of('.')) != target) {
+    fatal("target output should not have an extension");
+  }
+
+  flags.compile = !flags.emitASM && !flags.emitLLVM;
+
+  return { .flags = flags, .files = files, .target = target };
 }
 
 int main(int argc, char **argv) {

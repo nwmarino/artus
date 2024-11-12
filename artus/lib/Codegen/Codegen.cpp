@@ -1,9 +1,6 @@
 #include "llvm/IR/Verifier.h"
 
-#include "../../include/AST/DeclBase.h"
-#include "../../include/AST/Decl.h"
 #include "../../include/AST/Expr.h"
-#include "../../include/AST/Stmt.h"
 #include "../../include/Codegen/Codegen.h"
 #include "../../include/Core/Logger.h"
 

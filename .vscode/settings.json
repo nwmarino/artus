@@ -1,5 +1,5 @@
 {
-    "cmake.sourceDirectory": "/home/nwmar/Repositories/artus/artus",
+    "cmake.sourceDirectory": "/home/nwmar/Repos/artus/artus",
     "files.associations": {
         "string": "cpp",
         "array": "cpp",
@@ -75,7 +75,11 @@
         "typeinfo": "cpp",
         "variant": "cpp",
         "cassert": "cpp",
-        "shared_mutex": "cpp"
+        "shared_mutex": "cpp",
+        "*.inc": "cpp",
+        "source_location": "cpp",
+        "typeindex": "cpp",
+        "valarray": "cpp"
     },
     "cmake.debugConfig": {
         "args": [

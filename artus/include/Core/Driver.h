@@ -21,18 +21,22 @@ class Driver {
   /// The target machine for the current host.
   llvm::TargetMachine *TM;
 
+  /// A list of object files to be linked.
+  vector<string> objectFiles;
+
   /// Context for the compiler process.
   Context *ctx;
 
   /// Creates the target machine.
   void createTM();
 
-  /// Emit an object or assembly file from a given module.
+  /// Emit an object or assembly file from a given module. Returns 1 on success.
   int emitFile(llvm::Module *module);
 
 public:
   Driver(const InputContainer &input);
-  ~Driver() = default;
+
+  ~Driver();
 
   /// Returns the compiler flags being used by this driver.
   const CompilerFlags getFlags() { return flags; }

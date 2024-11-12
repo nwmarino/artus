@@ -1,7 +1,4 @@
-#include "../../include/AST/ASTPrinter.h"
-#include "../../include/AST/Decl.h"
 #include "../../include/AST/Stmt.h"
-#include "Input.h"
 #include "../../include/Core/Context.h"
 
 using std::string;
@@ -20,6 +17,16 @@ Context::Context(vector<SourceFile> files) : files(std::move(files)), eof(0) {
   this->types["u32"] = new BasicType(BasicType::BasicTypeKind::UINT32);
   this->types["u64"] = new BasicType(BasicType::BasicTypeKind::UINT64);
   this->types["fp64"] = new BasicType(BasicType::BasicTypeKind::FP64);
+}
+
+Context::~Context() {
+  for (auto &type : types) {
+    delete type.second;
+  }
+
+  for (SourceFile &file : files) {
+    delete []file.BufferStart;
+  }
 }
 
 bool Context::nextFile() {
