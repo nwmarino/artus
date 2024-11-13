@@ -87,7 +87,11 @@ std::unique_ptr<Decl> Parser::ParseFunctionDeclaration() {
   nextToken(); // Consume the type token.
 
   // Create the function type.
-  const FunctionType *T = new FunctionType(returnType, {});
+  vector<const Type *> paramTypes;
+  for (const auto &param : params)
+    paramTypes.push_back(param->getType());
+
+  const FunctionType *T = new FunctionType(returnType, paramTypes);
   this->parentFunctionType = T;
 
   /* Cut here. */
@@ -125,7 +129,40 @@ std::vector<std::unique_ptr<ParamVarDecl>> Parser::ParseFunctionParams() {
 
   // Parse the list of parameters.
   vector<std::unique_ptr<ParamVarDecl>> params;
-  while (!tok.is(TokenKind::CloseParen)) { /* no params yet */ }
+  while (!tok.is(TokenKind::CloseParen)) {
+    if (!tok.is(TokenKind::Identifier)) {
+      trace("expected identifier after '(' symbol", lastLoc);
+      return {};
+    }
+
+    const Token idToken = tok;
+    nextToken(); // Consume the identifier token.
+
+    if (!tok.is(TokenKind::Colon)) {
+      trace("expected ':' symbol after parameter identifier", lastLoc);
+      return {};
+    }
+
+    nextToken(); // Consume the ':' token.
+
+    if (!tok.is(TokenKind::Identifier)) {
+      trace("expected type after ':' symbol", lastLoc);
+      return {};
+    }
+
+    const Type *paramType = ctx->getType(tok.value);
+    nextToken(); // Consume the type token.
+
+    // Create the parameter declaration and add it to the current scope.
+    std::unique_ptr<ParamVarDecl> param = std::make_unique<ParamVarDecl>(
+        idToken.value, paramType, createSpan(idToken.loc));
+
+    scope->addDecl(param.get());
+    params.push_back(std::move(param));
+
+    if (tok.is(TokenKind::Comma))
+      nextToken(); // Consume the ',' token.
+  }
 
   nextToken(); // Consume the ')' token.
   return params;

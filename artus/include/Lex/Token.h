@@ -67,6 +67,8 @@ enum class TokenKind {
   Bang,
   /// :
   Colon,
+  /// ,
+  Comma,
   /// @
   At,
 

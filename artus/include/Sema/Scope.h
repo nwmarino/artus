@@ -56,10 +56,17 @@ public:
 
   /// Retrieves a declaration by name, if it exists, and `nullptr` otherwise.
   Decl *getDecl(const string &name) const {
-    for (auto decl : decls) {
+    if (decls.empty())
+      return nullptr;
+
+    for (NamedDecl *decl : decls) {
       if (decl->getName() == name)
         return decl;
     }
+    
+    if (parent)
+      return parent->getDecl(name);
+
     return nullptr;
   }
 

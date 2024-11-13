@@ -141,13 +141,13 @@ void ASTPrinter::visit(FunctionDecl *decl) {
   printPiping();
   printDecl(decl->span, "FunctionDecl", decl->name, decl->T->toString());
 
+  increaseIndent();
   size_t paramsCount = decl->params.size();
   for (unsigned idx = 0; idx < paramsCount; idx++) {
     decl->params[idx]->pass(this);
   }
 
   setLastChild();
-  increaseIndent();
   decl->body->pass(this);
   resetLastChild();
 }

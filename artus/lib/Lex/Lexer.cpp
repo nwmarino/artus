@@ -106,6 +106,7 @@ entry:
   case '+': next.kind = TokenKind::Plus; break;
   case '*': next.kind = TokenKind::Star; break;
   case ':': next.kind = TokenKind::Colon; break;
+  case ',': next.kind = TokenKind::Comma; break;
   case '@': next.kind = TokenKind::At; break;
 
   /// Identifiers and numeric literals.
@@ -167,6 +168,7 @@ const string Lexer::dump() {
       case TokenKind::Equals: tmp = "Equals"; break;
       case TokenKind::Bang: tmp = "Bang"; break;
       case TokenKind::Colon: tmp = "Colon"; break;
+      case TokenKind::Comma: tmp = "Comma"; break;
       case TokenKind::At: tmp = "At"; break;
       case TokenKind::Arrow: tmp = "Arrow"; break;
       case TokenKind::EqualsEquals: tmp = "EqualsEquals"; break;

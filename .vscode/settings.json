@@ -83,7 +83,8 @@
     },
     "cmake.debugConfig": {
         "args": [
-            "../sample/RetZero.s",
+            "../sample/fib.s",
+            "-ll",
         ]
     }
 }

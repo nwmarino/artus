@@ -34,19 +34,19 @@ void Sema::visit(FunctionDecl *decl) {
   inFunction = 1;
   localScope = decl->scope;
 
-  // Sema on each parameter.
-  for (const std::unique_ptr<ParamVarDecl> &param : decl->params) {
-    param->pass(this);
-    paramIndex++;
-  }
-  paramIndex = 0;
-  
   // Resolve the function type for later type checking.
   parentFunctionType = dynamic_cast<const FunctionType *>(decl->T);
   if (!parentFunctionType) {
     fatal("expected function type: " + decl->name, 
     { decl->span.file, decl->span.line, decl->span.col });
   }
+
+  // Sema on each parameter.
+  for (const std::unique_ptr<ParamVarDecl> &param : decl->params) {
+    param->pass(this);
+    paramIndex++;
+  }
+  paramIndex = 0;
 
   // Check if the function is the main function.
   if (decl->name == "main") {

@@ -167,16 +167,16 @@ void Codegen::visit(BinaryExpr *expr) {
       }
       fatal("invalid lvalue");
     case BinaryExpr::BinaryOp::Add:
-      tmp = builder->CreateAdd(lhs, rhs, "add");
+      tmp = builder->CreateAdd(lhs, rhs);
       break;
     case BinaryExpr::BinaryOp::Sub:
-      tmp = builder->CreateSub(lhs, rhs, "sub");
+      tmp = builder->CreateSub(lhs, rhs);
       break;
     case BinaryExpr::BinaryOp::Mult:
-      tmp = builder->CreateMul(lhs, rhs, "mul");
+      tmp = builder->CreateMul(lhs, rhs);
       break;
     case BinaryExpr::BinaryOp::Div:
-      tmp = builder->CreateSDiv(lhs, rhs, "div");
+      tmp = builder->CreateSDiv(lhs, rhs);
       break;
     default:
       fatal("unknown binary operator");

@@ -41,7 +41,7 @@ class Sema final : public ASTVisitor {
   const FunctionType *parentFunctionType;
 
   /// The index of the current parameter being visited.
-  size_t paramIndex;
+  size_t paramIndex = 0;
 
 public:
   Sema(Context *ctx);
