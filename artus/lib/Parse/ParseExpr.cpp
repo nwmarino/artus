@@ -1,7 +1,10 @@
 #include <cassert>
+#include <memory>
 
 #include "../../include/Core/Logger.h"
 #include "../../include/Parse/Parser.h"
+#include "../../include/Lex/Token.h"
+#include "../../include/Core/SourceLocation.h"
 
 using namespace artus;
 
@@ -35,6 +38,9 @@ std::unique_ptr<Expr> Parser::ParseExpression() {
 
 /// Parse a primary expression.
 std::unique_ptr<Expr> Parser::ParsePrimaryExpression() {
+  if (tok.is(TokenKind::At))
+    return ParseCallExpression();
+
   if (tok.is(TokenKind::Identifier))
     return ParseIdentifierExpression();
 
@@ -59,10 +65,61 @@ std::unique_ptr<Expr> Parser::ParseIdentifierExpression() {
   return ParseCastExpression();
 }
 
+/// Parse a function call expression.
+///
+/// call-expr:
+///   '@' <identifier> '(' <expr-list> ')'
+std::unique_ptr<Expr> Parser::ParseCallExpression() {
+  assert(tok.is(TokenKind::At) && "expected '@'");
+
+  SourceLocation firstLoc = tok.loc;
+  nextToken(); // Eat the '@' token.
+
+  if (!tok.is(TokenKind::Identifier)) {
+    fatal("expected identifier after '@'", tok.loc);
+  }
+
+  const string callee = tok.value; // Save the callee.
+  nextToken(); // Eat the identifier token.
+
+  vector<std::unique_ptr<Expr>> args = {};
+  bool emptyCall = false;
+  // Empty call case: `@foo`; no arguments.
+  if (!tok.is(TokenKind::OpenParen)) {
+    emptyCall = true;
+  }
+
+  if (!emptyCall)
+    nextToken(); // Eat the '(' token.
+
+  while (!tok.is(TokenKind::CloseParen) && !emptyCall) {
+    std::unique_ptr<Expr> arg = ParseExpression();
+    if (!arg) {
+      fatal("expected expression in argument list at call: " + callee, tok.loc);
+    }
+
+    args.push_back(std::move(arg));
+
+    // Expect a terminator or another argument.
+    if (tok.is(TokenKind::Comma)) {
+      nextToken(); // Eat the ',' token.
+    } else if (!tok.is(TokenKind::CloseParen)) {
+      fatal("expected ')' after argument list", tok.loc);
+    }
+  }
+
+  if (!emptyCall)
+    nextToken(); // Eat the ')' token.
+
+  return std::make_unique<CallExpr>(callee, nullptr, nullptr, std::move(args),
+      createSpan(firstLoc, lastLoc));
+}
+
 /// Parse a declaration reference expression.
 std::unique_ptr<Expr> Parser::ParseReferenceExpression() {
   Token identToken = tok; // Save the identifier token.
   nextToken();
+NOARGS:
 
   // Resolve the identifier reference.
   Decl *refDecl = scope->getDecl(identToken.value);
@@ -93,7 +150,7 @@ std::unique_ptr<Expr> Parser::ParseCastExpression() {
   Token idToken = tok; // Save the identifier token.
   nextToken();
 
-  // Resolve the cast type.
+  // Resolve the cast type, if it exists yet.
   const Type *castType = ctx->getType(idToken.value);
   
   // Resolve the base expression.
@@ -105,7 +162,7 @@ std::unique_ptr<Expr> Parser::ParseCastExpression() {
   }
 
   isUnderCast = 0;
-  return std::make_unique<ExplicitCastExpr>(std::move(baseExpr), 
+  return std::make_unique<ExplicitCastExpr>(std::move(baseExpr), idToken.value,
       castType, createSpan(idToken.loc));
 }
 

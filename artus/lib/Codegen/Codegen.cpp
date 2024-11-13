@@ -134,6 +134,21 @@ void Codegen::visit(DeclRefExpr *expr) {
       expr->ident);
 }
 
+void Codegen::visit(CallExpr *expr) {
+  llvm::Function *callee = functions[expr->ident];
+  if (!callee) {
+    fatal("function not found in function table: " + expr->ident);
+  }
+
+  std::vector<llvm::Value *> args;
+  for (size_t i = 0; i < expr->getNumArgs(); ++i) {
+    expr->getArg(i)->pass(this);
+    args.push_back(tmp);
+  }
+
+  tmp = builder->CreateCall(callee, args);
+}
+
 void Codegen::visit(UnaryExpr *expr) {
   expr->base->pass(this);
   llvm::Value *base = tmp;

@@ -4,6 +4,7 @@
 #include <algorithm>
 
 #include "../AST/Decl.h"
+#include "../Lex/Token.h"
 
 using std::vector;
 
@@ -55,8 +56,8 @@ public:
   }
 
   /// Retrieves a declaration by name, if it exists, and `nullptr` otherwise.
-  Decl *getDecl(const string &name) const {
-    if (decls.empty())
+  NamedDecl *getDecl(const string &name) const {
+    if (isReserved(name))
       return nullptr;
 
     for (NamedDecl *decl : decls) {

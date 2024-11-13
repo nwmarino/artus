@@ -13,6 +13,7 @@ class VarDecl;
 class ImplicitCastExpr;
 class ExplicitCastExpr;
 class DeclRefExpr;
+class CallExpr;
 class UnaryExpr;
 class BinaryExpr;
 class IntegerLiteral;
@@ -37,6 +38,7 @@ public:
   virtual void visit(ImplicitCastExpr *expr) = 0;
   virtual void visit(ExplicitCastExpr *expr) = 0;
   virtual void visit(DeclRefExpr *expr) = 0;
+  virtual void visit(CallExpr *expr) = 0;
   virtual void visit(UnaryExpr *expr) = 0;
   virtual void visit(BinaryExpr *expr) = 0;
   virtual void visit(IntegerLiteral *expr) = 0;

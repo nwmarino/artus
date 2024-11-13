@@ -6,6 +6,7 @@
 #include "Stmt.h"
 #include "../Core/Span.h"
 #include "../Sema/Type.h"
+#include <memory>
 
 namespace artus {
 
@@ -21,9 +22,13 @@ protected:
   /// The expression to cast.
   std::unique_ptr<Expr> expr;
 
+  /// The identifier of the type cast.
+  const string ident;
+
 public:
-  CastExpr(std::unique_ptr<Expr> expr, const Type *T, const Span &span)
-      : Expr(T, span), expr(std::move(expr)) {}
+  CastExpr(std::unique_ptr<Expr> expr, const string &ident, const Type *T, 
+           const Span &span)
+      : Expr(T, span), expr(std::move(expr)), ident(ident) {}
 };
 
 /// An implicit cast. Usually injected by the ompiler during sema to recover
@@ -34,8 +39,9 @@ class ImplicitCastExpr final : public CastExpr {
   friend class Sema;
 
 public:
-  ImplicitCastExpr(std::unique_ptr<Expr> expr, const Type *T, const Span &span)
-      : CastExpr(std::move(expr), T, span) {}
+  ImplicitCastExpr(std::unique_ptr<Expr> expr, const string &ident, 
+                   const Type *T, const Span &span)
+      : CastExpr(std::move(expr), ident, T, span) {}
 
   void pass(ASTVisitor *visitor) override { visitor->visit(this); }
 };
@@ -47,14 +53,15 @@ class ExplicitCastExpr final : public CastExpr {
   friend class Sema;
 
 public:
-  ExplicitCastExpr(std::unique_ptr<Expr> expr, const Type *T, const Span &span)
-      : CastExpr(std::move(expr), T, span) {}
+  ExplicitCastExpr(std::unique_ptr<Expr> expr, const string &ident, 
+                   const Type *T, const Span &span)
+      : CastExpr(std::move(expr), ident, T, span) {}
 
   void pass(ASTVisitor *visitor) override { visitor->visit(this); }
 };
 
 /// A reference to a declaration. For example, `x`.
-class DeclRefExpr final : public Expr {
+class DeclRefExpr : public Expr {
   friend class ASTPrinter;
   friend class Codegen;
   friend class Sema;
@@ -74,6 +81,29 @@ public:
 
   /// Returns the identifier of this reference.
   const string &getIdent() const { return ident; }
+};
+
+/// A call expression. For example, `@foo()`.
+class CallExpr final : public DeclRefExpr {
+  friend class ASTPrinter;
+  friend class Codegen;
+  friend class Sema;
+
+  /// The arguments of the call.
+  std::vector<std::unique_ptr<Expr>> args;
+
+public:
+  CallExpr(const string callee, const Decl *decl, const Type *T,
+           vector<std::unique_ptr<Expr>> args, const Span &span)
+      : DeclRefExpr(callee, decl, T, span), args(std::move(args)) {}
+
+  void pass(ASTVisitor *visitor) override { visitor->visit(this); }
+
+  /// Returns the number of arguments of this call.
+  size_t getNumArgs() const { return args.size(); }
+
+  /// Returns the argument at the given index.
+  Expr *getArg(size_t i) const { return args[i].get(); }
 };
 
 /// A unary expression. For example `-1`, `!true`, etc.

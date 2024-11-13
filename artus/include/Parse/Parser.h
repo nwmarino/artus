@@ -32,13 +32,13 @@ class Parser final {
   unsigned isUnderCast : 1 = 0;
 
   /// The last recorded location in the source code.
-  SourceLocation lastLoc = { ctx->getActiveFileName(), 0, 0 };
+  SourceLocation lastLoc;
 
   /// The current scope of the parser.
   Scope *scope;
 
   /// The type of the parent function declaration, if it exists.
-  const FunctionType *parentFunctionType = nullptr;
+  const FunctionType *parentFunctionType;
 
   /// Consumes the current token and moves to the next token in the stream.
   /// Returns `true` if the parser has begun lexing a new unit, and `false`
@@ -135,6 +135,7 @@ class Parser final {
   std::unique_ptr<Expr> ParseExpression();
   std::unique_ptr<Expr> ParsePrimaryExpression();
   std::unique_ptr<Expr> ParseIdentifierExpression();
+  std::unique_ptr<Expr> ParseCallExpression();
   std::unique_ptr<Expr> ParseReferenceExpression();
   std::unique_ptr<Expr> ParseCastExpression();
   std::unique_ptr<Expr> ParseUnaryExpression();
@@ -159,7 +160,8 @@ class Parser final {
   std::unique_ptr<Expr> ParseDefaultInitExpression(const Type *T);
 
 public:
-  Parser(Context *ctx) : ctx(ctx) {}
+  Parser(Context *ctx) : ctx(ctx), scope(nullptr), parentFunctionType(nullptr),
+                         lastLoc({ ctx->getActiveFileName(), 0, 0 }) {}
 
   /// Creates an AST from the token stream and embeds the package units into
   /// the context attached to this parser interface.

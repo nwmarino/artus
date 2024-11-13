@@ -102,12 +102,6 @@ std::unique_ptr<Stmt> Parser::ParseLabelStatement() {
 
   const Span span = createSpan(idToken.loc);
   nextToken(); // Consume the colon token.
-
-  // Check if a label with the same name already exists in the current scope.
-  if (scope->getDecl(idToken.value)) {
-    fatal("label '" + idToken.value + "' already defined in scope", 
-        lastLoc);
-  }
   
   // Store a new label declaration in scope.
   LabelDecl *labelDecl = new LabelDecl(idToken.value, span);

@@ -200,6 +200,25 @@ void ASTPrinter::visit(DeclRefExpr *expr) {
   printExpr(expr->span, "DeclRefExpr", expr->T->toString(), expr->ident);
 }
 
+void ASTPrinter::visit(CallExpr *expr) {
+  printPiping();
+  printExpr(expr->span, "CallExpr", expr->T->toString(), expr->ident);
+
+  resetLastChild();
+  increaseIndent();
+  for (unsigned idx = 0; idx < expr->getNumArgs(); idx++) {
+    if (idx + 1 == expr->getNumArgs()) {
+      clearPiping(indent);
+      setLastChild();
+    }
+
+    expr->args[idx]->pass(this);
+  }
+
+  decreaseIndent();
+  resetLastChild();
+}
+
 void ASTPrinter::visit(UnaryExpr *expr) {
   printPiping();
   printExpr(expr->span, "UnaryExpr", expr->T->toString(), "", false);

@@ -118,6 +118,18 @@ void Sema::visit(ImplicitCastExpr *expr) {
 void Sema::visit(ExplicitCastExpr *expr) {
   expr->expr->pass(this); // Sema on the expression.
 
+  // Fetch the type if it could not be resolved at parse time.
+  if (!expr->T) {
+    const Type *resolvedType = ctx->getType(expr->ident);
+    if (!resolvedType) {
+      fatal("unresolved type: " + expr->ident, { expr->span.file, 
+          expr->span.line, expr->span.col });
+    }
+
+    expr->T = resolvedType;
+  }
+
+  // Type check the cast and the base expression.
   if (expr->T->compare(expr->expr->T) == 0) {
     fatal("explicit cast type mismatch", { expr->span.file, 
         expr->span.line, expr->span.col });
@@ -144,6 +156,48 @@ void Sema::visit(DeclRefExpr *expr) {
     expr->T = VarDecl->T;
   else if (const ParamVarDecl *ParamVarDecl = dynamic_cast<const class ParamVarDecl *>(decl))
     expr->T = ParamVarDecl->T;
+}
+
+/// Semantic Analysis over a CallExpr.
+///
+/// CallExprs are valid if and only if the callee is a function in scope and the
+/// arguments match both in count and type to the function.
+void Sema::visit(CallExpr *expr) {
+  // Attempt to resolve the function.
+  const Decl *decl = localScope->getDecl(expr->ident);
+
+  if (!decl) {
+    fatal("unresolved reference: " + expr->ident, { expr->span.file, 
+        expr->span.line, expr->span.col });
+  }
+
+  // Check that the callee is a function.
+  const FunctionDecl *callee = dynamic_cast<const FunctionDecl *>(decl);
+  if (!callee) {
+    fatal("expected function type: " + expr->ident, { expr->span.file, 
+        expr->span.line, expr->span.col });
+  }
+
+  // Check that the number of arguments matches the number of parameters.
+  if (expr->getNumArgs() != callee->params.size()) {
+    fatal("argument count mismatch: " + expr->ident, { expr->span.file, 
+        expr->span.line, expr->span.col });
+  }
+
+  // Check that the types of the arguments match the types of the parameters.
+  for (size_t i = 0; i < expr->getNumArgs(); i++) {
+    expr->getArg(i)->pass(this); // Sema on each argument.
+
+    if (expr->getArg(i)->T->compare(callee->params[i]->T) == 0) {
+      fatal("argument type mismatch: " + expr->ident, { expr->span.file, 
+          expr->span.line, expr->span.col });
+    }
+  }
+
+  // Propagate the type of the expression.
+  const FunctionType *FT = dynamic_cast<const FunctionType *>(callee->T);
+  assert(FT && "expected function type");
+  expr->T = FT->getReturnType();
 }
 
 /// Semantic Analysis over a UnaryExpr.
@@ -283,6 +337,11 @@ void Sema::visit(RetStmt *stmt) {
   }
 
   stmt->expr->pass(this); // Sema on the expression.
+
+  // Handle unresolved return types. (i.e. a call or reference)
+  if (!stmt->T) {
+    stmt->T = stmt->expr->T;
+  }
 
   // Check that the return type matches the function's return type.
   if (stmt->T->compare(parentFunctionType->getReturnType()) == 0) {

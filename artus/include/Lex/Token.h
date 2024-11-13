@@ -25,13 +25,13 @@ inline vector<string> __RESERVED = {
   "ret",
 };
 
+namespace artus {
+
 /// Returns 1 if the provided identifier is a reserved keyword, and 0 otherwise.
-inline int is_reserved(const string &kw) {
+inline int isReserved(const string &kw) {
   return std::find(__RESERVED.begin(), __RESERVED.end(), kw) \
     != __RESERVED.end();
 }
-
-namespace artus {
 
 /// The different kinds of tokens that the lexer can produce.
 enum class TokenKind {
@@ -112,7 +112,7 @@ struct Token {
 
   /// Returns true if the token is a reserved keyword, and false otherwise.
   inline bool isKeyword(const string &kw) const { 
-    return kind == TokenKind::Identifier && value == kw && is_reserved(kw); 
+    return kind == TokenKind::Identifier && value == kw && isReserved(kw); 
   }
 };
 
