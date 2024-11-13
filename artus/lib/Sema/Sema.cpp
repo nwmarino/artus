@@ -182,12 +182,14 @@ void Sema::visit(BinaryExpr *expr) {
   if (!expr->isAssignment())
     return;
 
+  // Resolve the lvalue.
   const DeclRefExpr *lhsRef = dynamic_cast<const DeclRefExpr *>(expr->lhs.get());
   if (!lhsRef) {
-    fatal("expected lvalue to variable assignment", { expr->span.file, 
+    fatal("expected lvalue to variable assignment", { expr->span.file,
       expr->span.line, expr->span.col });
   }
 
+  // Check that a variable lvalue is mutable.
   if (const VarDecl *decl = dynamic_cast<const VarDecl *>(
       localScope->getDecl(lhsRef->ident))) {
     if (!decl->isMutable()) {
@@ -197,6 +199,7 @@ void Sema::visit(BinaryExpr *expr) {
     return;
   }
 
+  // Check that a parameter lvalue is mutable.
   if (const ParamVarDecl *decl = dynamic_cast<const ParamVarDecl *>(
       localScope->getDecl(lhsRef->ident))) {
     if (!decl->isMutable()) {
