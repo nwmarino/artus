@@ -5,6 +5,19 @@
 
 using namespace artus;
 
+/// Parse a default initialization expression dependent on the given type.
+///
+/// Given the type, this function will return an expression that may be used
+/// to initialize an otherwised undefined variable.
+std::unique_ptr<Expr> Parser::ParseDefaultInitExpression(const Type *T) {
+  if (T->isIntegerType()) {
+    return std::make_unique<IntegerLiteral>(0, T, false, 
+        createSpan(lastLoc));
+  }
+
+  return nullptr;
+}
+
 /// Parse an expression.
 ///
 /// expr:
@@ -23,12 +36,45 @@ std::unique_ptr<Expr> Parser::ParseExpression() {
 /// Parse a primary expression.
 std::unique_ptr<Expr> Parser::ParsePrimaryExpression() {
   if (tok.is(TokenKind::Identifier))
-    return ParseCastExpression();
+    return ParseIdentifierExpression();
 
   if (tok.is(LiteralKind::Integer))
     return ParseIntegerExpression();
   
   return nullptr;
+}
+
+/// Parse an identifier expression.
+std::unique_ptr<Expr> Parser::ParseIdentifierExpression() {
+  assert(tok.is(TokenKind::Identifier) && "expected identifier");
+
+  if (Decl *refDecl = scope->getDecl(tok.value))
+    return ParseReferenceExpression();
+
+  return ParseCastExpression();
+}
+
+/// Parse a declaration reference expression.
+std::unique_ptr<Expr> Parser::ParseReferenceExpression() {
+  Token identToken = tok; // Save the identifier token.
+  nextToken();
+
+  // Resolve the identifier reference.
+  Decl *refDecl = scope->getDecl(identToken.value);
+  if (!refDecl) {
+    fatal("undeclared identifier: " + identToken.value, identToken.loc);
+  }
+
+  // Resolve the declaration type, if it exists.
+  const Type *refType = nullptr;
+  if (VarDecl *varDecl = dynamic_cast<VarDecl *>(refDecl)) {
+    refType = varDecl->getType();
+  } else if (ParamVarDecl *paramDecl = dynamic_cast<ParamVarDecl *>(refDecl)) {
+    refType = paramDecl->getType();
+  }
+
+  return std::make_unique<DeclRefExpr>(identToken.value, refDecl, 
+      refType, createSpan(identToken.loc));
 }
 
 /// Parse a cast expression.

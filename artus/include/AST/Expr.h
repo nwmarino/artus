@@ -2,6 +2,7 @@
 #define ARTUS_AST_EXPR_H
 
 #include "ASTPrinter.h"
+#include "DeclBase.h"
 #include "Stmt.h"
 #include "../Core/Span.h"
 #include "../Sema/Type.h"
@@ -48,6 +49,26 @@ class ExplicitCastExpr final : public CastExpr {
 public:
   ExplicitCastExpr(std::unique_ptr<Expr> expr, const Type *T, const Span &span)
       : CastExpr(std::move(expr), T, span) {}
+
+  void pass(ASTVisitor *visitor) override { visitor->visit(this); }
+};
+
+/// A reference to a declaration. For example, `x`.
+class DeclRefExpr final : public Expr {
+  friend class ASTPrinter;
+  friend class Codegen;
+  friend class Sema;
+
+  /// The identifier of the referenced declaration.
+  const string ident;
+
+  /// The declaration being referenced.
+  const Decl *decl;
+
+public:
+  DeclRefExpr(const string ident, const Decl *decl, const Type *T, 
+              const Span &span)
+      : Expr(T, span), ident(ident), decl(decl) {}
 
   void pass(ASTVisitor *visitor) override { visitor->visit(this); }
 };

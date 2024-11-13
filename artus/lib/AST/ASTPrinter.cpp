@@ -101,6 +101,7 @@ void ASTPrinter::visit(VarDecl *decl) {
   setLastChild();
   increaseIndent();
   decl->init->pass(this);
+  decreaseIndent();
   resetLastChild();
 }
 
@@ -124,6 +125,13 @@ void ASTPrinter::visit(ExplicitCastExpr *expr)  {
   increaseIndent();
   expr->expr->pass(this);
   resetLastChild();
+}
+
+void ASTPrinter::visit(DeclRefExpr *expr) {
+  printPiping();
+  cout << exprColor << "DeclRefExpr " << clear << nameColor << expr->ident \
+       << clear << typeColor << "'" << expr->T->toString() << "' " << clear \
+       << '\n';
 }
 
 void ASTPrinter::visit(BinaryExpr *expr) {
@@ -152,10 +160,12 @@ void ASTPrinter::visit(CompoundStmt *stmt) {
 
   resetLastChild();
   increaseIndent();
-  size_t stmtsCount = stmt->stmts.size();
-  for (unsigned idx = 0; idx < stmtsCount; idx++) {
-    if (idx + 1 == stmtsCount)
+  setPiping(indent);
+  for (unsigned idx = 0; idx < stmt->stmts.size(); idx++) {
+    if (idx + 1 == stmt->stmts.size()) {
+      clearPiping(indent);
       setLastChild();
+    }
 
     stmt->stmts[idx]->pass(this);
   }
@@ -170,6 +180,7 @@ void ASTPrinter::visit(DeclStmt *stmt) {
   setLastChild();
   increaseIndent();
   stmt->decl->pass(this);
+  decreaseIndent();
   resetLastChild();
 }
 

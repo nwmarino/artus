@@ -1,4 +1,5 @@
 #include "llvm/IR/Verifier.h"
+#include <llvm/IR/Instructions.h>
 
 #include "../../include/AST/Expr.h"
 #include "../../include/Codegen/Codegen.h"
@@ -121,6 +122,16 @@ void Codegen::visit(ImplicitCastExpr *expr) {
 
 void Codegen::visit(ExplicitCastExpr *expr) {
   expr->expr->pass(this);
+}
+
+void Codegen::visit(DeclRefExpr *expr) {
+  llvm::AllocaInst *alloca = allocas[expr->ident];
+
+  if (!alloca)
+    fatal("unresolved variable: " + expr->ident);
+
+  tmp = builder->CreateLoad(alloca->getAllocatedType(), alloca, 
+      expr->ident);
 }
 
 void Codegen::visit(BinaryExpr *expr) {

@@ -121,6 +121,8 @@ class Parser final {
 
   std::unique_ptr<Expr> ParseExpression();
   std::unique_ptr<Expr> ParsePrimaryExpression();
+  std::unique_ptr<Expr> ParseIdentifierExpression();
+  std::unique_ptr<Expr> ParseReferenceExpression();
   std::unique_ptr<Expr> ParseCastExpression();
   std::unique_ptr<Expr> ParseBinaryExpression(std::unique_ptr<Expr> base, 
                                               int precedence = 0);
@@ -139,6 +141,8 @@ class Parser final {
   std::unique_ptr<Decl> ParseVarDeclaration(bool isMut = 0);
 
   std::unique_ptr<PackageUnitDecl> ParsePackageUnit();
+
+  std::unique_ptr<Expr> ParseDefaultInitExpression(const Type *T);
 
 public:
   Parser(Context *ctx) : ctx(ctx) {}

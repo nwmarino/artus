@@ -180,6 +180,10 @@ std::unique_ptr<Decl> Parser::ParseVarDeclaration(bool isMut) {
     return nullptr;
   }
 
+  // If a mutable variable is not initialized, create a default initializer.
+  if (!initExpr)
+    initExpr = ParseDefaultInitExpression(varType);
+
   // Instantiate the declaration and add it to the current scope.
   std::unique_ptr<VarDecl> decl = std::make_unique<VarDecl>(varName, varType, 
       std::move(initExpr), isMut, createSpan(varToken.loc));  

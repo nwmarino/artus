@@ -127,6 +127,25 @@ void Sema::visit(ExplicitCastExpr *expr) {
   expr->expr->T = expr->T;
 }
 
+/// Semantic Analysis over a DeclRefExpr.
+///
+/// DeclRefExprs are valid if and only if the declaration they are referencing
+/// is valid.
+void Sema::visit(DeclRefExpr *expr) {
+  const Decl *decl = localScope->getDecl(expr->ident);
+
+  if (!decl) {
+    fatal("unresolved reference: " + expr->ident, { expr->span.file, 
+        expr->span.line, expr->span.col });
+  }
+
+  // Propagate the type of the expression.
+  if (const VarDecl *VarDecl = dynamic_cast<const class VarDecl *>(decl))
+    expr->T = VarDecl->T;
+  else if (const ParamVarDecl *ParamVarDecl = dynamic_cast<const class ParamVarDecl *>(decl))
+    expr->T = ParamVarDecl->T;
+}
+
 /// Semantic Analysis over a BinaryExpr.
 ///
 /// BinaryExprs are valid if and only if they are of the same type as their
