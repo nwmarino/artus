@@ -97,9 +97,11 @@ class Parser final {
     switch (tok.kind) {
       case TokenKind::Star:
       case TokenKind::Slash:
-        return 2;
+        return 3;
       case TokenKind::Plus:
       case TokenKind::Minus:
+        return 2;
+      case TokenKind::Equals:
         return 1;
       default:
         return -1;
@@ -110,6 +112,7 @@ class Parser final {
   /// Returns the binary operator equivelant of the current token.
   inline BinaryExpr::BinaryOp getBinaryOp() const {
     switch (tok.kind) {
+      case TokenKind::Equals: return BinaryExpr::BinaryOp::Assign;
       case TokenKind::Plus: return BinaryExpr::BinaryOp::Add;
       case TokenKind::Minus: return BinaryExpr::BinaryOp::Sub;
       case TokenKind::Star: return BinaryExpr::BinaryOp::Mult;

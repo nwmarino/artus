@@ -58,7 +58,7 @@ void Sema::visit(FunctionDecl *decl) {
           decl->span.line, decl->span.col });
     }
   }
-  
+
   decl->body->pass(this); // Sema on the body of the function.
 
   inFunction = 0;
@@ -161,6 +161,29 @@ void Sema::visit(BinaryExpr *expr) {
 
   // Propagate the type of the expression.
   expr->T = expr->lhs->T;
+
+  // Check that assignment is only done to mutable lvalues.
+  if (expr->op == BinaryExpr::BinaryOp::Assign) {
+    if (const DeclRefExpr *lhsRef = dynamic_cast<const DeclRefExpr *>(expr->lhs.get())) {
+      const VarDecl *decl = dynamic_cast<const VarDecl *>(
+          localScope->getDecl(lhsRef->ident));
+
+      if (!decl) {
+        fatal("unresolved variable: " + lhsRef->getIdent(), { expr->span.file,
+            expr->span.line, expr->span.col });
+      }
+
+      if (!decl->mut) {
+        fatal("attempted to reassign immutable variable: " + lhsRef->getIdent(),
+            { expr->span.file, expr->span.line, expr->span.col });
+      }
+
+      return;
+    }
+
+    fatal("invalid lvalue to variable assignment", { expr->span.file, 
+        expr->span.line, expr->span.col });
+  }
 }
 
 /// Semantic Analysis over an IntegerLiteral.

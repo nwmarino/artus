@@ -141,6 +141,15 @@ void Codegen::visit(BinaryExpr *expr) {
   llvm::Value *rhs = tmp;
 
   switch (expr->op) {
+    case BinaryExpr::BinaryOp::Assign:
+      if (DeclRefExpr *lhsRef = dynamic_cast<DeclRefExpr *>(expr->lhs.get())) {
+        llvm::AllocaInst *alloca = allocas[lhsRef->ident];
+        assert(alloca && "unresolved variable");
+
+        tmp = builder->CreateStore(rhs, allocas[lhsRef->ident]);
+        break;
+      }
+      fatal("invalid lvalue");
     case BinaryExpr::BinaryOp::Add:
       tmp = builder->CreateAdd(lhs, rhs, "addtmp");
       break;

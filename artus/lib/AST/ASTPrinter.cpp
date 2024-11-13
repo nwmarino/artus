@@ -13,6 +13,7 @@ using namespace artus;
 /// Returns a string representation of a binary operator.
 inline static string binaryOpToString(BinaryExpr::BinaryOp op) {
   switch (op) {
+    case BinaryExpr::BinaryOp::Assign: return "=";
     case BinaryExpr::BinaryOp::Add: return "+";
     case BinaryExpr::BinaryOp::Sub: return "-";
     case BinaryExpr::BinaryOp::Mult: return "*";
@@ -193,14 +194,16 @@ void ASTPrinter::visit(DeclRefExpr *expr) {
 void ASTPrinter::visit(BinaryExpr *expr) {
   printPiping();
   printExpr(expr->span, "BinaryExpr", expr->T->toString(), "", false);
+  cout << ' ' << literalColor << binaryOpToString(expr->op) << clear << '\n';
 
- cout << ' ' << literalColor << binaryOpToString(expr->op) << clear << '\n';
+  unsigned topIndent = indent;
 
   resetLastChild();
   increaseIndent();
   expr->lhs->pass(this);
   setLastChild();
   expr->rhs->pass(this);
+  indent = topIndent;
   resetLastChild();
 }
 

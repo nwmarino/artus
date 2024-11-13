@@ -51,6 +51,11 @@ std::unique_ptr<Expr> Parser::ParseIdentifierExpression() {
   if (Decl *refDecl = scope->getDecl(tok.value))
     return ParseReferenceExpression();
 
+  // Variable (re)assignments.
+  peekToken();
+  if (peek.is(TokenKind::Equals))
+    return ParseReferenceExpression();
+
   return ParseCastExpression();
 }
 
@@ -62,7 +67,7 @@ std::unique_ptr<Expr> Parser::ParseReferenceExpression() {
   // Resolve the identifier reference.
   Decl *refDecl = scope->getDecl(identToken.value);
   if (!refDecl) {
-    fatal("undeclared identifier: " + identToken.value, identToken.loc);
+    fatal("unresolved symbol: " + identToken.value, identToken.loc);
   }
 
   // Resolve the declaration type, if it exists.

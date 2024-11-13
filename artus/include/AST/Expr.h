@@ -71,6 +71,9 @@ public:
       : Expr(T, span), ident(ident), decl(decl) {}
 
   void pass(ASTVisitor *visitor) override { visitor->visit(this); }
+
+  /// Returns the identifier of this reference.
+  const string &getIdent() const { return ident; }
 };
 
 /// A binary expression. For example, `1 + 1`, `2 * 3`, etc.
@@ -83,6 +86,7 @@ public:
   /// Possible kinds of binary operations.
   enum class BinaryOp {
     Unknown = -1,
+    Assign,
     Add,
     Sub,
     Mult,

@@ -10,9 +10,6 @@ std::unique_ptr<Stmt> Parser::ParseStatement() {
   if (tok.is(TokenKind::OpenBrace))
     return ParseCompoundStatement();
 
-  if (!tok.is(TokenKind::Identifier))
-    return ParseExpression();
-
   peekToken();
   if (peek.is(TokenKind::Colon))
     return ParseLabelStatement();
@@ -24,7 +21,7 @@ std::unique_ptr<Stmt> Parser::ParseStatement() {
   else if (tok.isKeyword("fix") || tok.isKeyword("mut"))
     return ParseDeclStatement();
 
-  return nullptr;
+  return ParseExpression();
 }
 
 /// Parse a compound statement.
