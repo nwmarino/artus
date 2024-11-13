@@ -135,6 +135,17 @@ std::vector<std::unique_ptr<ParamVarDecl>> Parser::ParseFunctionParams() {
       return {};
     }
 
+    bool isMutable = false;
+    if (tok.isKeyword("mut")) {
+      isMutable = true;
+      nextToken(); // Consume the 'mut' keyword.
+
+      if (!tok.is(TokenKind::Identifier)) {
+        trace("expected identifier after 'mut' keyword", lastLoc);
+        return {};
+      }
+    }
+
     const Token idToken = tok;
     nextToken(); // Consume the identifier token.
 
@@ -155,7 +166,7 @@ std::vector<std::unique_ptr<ParamVarDecl>> Parser::ParseFunctionParams() {
 
     // Create the parameter declaration and add it to the current scope.
     std::unique_ptr<ParamVarDecl> param = std::make_unique<ParamVarDecl>(
-        idToken.value, paramType, createSpan(idToken.loc));
+        idToken.value, paramType, isMutable, createSpan(idToken.loc));
 
     scope->addDecl(param.get());
     params.push_back(std::move(param));

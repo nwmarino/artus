@@ -138,6 +138,9 @@ public:
       op(op) {}
 
   void pass(ASTVisitor *visitor) override { visitor->visit(this); }
+
+  /// Returns true if this binary expression is an assignment.
+  bool isAssignment() const { return op == BinaryOp::Assign; }
 };
 
 /// An integer literal. For example, `0`, `1`, etc.

@@ -72,13 +72,19 @@ class ParamVarDecl final : public NamedDecl {
   /// The type of this parameter.
   const Type *T;
 
+  /// If this parameter is mutable.
+  const bool mut : 1;
+
 public:
-  ParamVarDecl(const string &name, const Type *T, const Span &span);
+  ParamVarDecl(const string &name, const Type *T, const bool mut, const Span &span);
 
   void pass(ASTVisitor *visitor) override;
 
   /// Returns the type of this parameter.
   const Type *getType() const;
+
+  /// Returns true if the parameter is mutable, and false otherwise.
+  unsigned isMutable() const;
 };
 
 /// Represents a function declaration.

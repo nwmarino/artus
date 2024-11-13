@@ -179,26 +179,30 @@ void Sema::visit(BinaryExpr *expr) {
   expr->T = expr->lhs->T;
 
   // Check that assignment is only done to mutable lvalues.
-  if (expr->op == BinaryExpr::BinaryOp::Assign) {
-    if (const DeclRefExpr *lhsRef = dynamic_cast<const DeclRefExpr *>(expr->lhs.get())) {
-      const VarDecl *decl = dynamic_cast<const VarDecl *>(
-          localScope->getDecl(lhsRef->ident));
+  if (!expr->isAssignment())
+    return;
 
-      if (!decl) {
-        fatal("unresolved variable: " + lhsRef->getIdent(), { expr->span.file,
-            expr->span.line, expr->span.col });
-      }
+  const DeclRefExpr *lhsRef = dynamic_cast<const DeclRefExpr *>(expr->lhs.get());
+  if (!lhsRef) {
+    fatal("expected lvalue to variable assignment", { expr->span.file, 
+      expr->span.line, expr->span.col });
+  }
 
-      if (!decl->mut) {
-        fatal("attempted to reassign immutable variable: " + lhsRef->getIdent(),
-            { expr->span.file, expr->span.line, expr->span.col });
-      }
-
-      return;
+  if (const VarDecl *decl = dynamic_cast<const VarDecl *>(
+      localScope->getDecl(lhsRef->ident))) {
+    if (!decl->isMutable()) {
+      fatal("attempted to reassign immutable variable: " + lhsRef->getIdent(),
+          { expr->span.file, expr->span.line, expr->span.col });
     }
+    return;
+  }
 
-    fatal("invalid lvalue to variable assignment", { expr->span.file, 
-        expr->span.line, expr->span.col });
+  if (const ParamVarDecl *decl = dynamic_cast<const ParamVarDecl *>(
+      localScope->getDecl(lhsRef->ident))) {
+    if (!decl->isMutable()) {
+      fatal("attempted to reassign immutable variable: " + lhsRef->getIdent(),
+          { expr->span.file, expr->span.line, expr->span.col });
+    }
   }
 }
 

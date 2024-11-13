@@ -60,12 +60,15 @@ void LabelDecl::setStmt(const Stmt *stmt) { this->stmt = stmt; }
 
 /* ParamVarDecl Implementation --------------------------------------------===*/
 
-ParamVarDecl::ParamVarDecl(const string &name, const Type *T, const Span &span)
-    : NamedDecl(name, span), T(T) {}
+ParamVarDecl::ParamVarDecl(const string &name, const Type *T, const bool mut,
+                           const Span &span)
+    : NamedDecl(name, span), T(T), mut(mut) {}
 
 void ParamVarDecl::pass(ASTVisitor *visitor) { visitor->visit(this); }
 
 const Type *ParamVarDecl::getType() const { return T; }
+
+unsigned ParamVarDecl::isMutable() const { return mut; }
 
 /* FunctionDecl Implementation --------------------------------------------===*/
 

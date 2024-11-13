@@ -1,5 +1,6 @@
-fn @fib(n: i64) -> i64 {
+fn @fib(mut n: i64) -> i64 {
 entry:
+  n = n + 5
   ret n + 1
 }
 
