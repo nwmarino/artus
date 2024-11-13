@@ -116,13 +116,17 @@ void Codegen::visit(VarDecl *decl) {
   allocas[decl->name] = alloca;
 }
 
-void Codegen::visit(ImplicitCastExpr *expr) {
+void Codegen::genericCastCGN(CastExpr *expr) {
   expr->expr->pass(this);
+
+  if (expr->T->isIntegerType()) {
+    tmp = builder->CreateIntCast(tmp, expr->T->toLLVMType(*context), false);
+  }
 }
 
-void Codegen::visit(ExplicitCastExpr *expr) {
-  expr->expr->pass(this);
-}
+void Codegen::visit(ImplicitCastExpr *expr) { genericCastCGN(expr); }
+
+void Codegen::visit(ExplicitCastExpr *expr) { genericCastCGN(expr); }
 
 void Codegen::visit(DeclRefExpr *expr) {
   llvm::AllocaInst *alloca = allocas[expr->ident];

@@ -1,9 +1,9 @@
-fn @fib() -> i64 {
+fn @fib() -> i32 {
 entry:
-  ret i64 0
+  ret 0
 }
 
 fn @main() -> i64 {
 entry:
-  ret i8 @fib
+  ret @fib
 }

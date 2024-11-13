@@ -1,6 +1,9 @@
 #include <cassert>
+#include <memory>
 
+#include "../../include/AST/Expr.h"
 #include "../../include/Core/Logger.h"
+#include "../../include/Sema/Type.h"
 #include "../../include/Sema/Sema.h"
 
 using namespace artus;
@@ -129,9 +132,10 @@ void Sema::visit(ExplicitCastExpr *expr) {
     expr->T = resolvedType;
   }
 
-  // Type check the cast and the base expression.
-  if (expr->T->compare(expr->expr->T) == 0) {
-    fatal("explicit cast type mismatch", { expr->span.file, 
+  // Type check the cast.
+  if (!expr->expr->T->canCastTo(expr->T)) {
+    fatal("explicit cast type mismatch: " + expr->expr->T->toString() + 
+          " to " + expr->ident, { expr->span.file, 
         expr->span.line, expr->span.col });
   }
 
@@ -339,13 +343,30 @@ void Sema::visit(RetStmt *stmt) {
   stmt->expr->pass(this); // Sema on the expression.
 
   // Handle unresolved return types. (i.e. a call or reference)
-  if (!stmt->T) {
-    stmt->T = stmt->expr->T;
-  }
+  stmt->T = stmt->expr->T;
 
   // Check that the return type matches the function's return type.
-  if (stmt->T->compare(parentFunctionType->getReturnType()) == 0) {
-    fatal("return type mismatch", { stmt->span.file, 
-        stmt->span.line, stmt->span.col });
+  switch (stmt->T->compare(parentFunctionType->getReturnType())) {
+    case 2: // Attempt to implicitly cast the return type.
+      if (stmt->expr->T->canCastTo(parentFunctionType->getReturnType())) {
+        stmt->expr = std::make_unique<ImplicitCastExpr>(
+            std::move(stmt->expr),
+            parentFunctionType->getReturnType()->toString(), 
+            parentFunctionType->getReturnType(),
+            stmt->span
+        );
+        return;
+      } else {
+        warn("cannot cast downwards: " + stmt->expr->T->toString() + 
+            " to " + parentFunctionType->getReturnType()->toString(), 
+            { stmt->span.file, stmt->span.line, stmt->span.col });
+        break;
+      }
+    case 1: return;
+    default: break;
   }
+
+  /// UNRECOVERABLE: If the type was not exact or could not be casted.
+  fatal("return type mismatch", { stmt->span.file, 
+          stmt->span.line, stmt->span.col });
 }

@@ -16,6 +16,9 @@ using std::string;
 
 namespace artus {
 
+/// Forward declarations.
+class CastExpr;
+
 /// This class implements a Code Generation pass over a semantically valid AST. 
 class Codegen : public ASTVisitor {
   /// The LLVM module to generate code into.
@@ -47,6 +50,7 @@ public:
   ~Codegen();
   
   llvm::Module *getModule() { return module.get(); }
+  void genericCastCGN(CastExpr *expr);
 
   void visit(PackageUnitDecl *decl) override;
   void visit(FunctionDecl *decl) override;

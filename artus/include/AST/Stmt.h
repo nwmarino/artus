@@ -140,7 +140,7 @@ class RetStmt final : public ValueStmt {
   friend class Sema;
 
   /// The expression to return.
-  const std::unique_ptr<Expr> expr;
+  std::unique_ptr<Expr> expr;
 
 public:
   RetStmt(std::unique_ptr<Expr> expr, const Span &span);

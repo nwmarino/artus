@@ -2,6 +2,7 @@
 #define ARTUS_AST_EXPR_H
 
 #include "ASTPrinter.h"
+#include "../Codegen/Codegen.h"
 #include "DeclBase.h"
 #include "Stmt.h"
 #include "../Core/Span.h"
@@ -18,6 +19,8 @@ public:
 
 /// Base class for all Cast Expressions. 
 class CastExpr : public Expr {
+  friend class Codegen;
+
 protected:
   /// The expression to cast.
   std::unique_ptr<Expr> expr;

@@ -8,6 +8,8 @@
 #include "llvm/IR/Type.h"
 #include "llvm/IR/DerivedTypes.h"
 
+#include "../Core/Logger.h"
+
 using std::string;
 using std::vector;
 
@@ -39,6 +41,11 @@ public:
   /// conversion. For example, enums and primitive integers are implicitly
   /// convertible.
   virtual int compare(const Type *other) const = 0;
+
+  /// Returns true if this type can be casted into the given type, and false
+  /// otherwise. Optionally, a `strict` flag can be passed to indicate that the
+  /// cast must be exact.
+  virtual bool canCastTo(const Type *other, bool strict = false) const = 0;
 
   /// Returns the equivelant LLVM type for the given type.
   virtual llvm::Type *toLLVMType(llvm::LLVMContext &ctx) const = 0;
@@ -122,6 +129,18 @@ public:
     return 0;
   }
 
+  /// Returns true if this basic type can be casted into the given type, and
+  /// false otherwise. Optionally, a `strict` flag can be passed to indicate
+  /// that the cast must be exact.
+  bool canCastTo(const Type *other, bool strict = false) const override {
+    if (const BasicType *otherType = dynamic_cast<const BasicType *>(other)) {
+      if (this->getBitWidth() <= otherType->getBitWidth())
+        return true;
+    }
+
+    return false;
+  }
+
   /// Returns a LLVM type equivelant to this basic type.
   llvm::Type *toLLVMType(llvm::LLVMContext &ctx) const override {
     switch (kind) {
@@ -134,6 +153,7 @@ public:
       case UINT64: return llvm::Type::getInt64Ty(ctx);
       case FP64: return llvm::Type::getDoubleTy(ctx);
     }
+
     return nullptr;
   }
 };
@@ -206,6 +226,23 @@ public:
       return 1;
     }
     return 0;
+  }
+
+  /// Returns true if this function type can be casted into the given type, and
+  /// false otherwise. Optionally, a `strict` flag can be passed to indicate
+  /// that the cast must be exact.
+  bool canCastTo(const Type *other, bool strict = false) const override {
+    if (const FunctionType *otherType = dynamic_cast<const FunctionType *>(other)) {
+      if (returnType->canCastTo(otherType->returnType, strict)) {
+        for (size_t i = 0; i < paramTypes.size(); i++) {
+          if (!paramTypes[i]->canCastTo(otherType->paramTypes[i], strict))
+            return false;
+        }
+        return true;
+      }
+    }
+
+    return false;
   }
 
   /// Returns a LLVM FunctionType equivelant of this function type.
