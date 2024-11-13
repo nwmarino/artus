@@ -87,6 +87,17 @@ entry:
     }
     break;
 
+  /// Bang or not equals.
+  case '!':
+    /*
+    if (peek(1) == "=") {
+      BufferPos++;
+      skp++;
+      next.kind = TokenKind::NotEquals;
+    }*/
+    next.kind = TokenKind::Bang;
+    break;
+
   /// Basic token lexing.
   case '(': next.kind = TokenKind::OpenParen; break;
   case ')': next.kind = TokenKind::CloseParen; break;
@@ -154,6 +165,7 @@ const string Lexer::dump() {
       case TokenKind::Star: tmp = "Star"; break;
       case TokenKind::Slash: tmp = "Slash"; break;
       case TokenKind::Equals: tmp = "Equals"; break;
+      case TokenKind::Bang: tmp = "Bang"; break;
       case TokenKind::Colon: tmp = "Colon"; break;
       case TokenKind::At: tmp = "At"; break;
       case TokenKind::Arrow: tmp = "Arrow"; break;

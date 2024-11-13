@@ -41,7 +41,7 @@ std::unique_ptr<Expr> Parser::ParsePrimaryExpression() {
   if (tok.is(LiteralKind::Integer))
     return ParseIntegerExpression();
   
-  return nullptr;
+  return ParseUnaryExpression();
 }
 
 /// Parse an identifier expression.
@@ -72,11 +72,10 @@ std::unique_ptr<Expr> Parser::ParseReferenceExpression() {
 
   // Resolve the declaration type, if it exists.
   const Type *refType = nullptr;
-  if (VarDecl *varDecl = dynamic_cast<VarDecl *>(refDecl)) {
+  if (VarDecl *varDecl = dynamic_cast<VarDecl *>(refDecl))
     refType = varDecl->getType();
-  } else if (ParamVarDecl *paramDecl = dynamic_cast<ParamVarDecl *>(refDecl)) {
+  else if (ParamVarDecl *paramDecl = dynamic_cast<ParamVarDecl *>(refDecl))
     refType = paramDecl->getType();
-  }
 
   return std::make_unique<DeclRefExpr>(identToken.value, refDecl, 
       refType, createSpan(identToken.loc));
@@ -108,6 +107,28 @@ std::unique_ptr<Expr> Parser::ParseCastExpression() {
   isUnderCast = 0;
   return std::make_unique<ExplicitCastExpr>(std::move(baseExpr), 
       castType, createSpan(idToken.loc));
+}
+
+/// Parse a unary expression.
+///
+/// unary-op:
+///   '-' <expr>
+///   '!' <expr>
+std::unique_ptr<Expr> Parser::ParseUnaryExpression() {
+  UnaryExpr::UnaryOp op = getUnaryOp();
+  if (op == UnaryExpr::UnaryOp::Unknown) {
+    fatal("unresolved unary operator", tok.loc);
+  }
+  nextToken(); // Eat the operator token.
+
+  std::unique_ptr<Expr> expr = ParsePrimaryExpression();
+  if (!expr) {
+    fatal("expected expression after unary operator", tok.loc);
+  }
+
+  return std::make_unique<UnaryExpr>(std::move(expr), op, 
+      createSpan({ expr->getSpan().file, expr->getSpan().line,
+      expr->getSpan().col }, lastLoc));
 }
 
 /// Parse a binary expression.

@@ -76,6 +76,34 @@ public:
   const string &getIdent() const { return ident; }
 };
 
+/// A unary expression. For example `-1`, `!true`, etc.
+class UnaryExpr final : public Expr {
+  friend class ASTPrinter;
+  friend class Codegen;
+  friend class Sema;
+
+public:
+  /// Possible kinds of unary operations.
+  enum class UnaryOp {
+    Unknown = -1,
+    Negative,
+    Not,
+  };
+
+private:
+  /// The base of the unary expression.
+  std::unique_ptr<Expr> base;
+
+  /// The operator of this unary expression.
+  const UnaryOp op;
+
+public:
+  UnaryExpr(std::unique_ptr<Expr> base, UnaryOp op, const Span &span)
+      : Expr(base->getType(), span), base(std::move(base)), op(op) {}
+
+  void pass(ASTVisitor *visitor) override { visitor->visit(this); }
+};
+
 /// A binary expression. For example, `1 + 1`, `2 * 3`, etc.
 class BinaryExpr final : public Expr {
   friend class ASTPrinter;

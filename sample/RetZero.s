@@ -1,7 +1,5 @@
 fn @main() -> i64 {
 entry:
-  mut x: i64
-  fix y: i64 = 2
-  x = y
-  ret x - 2
+  fix x: i64 = -2
+  ret x - -2
 }

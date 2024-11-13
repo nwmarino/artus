@@ -109,6 +109,16 @@ class Parser final {
     return -1;
   }
 
+  /// Returns the unary operator equivelant of the current token.
+  inline UnaryExpr::UnaryOp getUnaryOp() const {
+    switch (tok.kind) {
+      case TokenKind::Minus: return UnaryExpr::UnaryOp::Negative;
+      case TokenKind::Bang: return UnaryExpr::UnaryOp::Not;
+      default: return UnaryExpr::UnaryOp::Unknown;
+    }
+    return UnaryExpr::UnaryOp::Unknown;
+  }
+
   /// Returns the binary operator equivelant of the current token.
   inline BinaryExpr::BinaryOp getBinaryOp() const {
     switch (tok.kind) {
@@ -127,6 +137,7 @@ class Parser final {
   std::unique_ptr<Expr> ParseIdentifierExpression();
   std::unique_ptr<Expr> ParseReferenceExpression();
   std::unique_ptr<Expr> ParseCastExpression();
+  std::unique_ptr<Expr> ParseUnaryExpression();
   std::unique_ptr<Expr> ParseBinaryExpression(std::unique_ptr<Expr> base, 
                                               int precedence = 0);
   std::unique_ptr<Expr> ParseIntegerExpression();

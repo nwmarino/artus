@@ -6,9 +6,9 @@
 | `char`    | char/8-bit | `'a'`, `256`
 | `i32`   | 32-bit signed | `2^31`
 | `i64`   | 64-bit signed | `2^63`
-| `u8`    | 8-bit unsigned |
-| `u32`   | 32-bit unsigned |
-| `u64`   | 64-bit unsigned |
+| `u8`    | 8-bit unsigned | `2^8`
+| `u32`   | 32-bit unsigned | `2^32`
+| `u64`   | 64-bit unsigned | `2^64`
 | `str`   | string | `"abc"`
 | `fp64` | floating point | `3.14`
 
@@ -18,14 +18,13 @@ function signature
 fn @main() -> i64 { entry: ... }
 ```
 
-immutable assignment
+variables
 ```rs
-fix <type> <identifier> = <expr>
-```
+// immutable assignment
+fix <identifier>: <type> = <expr>
 
-mutable assignment
-```rs
-mut <type> <identifier> = <expr>
+// mutable assignment
+mut <identifier>: <type> = <expr>
 ```
 
 statements

@@ -63,6 +63,8 @@ enum class TokenKind {
   Slash,
   /// =
   Equals,
+  /// !
+  Bang,
   /// :
   Colon,
   /// @

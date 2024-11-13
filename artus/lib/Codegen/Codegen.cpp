@@ -134,6 +134,22 @@ void Codegen::visit(DeclRefExpr *expr) {
       expr->ident);
 }
 
+void Codegen::visit(UnaryExpr *expr) {
+  expr->base->pass(this);
+  llvm::Value *base = tmp;
+
+  switch (expr->op) {
+    case UnaryExpr::UnaryOp::Negative:
+      tmp = builder->CreateNeg(base);
+      break;
+    case UnaryExpr::UnaryOp::Not:
+      tmp = builder->CreateNot(base);
+      break;
+    default:
+      fatal("unknown unary operator");
+  }
+}
+
 void Codegen::visit(BinaryExpr *expr) {
   expr->lhs->pass(this);
   llvm::Value *lhs = tmp;
@@ -151,16 +167,16 @@ void Codegen::visit(BinaryExpr *expr) {
       }
       fatal("invalid lvalue");
     case BinaryExpr::BinaryOp::Add:
-      tmp = builder->CreateAdd(lhs, rhs, "addtmp");
+      tmp = builder->CreateAdd(lhs, rhs, "add");
       break;
     case BinaryExpr::BinaryOp::Sub:
-      tmp = builder->CreateSub(lhs, rhs, "subtmp");
+      tmp = builder->CreateSub(lhs, rhs, "sub");
       break;
     case BinaryExpr::BinaryOp::Mult:
-      tmp = builder->CreateMul(lhs, rhs, "multmp");
+      tmp = builder->CreateMul(lhs, rhs, "mul");
       break;
     case BinaryExpr::BinaryOp::Div:
-      tmp = builder->CreateSDiv(lhs, rhs, "divtmp");
+      tmp = builder->CreateSDiv(lhs, rhs, "div");
       break;
     default:
       fatal("unknown binary operator");

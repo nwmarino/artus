@@ -146,6 +146,22 @@ void Sema::visit(DeclRefExpr *expr) {
     expr->T = ParamVarDecl->T;
 }
 
+/// Semantic Analysis over a UnaryExpr.
+///
+/// UnaryExprs are valid if and only if they are of the same type as their
+/// operand.
+void Sema::visit(UnaryExpr *expr) {
+  expr->base->pass(this); // Sema on the expression.
+
+  if (expr->T->compare(expr->base->T) == 0) {
+    fatal("unary expression type mismatch", { expr->span.file, 
+        expr->span.line, expr->span.col });
+  }
+
+  // Propagate the type of the expression.
+  expr->T = expr->base->T;
+}
+
 /// Semantic Analysis over a BinaryExpr.
 ///
 /// BinaryExprs are valid if and only if they are of the same type as their

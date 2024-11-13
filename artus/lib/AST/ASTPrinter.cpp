@@ -10,6 +10,15 @@ using std::string;
 
 using namespace artus;
 
+/// Returns a string representation of a unary operator.
+inline static string unaryOpToString(UnaryExpr::UnaryOp op) {
+  switch (op) {
+    case UnaryExpr::UnaryOp::Negative: return "-";
+    case UnaryExpr::UnaryOp::Not: return "!";
+    default: return "unknown";
+  }
+}
+
 /// Returns a string representation of a binary operator.
 inline static string binaryOpToString(BinaryExpr::BinaryOp op) {
   switch (op) {
@@ -191,13 +200,25 @@ void ASTPrinter::visit(DeclRefExpr *expr) {
   printExpr(expr->span, "DeclRefExpr", expr->T->toString(), expr->ident);
 }
 
+void ASTPrinter::visit(UnaryExpr *expr) {
+  printPiping();
+  printExpr(expr->span, "UnaryExpr", expr->T->toString(), "", false);
+  cout << ' ' << literalColor << unaryOpToString(expr->op) << clear << '\n';
+
+  unsigned topIndent = indent;
+  setLastChild();
+  increaseIndent();
+  expr->base->pass(this);
+  indent = topIndent;
+  resetLastChild();
+}
+
 void ASTPrinter::visit(BinaryExpr *expr) {
   printPiping();
   printExpr(expr->span, "BinaryExpr", expr->T->toString(), "", false);
   cout << ' ' << literalColor << binaryOpToString(expr->op) << clear << '\n';
 
   unsigned topIndent = indent;
-
   resetLastChild();
   increaseIndent();
   expr->lhs->pass(this);
