@@ -5,6 +5,9 @@
 #include <string>
 
 #include "ASTVisitor.h"
+#include "../Core/Span.h"
+#include "../Sema/Type.h"
+
 
 using std::map;
 using std::string;
@@ -24,13 +27,13 @@ class ASTPrinter final : public ASTVisitor {
   const string clr_purple = "\033[35m";
   const string clr_cyan = "\033[36m";
 
-  const string unitColor = clr_bold + clr_yellow;
-  const string declColor = clr_bold + clr_green;
-  const string exprColor = clr_bold + clr_purple;
+  const string declColor = clr_bold + clr_yellow;
+  const string exprColor = clr_purple;
   const string stmtColor = clr_bold + clr_purple;
-  const string nameColor = clr_blue;
+  const string nameColor = clr_italic + clr_blue;
   const string pipeColor = clr_blue;
   const string typeColor = clr_green;
+  const string spanColor = clr_yellow;
   const string literalColor = clr_bold + clr_cyan;
 
   /// Map used to store the current piping state of the AST. Each key refers to
@@ -69,6 +72,25 @@ class ASTPrinter final : public ASTVisitor {
 
   /// Clears the current state of the `isLastChild` flag.
   inline void resetLastChild();
+
+  /// Returns a color-coded string representation of the provided span.
+  inline string spanToString(const Span &span);
+
+  /// Print a declaration node with the provided data.
+  void printDecl(const string &node, const string &name = "", 
+                 const string &type = "", bool newl = true);
+
+  /// Print a declaration node with the provided data.
+  void printDecl(const Span &span, const string &node, const string &name = "", 
+                 const string &type = "", bool newl = true);
+
+  /// Print an expression node with the provided data.
+  void printExpr(const Span &span, const string &node, const string &type, 
+                 const string &ident = "", bool newl = true);
+
+  /// Print a statement node with the provided data.
+  void printStmt(const Span &span, const string &node, const string &name = "", 
+                 bool newl = true);
 
 public:
   void visit(PackageUnitDecl *decl) override;
