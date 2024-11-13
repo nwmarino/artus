@@ -1,5 +1,6 @@
 #include <cassert>
 #include <memory>
+#include <string>
 
 #include "../../include/AST/Expr.h"
 #include "../../include/Core/Logger.h"
@@ -183,9 +184,11 @@ void Sema::visit(CallExpr *expr) {
   }
 
   // Check that the number of arguments matches the number of parameters.
-  if (expr->getNumArgs() != callee->params.size()) {
-    fatal("argument count mismatch: " + expr->ident, { expr->span.file, 
-        expr->span.line, expr->span.col });
+  if (expr->getNumArgs() != callee->getNumParams()) {
+    fatal(expr->ident + " argument count mismatch: " + 
+        std::to_string(callee->getNumParams()) + " required, but " + 
+        std::to_string(expr->getNumArgs()) + " were provided", 
+        { expr->span.file, expr->span.line, expr->span.col });
   }
 
   // Check that the types of the arguments match the types of the parameters.
