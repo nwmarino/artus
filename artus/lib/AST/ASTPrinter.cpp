@@ -10,6 +10,17 @@ using std::string;
 
 using namespace artus;
 
+/// Returns a string representation of a binary operator.
+inline static string binaryOpToString(BinaryExpr::BinaryOp op) {
+  switch (op) {
+    case BinaryExpr::BinaryOp::Add: return "+";
+    case BinaryExpr::BinaryOp::Sub: return "-";
+    case BinaryExpr::BinaryOp::Mult: return "*";
+    case BinaryExpr::BinaryOp::Div: return "/";
+    default: return "unknown";
+  }
+}
+
 inline void ASTPrinter::setPiping(unsigned indent) {
   pipingState[indent] = pipingState.find(indent) == pipingState.end() ? \
       true : pipingState[indent];
@@ -183,8 +194,7 @@ void ASTPrinter::visit(BinaryExpr *expr) {
   printPiping();
   printExpr(expr->span, "BinaryExpr", expr->T->toString(), "", false);
 
-  //cout << literalColor << expr->op << clear << '\n';
-  cout << '\n';
+ cout << ' ' << literalColor << binaryOpToString(expr->op) << clear << '\n';
 
   resetLastChild();
   increaseIndent();
