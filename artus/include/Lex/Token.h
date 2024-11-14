@@ -93,6 +93,9 @@ enum class LiteralKind {
 
   /// a, b, ...
   Character,
+
+  /// "a", "b", ...
+  String,
 };
 
 /// A token produced by the lexer.

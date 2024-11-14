@@ -66,6 +66,20 @@ entry:
     }
     break;
 
+  /// String literals.
+  case '"':
+    next.kind = TokenKind::Literal;
+    next.literalKind = LiteralKind::String;
+    BufferPos++;
+    while (*BufferPos != '"') {
+      if (isEof()) {
+        fatal("expected closing double quote after string", loc);
+      }
+      tmp += *BufferPos++;
+      skp++;
+    }
+    break;
+
   /// Equals operators or equality tokens.
   case '=':
     if (peek(1) == "=") {

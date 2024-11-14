@@ -229,6 +229,22 @@ public:
   void pass(ASTVisitor *visitor) override { visitor->visit(this); }
 };
 
+/// A string literal. For example, `"hello"`, `"world"`, etc.
+class StringLiteral final : public Expr {
+  friend class ASTPrinter;
+  friend class Codegen;
+  friend class Sema;
+
+  /// The literal value nested in this node.
+  const string value;
+
+public:
+  StringLiteral(const string value, const Type *T, const Span &span)
+      : Expr(T, span), value(value) {}
+
+  void pass(ASTVisitor *visitor) override { visitor->visit(this); }
+};
+
 } // namespace artus
 
 #endif // ARTUS_AST_EXPR_H

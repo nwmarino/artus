@@ -9,7 +9,7 @@
 | `u8`    | 8-bit unsigned | `2^8`
 | `u32`   | 32-bit unsigned | `2^32`
 | `u64`   | 64-bit unsigned | `2^64`
-| `str`   | string | `"abc"`
+| `string`   | string | `"abc"`
 | `fp64` | floating point | `3.14`
 
 function signature
@@ -30,13 +30,6 @@ mut <identifier>: <type> = <expr>
 statements
 
 ```rs
-ret <?type> <val>
+ret <val>
 ```
 
-```rs
-out <str>
-```
-
-```
-cin -> <symbol>
-```

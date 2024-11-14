@@ -300,6 +300,16 @@ void Sema::visit(CharLiteral *expr) {
   }
 }
 
+/// Semantic Analysis over a StringLiteral.
+///
+/// StringLiterals are valid if and only if they are of a string type.
+void Sema::visit(StringLiteral *expr) {
+  if (expr->T->toString() != "string") {
+    fatal("expected string type", { expr->span.file, 
+        expr->span.line, expr->span.col });
+  }
+}
+
 /// Semantic Analysis over a CompoundStmt.
 ///
 /// CompoundStmts are valid if and only if all of their statements are valid.

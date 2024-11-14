@@ -215,6 +215,8 @@ void Codegen::visit(CharLiteral *expr) {
   tmp = llvm::ConstantInt::get(*context, llvm::APInt(8, expr->value, true));
 }
 
+void Codegen::visit(StringLiteral *expr) { /* unsupported for now */ }
+
 void Codegen::visit(CompoundStmt *stmt) {
   for (const std::unique_ptr<Stmt> &s : stmt->stmts) {
     s->pass(this);
