@@ -134,8 +134,10 @@ public:
   /// that the cast must be exact.
   bool canCastTo(const Type *other, bool strict = false) const override {
     if (const BasicType *otherType = dynamic_cast<const BasicType *>(other)) {
-      if (this->getBitWidth() <= otherType->getBitWidth())
-        return true;
+      switch (strict ? 1 : 2) {
+        case 1: return this->getBitWidth() == otherType->getBitWidth();
+        case 2: return this->getBitWidth() <= otherType->getBitWidth();
+      }
     }
 
     return false;
@@ -254,6 +256,77 @@ public:
 
     return llvm::FunctionType::get(returnType->toLLVMType(ctx), 
         paramTypes, false);
+  }
+};
+
+/// Represents an array type. Array types are used to represent the type of an
+/// array declaration. For example, `i64[10]`.
+class ArrayType final : public Type {
+  /// The type of the array.
+  const Type *elementType;
+
+  /// The size of the array.
+  const size_t size;
+
+public:
+  ArrayType(const Type *elementType, size_t size)
+      : elementType(elementType), size(size) {}
+
+  /// Returns the type of the array.
+  const Type *getElementType() const { return elementType; }
+
+  /// Returns the size of the array.
+  size_t getSize() const { return size; }
+
+  /// Returns true if the array type is an integer, and false otherwise.
+  bool isIntegerType() const override { return elementType->isIntegerType(); }
+
+  /// Returns true if the array type is a floating point, and false otherwise.
+  bool isFloatingPointType() const override { 
+    return elementType->isFloatingPointType();
+  }
+
+  /// Returns the bit width of the array type.
+  unsigned getBitWidth() const override { return elementType->getBitWidth(); }
+
+  /// Returns a string representation of the array type.
+  string toString() const override {
+    return elementType->toString() + "[" + std::to_string(size) + "]";
+  }
+
+  /// Compare an array type with another type. Array types match if and only if
+  /// the element types and sizes match. The return value of this function is
+  /// never 2 due to explicitness of array types.
+  int compare(const Type *other) const override {
+    if (const ArrayType *otherType = dynamic_cast<const ArrayType *>(other)) {
+      if (elementType->compare(otherType->elementType) == 0)
+        return 0;
+
+      if (size != otherType->size)
+        return 0;
+
+      return 1;
+    }
+    return 0;
+  }
+
+  /// Returns true if this array type can be casted into the given type, and
+  /// false otherwise. Optionally, a `strict` flag can be passed to indicate
+  /// that the cast must be exact.
+  bool canCastTo(const Type *other, bool strict = false) const override {
+    if (const ArrayType *otherType = dynamic_cast<const ArrayType *>(other)) {
+      if (elementType->canCastTo(otherType->elementType, strict)) {
+        if (size == otherType->size)
+          return true;
+      }
+    }
+
+    return false;
+  }
+
+  /// Returns a LLVM ArrayType equivelant of this array type.
+  llvm::Type *toLLVMType(llvm::LLVMContext &ctx) const override {
+    return llvm::ArrayType::get(elementType->toLLVMType(ctx), size);
   }
 };
 

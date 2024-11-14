@@ -1,9 +1,9 @@
-fn @foo() -> char {
-entry:
-  ret char 'a'
+fn @foo(a: i64[10]) -> bool {
+  ret true
 }
 
 fn @main() -> i64 {
 entry:
-  ret @foo
+  mut x: i64[10]
+  ret 0
 }
