@@ -50,6 +50,8 @@ std::unique_ptr<Expr> Parser::ParsePrimaryExpression() {
 
   if (tok.is(LiteralKind::Integer))
     return ParseIntegerExpression();
+  else if (tok.is(LiteralKind::Character))
+    return ParseCharacterExpression();
   
   return ParseUnaryExpression();
 }
@@ -261,4 +263,20 @@ std::unique_ptr<Expr> Parser::ParseIntegerExpression() {
   return std::make_unique<IntegerLiteral>(
     std::stoi(intToken.value, 0, 10), T, false,
     createSpan(intToken.loc, intToken.loc));
+}
+
+/// Parse a character literal expression.
+///
+/// Expects the current token to be a character literal.
+std::unique_ptr<Expr> Parser::ParseCharacterExpression() {
+  assert(tok.is(LiteralKind::Character) && "expected character literal");
+
+  Token charToken = tok; // Save the character token.
+  nextToken();
+
+  // Determine the type of the character literal.
+  const Type *T = ctx->getType("char");
+
+  return std::make_unique<CharLiteral>(charToken.value[0], T,
+    createSpan(charToken.loc));
 }

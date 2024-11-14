@@ -54,6 +54,18 @@ entry:
   size_t skp = 1;
   switch (*BufferPos) {
 
+  /// Character literals.
+  case '\'':
+    next.kind = TokenKind::Literal;
+    next.literalKind = LiteralKind::Character;
+    BufferPos++;
+    tmp = *BufferPos;
+    BufferPos++;
+    if (*BufferPos != '\'') {
+      fatal("expected closing single quote after character: " + tmp, loc);
+    }
+    break;
+
   /// Equals operators or equality tokens.
   case '=':
     if (peek(1) == "=") {

@@ -290,6 +290,16 @@ void Sema::visit(IntegerLiteral *expr) {
   }
 }
 
+/// Semantic Analysis over a CharLiteral.
+///
+/// CharLiterals are valid if and only if they are of a character type.
+void Sema::visit(CharLiteral *expr) {
+  if (expr->T->toString() != "char") {
+    fatal("expected character type", { expr->span.file, 
+        expr->span.line, expr->span.col });
+  }
+}
+
 /// Semantic Analysis over a CompoundStmt.
 ///
 /// CompoundStmts are valid if and only if all of their statements are valid.

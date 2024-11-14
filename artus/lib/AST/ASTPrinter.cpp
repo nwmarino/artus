@@ -259,6 +259,12 @@ void ASTPrinter::visit(IntegerLiteral *expr) {
   cout << ' ' << literalColor << expr->value << clear << '\n';
 }
 
+void ASTPrinter::visit(CharLiteral *expr) {
+  printPiping();
+  printExpr(expr->span, "CharLiteral", expr->T->toString(), "", false);
+  cout << ' ' << literalColor << expr->value << clear << '\n';
+}
+
 void ASTPrinter::visit(CompoundStmt *stmt) {
   printPiping();
   printStmt(stmt->span, "CompoundStmt");

@@ -66,6 +66,7 @@ public:
   void visit(BinaryExpr *expr) override;
   void visit(BooleanLiteral *expr) override;
   void visit(IntegerLiteral *expr) override;
+  void visit(CharLiteral *expr) override;
 
   void visit(CompoundStmt *stmt) override;
   void visit(DeclStmt *stmt) override;

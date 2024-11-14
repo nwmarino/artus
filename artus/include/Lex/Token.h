@@ -14,6 +14,7 @@ using std::vector;
 /// Reference for reserved identifiers in the language.
 inline vector<string> __RESERVED = {
   "bool",
+  "char",
   "i32",
   "i64",
   "u8",
@@ -89,6 +90,9 @@ enum class TokenKind {
 enum class LiteralKind {
   /// 0, 1, ...
   Integer = 0,
+
+  /// a, b, ...
+  Character,
 };
 
 /// A token produced by the lexer.

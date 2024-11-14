@@ -143,6 +143,7 @@ class Parser final {
                                               int precedence = 0);
   std::unique_ptr<Expr> ParseBooleanExpression();
   std::unique_ptr<Expr> ParseIntegerExpression();
+  std::unique_ptr<Expr> ParseCharacterExpression();
 
   std::unique_ptr<Stmt> ParseStatement();
   std::unique_ptr<Stmt> ParseCompoundStatement();

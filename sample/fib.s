@@ -1,6 +1,6 @@
-fn @foo() -> bool {
+fn @foo() -> char {
 entry:
-  ret 1
+  ret char 'a'
 }
 
 fn @main() -> i64 {
