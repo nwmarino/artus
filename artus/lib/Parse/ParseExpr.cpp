@@ -34,6 +34,16 @@ std::unique_ptr<Expr> Parser::ParseDefaultInitExpression(const Type *T) {
     }
   }
 
+  if (const ArrayType *AT = dynamic_cast<const ArrayType *>(T)) {
+    vector<std::unique_ptr<Expr>> exprs = {};
+    for (unsigned idx = 0; idx < AT->getSize(); ++idx) {
+      exprs.push_back(ParseDefaultInitExpression(AT->getElementType()));
+    }
+
+    return std::make_unique<ArrayInitExpr>(std::move(exprs), T, 
+        createSpan(lastLoc));
+  }
+
   return nullptr;
 }
 
@@ -78,12 +88,13 @@ std::unique_ptr<Expr> Parser::ParsePrimaryExpression() {
 std::unique_ptr<Expr> Parser::ParseIdentifierExpression() {
   assert(tok.is(TokenKind::Identifier) && "expected identifier");
 
-  if (Decl *refDecl = scope->getDecl(tok.value))
+  peekToken();
+  if (peek.is(TokenKind::OpenBracket))
+    return ParseArrayAccessExpression();
+  else if (peek.is(TokenKind::Equals))
     return ParseReferenceExpression();
 
-  // Variable (re)assignments.
-  peekToken();
-  if (peek.is(TokenKind::Equals))
+  if (Decl *refDecl = scope->getDecl(tok.value))
     return ParseReferenceExpression();
 
   return ParseCastExpression();
@@ -312,4 +323,85 @@ std::unique_ptr<Expr> Parser::ParseStringExpression() {
 
   return std::make_unique<StringLiteral>(strToken.value, T,
     createSpan(strToken.loc));
+}
+
+/// Parse an array initialization expression.
+///
+/// Expects the current token to be an open bracket.
+std::unique_ptr<Expr> Parser::ParseArrayInitExpression(const ArrayType *T) {
+  assert(tok.is(TokenKind::OpenBracket) && "expected '['");
+
+  SourceLocation firstLoc = tok.loc;
+  nextToken(); // Eat the '[' token.
+
+  size_t idxs = 0;
+  vector<std::unique_ptr<Expr>> exprs = {};
+  while (!tok.is(TokenKind::CloseBracket)) {
+    std::unique_ptr<Expr> expr = ParseExpression();
+    if (!expr) {
+      fatal("expected expression in array initializer", tok.loc);
+    }
+
+    exprs.push_back(std::move(expr));
+    idxs++;
+
+    // Expect a terminator or another expression.
+    if (tok.is(TokenKind::Comma)) {
+      nextToken(); // Eat the ',' token.
+    } else if (!tok.is(TokenKind::CloseBracket)) {
+      fatal("expected ']' after array initializer", tok.loc);
+    }
+  }
+
+  nextToken(); // Eat the ']' token.
+
+  if (idxs < T->getSize()) {
+    fatal("expected " + std::to_string(T->getSize()) + " expressions in array "
+        "initializer, got " + std::to_string(idxs), lastLoc);
+  }
+
+  return std::make_unique<ArrayInitExpr>(std::move(exprs), T,
+    createSpan(firstLoc, lastLoc));
+}
+
+/// Parse an array access expression.
+///
+/// Expects the current token to be an identifier.
+std::unique_ptr<Expr> Parser::ParseArrayAccessExpression() {
+  assert(tok.is(TokenKind::Identifier) && "expected identifier");
+
+  // Attempt to resolve the base declaration.
+  Decl *decl = scope->getDecl(tok.value);
+  if (!decl) {
+    fatal("unresolved reference: " + tok.value, tok.loc);
+  }
+
+  VarDecl *varDecl = dynamic_cast<VarDecl *>(decl);
+  if (!varDecl) {
+    fatal("expected variable reference: " + tok.value, tok.loc);
+  }
+
+  std::unique_ptr<Expr> base = std::make_unique<DeclRefExpr>(tok.value, 
+      varDecl, varDecl->getType(), createSpan(tok.loc));
+
+  const Token baseToken = tok; // Save the whole base token.
+  nextToken();
+
+  if (!tok.is(TokenKind::OpenBracket)) {
+    fatal("expected '[' after array identifier", tok.loc);
+  }
+  nextToken(); // Eat the '[' token.
+
+  std::unique_ptr<Expr> index = ParseExpression();
+  if (!index) {
+    fatal("expected expression after '['", tok.loc);
+  }
+
+  if (!tok.is(TokenKind::CloseBracket)) {
+    fatal("expected ']' after array index", tok.loc);
+  }
+  nextToken(); // Eat the ']' token.
+
+  return std::make_unique<ArrayAccessExpr>(baseToken.value, std::move(base),
+      std::move(index), nullptr, createSpan(baseToken.loc, lastLoc));
 }

@@ -310,6 +310,54 @@ void Sema::visit(StringLiteral *expr) {
   }
 }
 
+/// Semantic Analysis over an ArrayInitExpr.
+///
+/// ArrayInitExprs are valid if and only if all of their expressions are of the
+/// same type as the array.
+void Sema::visit(ArrayInitExpr *expr) {
+  const ArrayType *AT = dynamic_cast<const ArrayType *>(expr->T);
+  assert(AT && "expected array type");
+
+  for (const std::unique_ptr<Expr> &e : expr->exprs) {
+    e->pass(this); // Sema on the expression.
+
+    if (e->T->compare(AT->getElementType()) == 0) {
+      fatal("array expression type mismatch: " + e->T->toString() + " for " 
+          + AT->getElementType()->toString(), { expr->span.file, 
+          expr->span.line, expr->span.col });
+    }
+
+    // Propagate the type of the expression.
+    e->T = AT->getElementType();
+  }
+}
+
+/// Semantic Analysis over a ArrayAccessExpr.
+///
+/// ArrayAccessExprs are valid if and only if they are of the same type as their
+/// array. The index is also checked to be of an integer type.
+void Sema::visit(ArrayAccessExpr *expr) {
+  expr->base->pass(this); // Sema on the base expression.
+  expr->index->pass(this); // Sema on the index expression.
+
+  if (!expr->base->T->isArrayType()) {
+    fatal("expected array type", { expr->span.file, 
+        expr->span.line, expr->span.col });
+  }
+
+  if (!expr->index->T->isIntegerType()) {
+    fatal("expected integer index type", { expr->span.file, 
+        expr->span.line, expr->span.col });
+  }
+
+  // Resolve the array type of the base.
+  const ArrayType *AT = dynamic_cast<const ArrayType *>(expr->base->T);
+  assert(AT && "expected array type");
+
+  // Propagate the type of the expression.
+  expr->T = AT->getElementType();
+}
+
 /// Semantic Analysis over a CompoundStmt.
 ///
 /// CompoundStmts are valid if and only if all of their statements are valid.

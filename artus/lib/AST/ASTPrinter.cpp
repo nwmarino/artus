@@ -271,6 +271,35 @@ void ASTPrinter::visit(StringLiteral *expr) {
   cout << ' ' << literalColor << expr->value << clear << '\n';
 }
 
+void ASTPrinter::visit(ArrayInitExpr *expr) {
+  printPiping();
+  printExpr(expr->span, "ArrayInitExpr", expr->T->toString());
+  resetLastChild();
+  increaseIndent();
+  setPiping(indent);
+  for (unsigned idx = 0; idx < expr->exprs.size(); idx++) {
+    if (idx + 1 == expr->exprs.size()) {
+      clearPiping(indent);
+      setLastChild();
+    }
+
+    expr->exprs[idx]->pass(this);
+  }
+
+  resetLastChild();
+}
+
+void ASTPrinter::visit(ArrayAccessExpr *expr) {
+  printPiping();
+  printExpr(expr->span, "ArrayAccessExpr", expr->T->toString(), expr->name);
+  resetLastChild();
+  increaseIndent();
+  expr->base->pass(this);
+  setLastChild();
+  expr->index->pass(this);
+  resetLastChild();
+}
+
 void ASTPrinter::visit(CompoundStmt *stmt) {
   printPiping();
   printStmt(stmt->span, "CompoundStmt");

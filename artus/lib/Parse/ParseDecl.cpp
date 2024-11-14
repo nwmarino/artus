@@ -215,7 +215,17 @@ std::unique_ptr<Decl> Parser::ParseVarDeclaration(bool isMut) {
   /// UNRECOVERABLE: Immutable variables must be initialized.
   if (tok.is(TokenKind::Equals)) {
     nextToken(); // Eat the '=' token.
-    initExpr = ParseExpression();
+
+    // Handle array type initialization.
+    if (tok.is(TokenKind::OpenBracket)) {
+      const ArrayType *AT = dynamic_cast<const ArrayType *>(varType);
+      if (!AT) {
+        trace("expected array type for array initialization", lastLoc);
+        return nullptr;
+      }
+      initExpr = ParseArrayInitExpression(AT);
+    } else
+      initExpr = ParseExpression();
 
     if (!initExpr) {
       trace("expected expression after '=' symbol", lastLoc);

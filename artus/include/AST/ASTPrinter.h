@@ -109,6 +109,8 @@ public:
   void visit(IntegerLiteral *expr) override;
   void visit(CharLiteral *expr) override;
   void visit(StringLiteral *expr) override;
+  void visit(ArrayInitExpr *expr) override;
+  void visit(ArrayAccessExpr *expr) override;
 
   void visit(CompoundStmt *stmt) override;
   void visit(DeclStmt *stmt) override;

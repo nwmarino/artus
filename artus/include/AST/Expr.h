@@ -17,7 +17,7 @@ public:
   Expr(const Type *T, const Span &span) : ValueStmt(T, span) {}
 };
 
-/// Base class for all Cast Expressions. 
+/// Base class for all Cast Expressions.
 class CastExpr : public Expr {
   friend class Codegen;
 
@@ -241,6 +241,53 @@ class StringLiteral final : public Expr {
 public:
   StringLiteral(const string value, const Type *T, const Span &span)
       : Expr(T, span), value(value) {}
+
+  void pass(ASTVisitor *visitor) override { visitor->visit(this); }
+};
+
+/// An array initialization expression. For example, `[1, 2, 3]`.
+class ArrayInitExpr final : public Expr {
+  friend class ASTPrinter;
+  friend class Codegen;
+  friend class Sema;
+
+  /// The list of expressions in the array.
+  vector<std::unique_ptr<Expr>> exprs;
+
+public:
+  ArrayInitExpr(vector<std::unique_ptr<Expr>> exprs, const Type *T, 
+                const Span &span)
+      : Expr(T, span), exprs(std::move(exprs)) {}
+
+  void pass(ASTVisitor *visitor) override { visitor->visit(this); }
+
+  /// Returns the number of expressions in this array.
+  size_t getNumExprs() const { return exprs.size(); }
+
+  /// Returns the expression at the given index.
+  Expr *getExpr(size_t i) const { return exprs[i].get(); }
+};
+
+/// An array access expression. For example, `arr[0]`.
+class ArrayAccessExpr final : public Expr {
+  friend class ASTPrinter;
+  friend class Codegen;
+  friend class Sema;
+
+  /// The name of the base.
+  const string name;
+
+  /// The base of the array access.
+  std::unique_ptr<Expr> base;
+
+  /// The index of the array access.
+  std::unique_ptr<Expr> index;
+
+public:
+  ArrayAccessExpr(const string &name, std::unique_ptr<Expr> base, 
+                  std::unique_ptr<Expr> index, const Type *T, const Span &span)
+      : Expr(T, span), name(name), base(std::move(base)), 
+      index(std::move(index)) {}
 
   void pass(ASTVisitor *visitor) override { visitor->visit(this); }
 };

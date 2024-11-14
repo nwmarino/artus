@@ -29,6 +29,9 @@ public:
   /// evaluted to otherwise, and false otherwise.
   virtual bool isFloatingPointType() const = 0;
 
+  /// Returns true if the type is an array type, and false otherwise.
+  virtual bool isArrayType() const = 0;
+
   /// Returns the bit width of the type. For example, an `i64` would return 64.
   virtual unsigned getBitWidth() const = 0;
 
@@ -84,6 +87,9 @@ public:
   /// Returns true if the basic type kind is a floating point, and false
   /// otherwise.
   bool isFloatingPointType() const override { return kind == FP64; }
+
+  /// Returns true if the type is an array type, and false otherwise.
+  bool isArrayType() const override { return false; }
 
   /// Returns the bit width of the basic type. For example, an `i64` would
   /// return 64.
@@ -194,6 +200,9 @@ public:
     return returnType->isFloatingPointType();
   }
 
+  /// Returns true if the type is an array type, and false otherwise.
+  bool isArrayType() const override { return false; }
+
   /// Returns the bit width of the function return type.
   unsigned getBitWidth() const override { return returnType->getBitWidth(); }
 
@@ -291,6 +300,9 @@ public:
   bool isFloatingPointType() const override { 
     return elementType->isFloatingPointType();
   }
+
+  /// Returns true if the type is an array type, and false otherwise.
+  bool isArrayType() const override { return true; }
 
   /// Returns the bit width of the array type.
   unsigned getBitWidth() const override { return elementType->getBitWidth(); }

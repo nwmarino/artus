@@ -217,6 +217,35 @@ void Codegen::visit(CharLiteral *expr) {
 
 void Codegen::visit(StringLiteral *expr) { /* unsupported for now */ }
 
+void Codegen::visit(ArrayInitExpr *expr) {
+  llvm::Type *T = expr->T->toLLVMType(*context);
+  llvm::Value *array = llvm::UndefValue::get(T);
+
+  for (size_t i = 0; i < expr->getNumExprs(); ++i) {
+    expr->getExpr(i)->pass(this);
+    array = builder->CreateInsertValue(array, tmp, i);
+  }
+
+  tmp = array;
+}
+
+void Codegen::visit(ArrayAccessExpr *expr) {
+  expr->base->pass(this);
+  llvm::Value *base = tmp;
+
+  expr->index->pass(this);
+  llvm::Value *index = tmp;
+
+  llvm::Type *arrayType = expr->base->getType()->toLLVMType(*context);
+  llvm::AllocaInst *alloca = builder->CreateAlloca(arrayType);
+
+  builder->CreateStore(base, alloca);
+
+  llvm::Value *elementPtr = builder->CreateGEP(arrayType, alloca, { builder->getInt64(0), index });
+
+  tmp = builder->CreateLoad(arrayType->getArrayElementType(), elementPtr);
+}
+
 void Codegen::visit(CompoundStmt *stmt) {
   for (const std::unique_ptr<Stmt> &s : stmt->stmts) {
     s->pass(this);
