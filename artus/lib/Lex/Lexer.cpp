@@ -129,6 +129,8 @@ entry:
   case ')': next.kind = TokenKind::CloseParen; break;
   case '{': next.kind = TokenKind::OpenBrace; break;
   case '}': next.kind = TokenKind::CloseBrace; break;
+  case '[': next.kind = TokenKind::OpenBracket; break;
+  case ']': next.kind = TokenKind::CloseBracket; break;
   case '+': next.kind = TokenKind::Plus; break;
   case '*': next.kind = TokenKind::Star; break;
   case ':': next.kind = TokenKind::Colon; break;
@@ -176,8 +178,8 @@ const string Lexer::dump() {
   string tmp;
   string loc;
   while (Lex(curr)) {
-    loc = curr.loc.file + ":" + std::to_string(curr.loc.line) +
-        ":" + std::to_string(curr.loc.col);
+    loc = curr.loc.file + ":" + std::to_string(curr.loc.line) + ":" 
+          + std::to_string(curr.loc.col);
 
     switch (curr.kind) {
       case TokenKind::LineComment: tmp = "LineComment"; break;
@@ -187,6 +189,8 @@ const string Lexer::dump() {
       case TokenKind::CloseParen: tmp = "CloseParen"; break;
       case TokenKind::OpenBrace: tmp = "OpenBrace"; break;
       case TokenKind::CloseBrace: tmp = "CloseBrace"; break;
+      case TokenKind::OpenBracket: tmp = "OpenBracket"; break;
+      case TokenKind::CloseBracket: tmp = "CloseBracket"; break;
       case TokenKind::Plus: tmp = "Plus"; break;
       case TokenKind::Minus: tmp = "Minus"; break;
       case TokenKind::Star: tmp = "Star"; break;

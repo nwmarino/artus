@@ -60,6 +60,7 @@ add_executable(artus
     lib/Core/Driver.cpp
     lib/Core/Logger.cpp
     lib/Lex/Lexer.cpp
+    lib/Parse/Parser.cpp
     lib/Parse/ParseDecl.cpp
     lib/Parse/ParseExpr.cpp
     lib/Parse/ParseStmt.cpp

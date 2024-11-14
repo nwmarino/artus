@@ -148,30 +148,29 @@ NOARGS:
 
 /// Parse a cast expression.
 std::unique_ptr<Expr> Parser::ParseCastExpression() {
-  assert(tok.is(TokenKind::Identifier) && "expected identifier");
-
   /// UNRECOVERABLE: Cannot cast an expression that is already under a cast.
   if (isUnderCast) {
     fatal("cannot cast an expression already under a cast", tok.loc);
   }
 
-  Token idToken = tok; // Save the identifier token.
-  nextToken();
+  assert(tok.is(TokenKind::Identifier) && "expected identifier");
+
+  const SourceLocation idLoc = tok.loc;
 
   // Resolve the cast type, if it exists yet.
-  const Type *castType = ctx->getType(idToken.value);
+  const Type *castType = ParseType();
   
   // Resolve the base expression.
   isUnderCast = 1;
   std::unique_ptr<Expr> baseExpr = ParseExpression();
   if (!baseExpr) {
     fatal("expected expression after cast: " + castType->toString(), 
-        idToken.loc);
+        idLoc);
   }
 
   isUnderCast = 0;
-  return std::make_unique<ExplicitCastExpr>(std::move(baseExpr), idToken.value,
-      castType, createSpan(idToken.loc));
+  return std::make_unique<ExplicitCastExpr>(std::move(baseExpr), 
+      castType->toString(), castType, createSpan(idLoc));
 }
 
 /// Parse a unary expression.

@@ -279,10 +279,10 @@ void ASTPrinter::visit(CompoundStmt *stmt) {
   setPiping(indent);
   for (unsigned idx = 0; idx < stmt->stmts.size(); idx++) {
     if (idx + 1 == stmt->stmts.size()) {
+      clearPiping(indent);
       setLastChild();
     }
-
-    isLastChild ? clearPiping(indent) : setPiping(indent);
+  
     stmt->stmts[idx]->pass(this);
   }
 

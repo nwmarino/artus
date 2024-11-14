@@ -15,6 +15,7 @@ using std::vector;
 inline vector<string> __RESERVED = {
   "bool",
   "char",
+  "string",
   "i32",
   "i64",
   "u8",
@@ -57,6 +58,10 @@ enum class TokenKind {
   OpenBrace,
   /// }
   CloseBrace,
+  /// [
+  OpenBracket,
+  /// ]
+  CloseBracket,
   /// +
   Plus,
   /// -

@@ -161,8 +161,7 @@ std::vector<std::unique_ptr<ParamVarDecl>> Parser::ParseFunctionParams() {
       return {};
     }
 
-    const Type *paramType = ctx->getType(tok.value);
-    nextToken(); // Consume the type token.
+    const Type *paramType = ParseType();
 
     // Create the parameter declaration and add it to the current scope.
     std::unique_ptr<ParamVarDecl> param = std::make_unique<ParamVarDecl>(
@@ -210,8 +209,7 @@ std::unique_ptr<Decl> Parser::ParseVarDeclaration(bool isMut) {
     return nullptr;
   }
 
-  const Type *varType = ctx->getType(tok.value);
-  nextToken(); // Consume the type token.
+  const Type *varType = ParseType();
   std::unique_ptr<Expr> initExpr = nullptr;
 
   /// UNRECOVERABLE: Immutable variables must be initialized.
