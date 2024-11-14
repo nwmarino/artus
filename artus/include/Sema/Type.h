@@ -55,6 +55,7 @@ public:
 class BasicType final : public Type {
   friend class Context;
 
+public:
   /// Possible kinds of basic types.
   enum BasicTypeKind {
     INT1 = 0,
@@ -66,6 +67,8 @@ class BasicType final : public Type {
     UINT64,
     FP64
   };
+
+private:
 
   /// The kind of basic type.
   const BasicTypeKind kind;
@@ -97,6 +100,9 @@ public:
     }
     return 0;
   }
+
+  /// Returns the kind of this basic type.
+  BasicType::BasicTypeKind getKind() const { return kind; }
 
   /// Returns a string representation of the basic type.
   string toString() const override {

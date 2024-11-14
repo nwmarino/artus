@@ -13,9 +13,25 @@ using namespace artus;
 /// Given the type, this function will return an expression that may be used
 /// to initialize an otherwised undefined variable.
 std::unique_ptr<Expr> Parser::ParseDefaultInitExpression(const Type *T) {
-  if (T->isIntegerType()) {
-    return std::make_unique<IntegerLiteral>(0, T, false, 
-        createSpan(lastLoc));
+  // Handle basic types.
+  if (const BasicType *BT = dynamic_cast<const BasicType *>(T)) {
+    switch (BT->getKind()) {
+      case BasicType::INT1:
+        return std::make_unique<BooleanLiteral>(0, T, createSpan(lastLoc));
+      case BasicType::INT8:
+        return std::make_unique<CharLiteral>(0, T, createSpan(lastLoc));
+      case BasicType::INT32:
+      case BasicType::INT64:
+        return std::make_unique<IntegerLiteral>(0, T, true,
+            createSpan(lastLoc));
+      case BasicType::UINT8:
+      case BasicType::UINT32:
+      case BasicType::UINT64:
+        return std::make_unique<IntegerLiteral>(0, T, false,
+            createSpan(lastLoc));
+      case BasicType::FP64:
+        return nullptr;
+    }
   }
 
   return nullptr;
