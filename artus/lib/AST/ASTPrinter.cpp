@@ -43,8 +43,8 @@ inline void ASTPrinter::clearPiping(unsigned indent) {
 inline void ASTPrinter::printPiping() {
   string str = pipeColor;
   for (unsigned idx = 0; idx < indent; idx++) {
-    str = pipingState.find(idx) != pipingState.end() && pipingState[idx] ? \
-        str + "│ " : str + "  ";
+    str = pipingState.find(idx) != pipingState.end() && pipingState[idx]
+          ? str + "│ " : str + "  ";
   }
   cout << str;
 
@@ -247,6 +247,12 @@ void ASTPrinter::visit(BinaryExpr *expr) {
   resetLastChild();
 }
 
+void ASTPrinter::visit(BooleanLiteral *expr) {
+  printPiping();
+  printExpr(expr->span, "BooleanLiteral", expr->T->toString(), "", false);
+  cout << ' ' << literalColor << expr->value << clear << '\n';
+}
+
 void ASTPrinter::visit(IntegerLiteral *expr) {
   printPiping();
   printExpr(expr->span, "IntegerLiteral", expr->T->toString(), "", false);
@@ -261,10 +267,10 @@ void ASTPrinter::visit(CompoundStmt *stmt) {
   setPiping(indent);
   for (unsigned idx = 0; idx < stmt->stmts.size(); idx++) {
     if (idx + 1 == stmt->stmts.size()) {
-      clearPiping(indent);
       setLastChild();
     }
 
+    isLastChild ? clearPiping(indent) : setPiping(indent);
     stmt->stmts[idx]->pass(this);
   }
 

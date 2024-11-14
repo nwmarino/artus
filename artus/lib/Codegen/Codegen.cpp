@@ -202,6 +202,10 @@ void Codegen::visit(BinaryExpr *expr) {
   }
 }
 
+void Codegen::visit(BooleanLiteral *expr) {
+  tmp = llvm::ConstantInt::get(*context, llvm::APInt(1, expr->value, true));
+}
+
 void Codegen::visit(IntegerLiteral *expr) {
   tmp = llvm::ConstantInt::get(*context, llvm::APInt(
       expr->T->getBitWidth(), expr->value, true));

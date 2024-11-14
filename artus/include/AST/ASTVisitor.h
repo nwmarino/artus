@@ -16,6 +16,7 @@ class DeclRefExpr;
 class CallExpr;
 class UnaryExpr;
 class BinaryExpr;
+class BooleanLiteral;
 class IntegerLiteral;
 
 class CompoundStmt;
@@ -41,6 +42,7 @@ public:
   virtual void visit(CallExpr *expr) = 0;
   virtual void visit(UnaryExpr *expr) = 0;
   virtual void visit(BinaryExpr *expr) = 0;
+  virtual void visit(BooleanLiteral *expr) = 0;
   virtual void visit(IntegerLiteral *expr) = 0;
 
   virtual void visit(CompoundStmt *stmt) = 0;

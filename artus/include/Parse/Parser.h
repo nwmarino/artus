@@ -141,6 +141,7 @@ class Parser final {
   std::unique_ptr<Expr> ParseUnaryExpression();
   std::unique_ptr<Expr> ParseBinaryExpression(std::unique_ptr<Expr> base, 
                                               int precedence = 0);
+  std::unique_ptr<Expr> ParseBooleanExpression();
   std::unique_ptr<Expr> ParseIntegerExpression();
 
   std::unique_ptr<Stmt> ParseStatement();

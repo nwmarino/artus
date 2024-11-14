@@ -41,8 +41,12 @@ std::unique_ptr<Expr> Parser::ParsePrimaryExpression() {
   if (tok.is(TokenKind::At))
     return ParseCallExpression();
 
-  if (tok.is(TokenKind::Identifier))
+  if (tok.is(TokenKind::Identifier)) {
+    if (tok.isKeyword("true") || tok.isKeyword("false"))
+      return ParseBooleanExpression();
+
     return ParseIdentifierExpression();
+  }
 
   if (tok.is(LiteralKind::Integer))
     return ParseIntegerExpression();
@@ -223,6 +227,22 @@ std::unique_ptr<Expr> Parser::ParseBinaryExpression(std::unique_ptr<Expr> base,
         op, createSpan({ base->getSpan().file, base->getSpan().line,
         base->getSpan().col }, lastLoc));
   }
+}
+
+/// Parse a boolean literal expression.
+///
+/// Expects the current token to be a `true` or `false` identifier.
+std::unique_ptr<Expr> Parser::ParseBooleanExpression() {
+  assert(tok.is(TokenKind::Identifier) && "expected boolean literal");
+
+  Token boolToken = tok; // Save the boolean token.
+  nextToken();
+
+  // Determine the type of the boolean literal.
+  const Type *T = ctx->getType("bool");
+
+  return std::make_unique<BooleanLiteral>(boolToken.value == "true", T,
+    createSpan(boolToken.loc, boolToken.loc));
 }
 
 /// Parse a numerical literal expression.

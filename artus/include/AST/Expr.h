@@ -1,13 +1,13 @@
 #ifndef ARTUS_AST_EXPR_H
 #define ARTUS_AST_EXPR_H
 
+#include <memory>
+
 #include "ASTPrinter.h"
-#include "../Codegen/Codegen.h"
-#include "DeclBase.h"
 #include "Stmt.h"
+#include "../Codegen/Codegen.h"
 #include "../Core/Span.h"
 #include "../Sema/Type.h"
-#include <memory>
 
 namespace artus {
 
@@ -174,6 +174,22 @@ public:
 
   /// Returns true if this binary expression is an assignment.
   bool isAssignment() const { return op == BinaryOp::Assign; }
+};
+
+/// A boolean literal; `true` or `false`.
+class BooleanLiteral final : public Expr {
+  friend class ASTPrinter;
+  friend class Codegen;
+  friend class Sema;
+
+  /// The literal value nested in this node.
+  const bool value;
+
+public:
+  BooleanLiteral(const bool value, const Type *T, const Span &span)
+      : Expr(T, span), value(value) {}
+
+  void pass(ASTVisitor *visitor) override { visitor->visit(this); }
 };
 
 /// An integer literal. For example, `0`, `1`, etc.

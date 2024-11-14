@@ -32,7 +32,6 @@ using namespace artus;
 /// Parse an input file path into a SourceFile struct.
 SourceFile static parseInputFile(const string &path) {
   fstream file(path);
-
   if (!file.is_open()) {
     fatal("file not found: " + path);
   }
@@ -43,10 +42,12 @@ SourceFile static parseInputFile(const string &path) {
   
   file.seekg(0, std::ios::end);
   len = file.tellg();
-  SrcBuffer = new char[len + 1];
-
   file.seekg(0, std::ios::beg);
+
+  SrcBuffer = new char[len + 1];
   file.read(SrcBuffer, len);
+
+  SrcBuffer[len] = '\0';
   file.close();
 
   return { .name = name, .path = path, .BufferStart = SrcBuffer };

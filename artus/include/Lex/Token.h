@@ -13,11 +13,14 @@ using std::vector;
 
 /// Reference for reserved identifiers in the language.
 inline vector<string> __RESERVED = {
+  "bool",
   "i32",
   "i64",
   "u8",
   "u32",
   "u64",
+  "true",
+  "false",
   "fix",
   "fn",
   "jmp",

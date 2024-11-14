@@ -270,6 +270,16 @@ void Sema::visit(BinaryExpr *expr) {
   }
 }
 
+/// Semantic Analysis over a BooleanLiteral.
+/// 
+/// BooleanLiterals are valid if and only if they are of a boolean type.
+void Sema::visit(BooleanLiteral *expr) {
+  if (expr->T->toString() != "bool") {
+    fatal("expected boolean type", { expr->span.file, 
+        expr->span.line, expr->span.col });
+  }
+}
+
 /// Semantic Analysis over an IntegerLiteral.
 ///
 /// IntegerLiterals are valid if and only if they are of an integer type.
