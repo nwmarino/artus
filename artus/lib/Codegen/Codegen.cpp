@@ -134,8 +134,11 @@ void Codegen::visit(DeclRefExpr *expr) {
   if (!alloca)
     fatal("unresolved variable: " + expr->ident);
 
-  tmp = builder->CreateLoad(alloca->getAllocatedType(), alloca, 
-      expr->ident);
+  tmp = alloca;
+
+  if (!expr->T->isPointerType()) {
+    tmp = builder->CreateLoad(expr->T->toLLVMType(*context), alloca);
+  }
 }
 
 void Codegen::visit(CallExpr *expr) {

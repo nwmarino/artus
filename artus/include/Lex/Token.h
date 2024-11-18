@@ -21,6 +21,7 @@ inline vector<string> __RESERVED = {
   "u8",
   "u32",
   "u64",
+  "null",
   "true",
   "false",
   "fix",

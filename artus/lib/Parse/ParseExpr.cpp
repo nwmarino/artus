@@ -72,6 +72,9 @@ std::unique_ptr<Expr> Parser::ParsePrimaryExpression() {
     return ParseCallExpression();
 
   if (tok.is(TokenKind::Identifier)) {
+    if (tok.isKeyword("null"))
+      return ParseNullExpression();
+  
     if (tok.isKeyword("true") || tok.isKeyword("false"))
       return ParseBooleanExpression();
 
@@ -327,6 +330,18 @@ std::unique_ptr<Expr> Parser::ParseStringExpression() {
 
   return std::make_unique<StringLiteral>(strToken.value, T,
     createSpan(strToken.loc));
+}
+
+/// Parse a null pointer expression.
+///
+/// Expects the current token to be a `null` identifier.
+std::unique_ptr<Expr> Parser::ParseNullExpression() {
+  assert(tok.isKeyword("null") && "expected 'null' symbol");
+
+  Token nullToken = tok; // Save the null token.
+  nextToken();
+
+  return std::make_unique<NullExpr>(nullptr, createSpan(nullToken.loc));
 }
 
 /// Parse an array initialization expression.

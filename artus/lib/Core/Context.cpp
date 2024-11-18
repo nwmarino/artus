@@ -1,5 +1,6 @@
 #include "../../include/AST/Stmt.h"
 #include "../../include/Core/Context.h"
+#include "../../include/Sema/Type.h"
 
 using std::string;
 
@@ -60,6 +61,13 @@ void Context::addPackage(std::unique_ptr<PackageUnitDecl> pkg) {
 const Type *Context::getType(const string &name) {
   if (types.find(name) != types.end())
     return types[name];
+
+  // Handle ptr reference levels deeper than 1.
+  if (name[0] == '*') {
+    const string nestedType = name.substr(1);
+    types[name] = new PointerType(getType(nestedType));
+    return types[name];
+  }
 
   return nullptr;
 }

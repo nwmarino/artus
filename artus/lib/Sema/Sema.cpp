@@ -9,7 +9,8 @@
 
 using namespace artus;
 
-Sema::Sema(Context *ctx) : ctx(ctx) {
+Sema::Sema(Context *ctx) : ctx(ctx), parentFunctionType(nullptr), 
+    lvalueType(nullptr) {
   for (PackageUnitDecl *pkg : ctx->cache->getUnits()) {
     pkg->pass(this); // Sema on each package unit.
   }
@@ -91,6 +92,8 @@ void Sema::visit(LabelDecl *decl) { /* unused */ }
 /// VarDecls are valid if and only if they are of the same type as their
 /// initializer.
 void Sema::visit(VarDecl *decl) {
+  lvalueType = decl->T;
+
   decl->init->pass(this); // Sema on the initializer.
 
   if (decl->T->compare(decl->init->T) == 0) {
@@ -346,6 +349,8 @@ void Sema::visit(StringLiteral *expr) {
 ///
 /// NullExprs are valid if and only if the type exists.
 void Sema::visit(NullExpr *expr) {
+  expr->T = lvalueType;
+
   if (!expr->T) {
     fatal("null expression cannot be void", { expr->span.file,
         expr->span.line, expr->span.col });

@@ -1,5 +1,6 @@
 #include "../../include/AST/Stmt.h"
 #include "../../include/Parse/Parser.h"
+#include "../../include/Sema/Type.h"
 
 using namespace artus;
 
@@ -102,9 +103,10 @@ BinaryExpr::BinaryOp Parser::getBinaryOp() const {
 /// user-defined type. Implicitly defined types such as FunctionTypes cannot be 
 /// parsed here.
 const Type *Parser::ParseType() {
-  bool isPtr = false;
-  if (tok.is(TokenKind::Star)) {
-    isPtr = true;
+  // Parse ptr reference levels.
+  string typeIdentifier;
+  while (tok.is(TokenKind::Star)) {
+    typeIdentifier.append("*");
     nextToken(); // Consume the '*' token.
   }
 
@@ -113,13 +115,15 @@ const Type *Parser::ParseType() {
   const Token identToken = tok;
   nextToken(); // Consume the identifier token.
 
+  typeIdentifier.append(identToken.value);
+
   if (!tok.is(TokenKind::OpenBracket))
-    return ctx->getType(isPtr ? '*' + identToken.value : identToken.value);
+    return ctx->getType(typeIdentifier);
 
   nextToken(); // Consume the '[' token.
 
   if (!tok.is(LiteralKind::Integer)) {
-    fatal("expected integer to define array size", lastLoc);
+    fatal("expected constant integer to define array size", lastLoc);
   }
 
   const size_t arraySize = std::stoul(tok.value);

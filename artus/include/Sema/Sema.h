@@ -40,6 +40,9 @@ class Sema final : public ASTVisitor {
   /// The type of the top-level function, if it exists.
   const FunctionType *parentFunctionType;
 
+  /// The type of the parent lvalue, if it exists.
+  const Type *lvalueType;
+
   /// The index of the current parameter being visited.
   size_t paramIndex = 0;
 
