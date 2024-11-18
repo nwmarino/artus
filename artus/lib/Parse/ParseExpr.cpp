@@ -13,6 +13,10 @@ using namespace artus;
 /// Given the type, this function will return an expression that may be used
 /// to initialize an otherwised undefined variable.
 std::unique_ptr<Expr> Parser::ParseDefaultInitExpression(const Type *T) {
+  // Handle pointer types.
+  if (T->isPointerType())
+    return std::make_unique<NullExpr>(T, createSpan(lastLoc));
+
   // Handle basic types.
   if (const BasicType *BT = dynamic_cast<const BasicType *>(T)) {
     switch (BT->getKind()) {
@@ -355,7 +359,8 @@ std::unique_ptr<Expr> Parser::ParseArrayInitExpression(const ArrayType *T) {
 
   nextToken(); // Eat the ']' token.
 
-  if (idxs < T->getSize()) {
+  // Check that the number of expressions matches the array size.
+  if (idxs != T->getSize()) {
     fatal("expected " + std::to_string(T->getSize()) + " expressions in array "
         "initializer, got " + std::to_string(idxs), lastLoc);
   }
@@ -376,13 +381,17 @@ std::unique_ptr<Expr> Parser::ParseArrayAccessExpression() {
     fatal("unresolved reference: " + tok.value, tok.loc);
   }
 
-  VarDecl *varDecl = dynamic_cast<VarDecl *>(decl);
-  if (!varDecl) {
+  const Type *T = nullptr;
+  if (VarDecl *varDecl = dynamic_cast<VarDecl *>(decl)) {
+    T = varDecl->getType();
+  } else if (ParamVarDecl *paramDecl = dynamic_cast<ParamVarDecl *>(decl)) {
+    T = paramDecl->getType();
+  } else {
     fatal("expected variable reference: " + tok.value, tok.loc);
   }
 
   std::unique_ptr<Expr> base = std::make_unique<DeclRefExpr>(tok.value, 
-      varDecl, varDecl->getType(), createSpan(tok.loc));
+      decl, T, createSpan(tok.loc));
 
   const Token baseToken = tok; // Save the whole base token.
   nextToken();

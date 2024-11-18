@@ -204,11 +204,6 @@ std::unique_ptr<Decl> Parser::ParseVarDeclaration(bool isMut) {
   }
   nextToken(); // Consume the ':' token.
 
-  if (!tok.is(TokenKind::Identifier)) {
-    trace("expected type after ':' symbol", lastLoc);
-    return nullptr;
-  }
-
   const Type *varType = ParseType();
   std::unique_ptr<Expr> initExpr = nullptr;
 

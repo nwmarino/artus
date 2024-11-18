@@ -15,7 +15,9 @@ inline static string unaryOpToString(UnaryExpr::UnaryOp op) {
   switch (op) {
     case UnaryExpr::UnaryOp::Negative: return "-";
     case UnaryExpr::UnaryOp::Not: return "!";
-    default: return "unknown";
+    case UnaryExpr::UnaryOp::Ref: return "&";
+    case UnaryExpr::UnaryOp::DeRef: return "*";
+    default: return " ";
   }
 }
 
@@ -27,7 +29,7 @@ inline static string binaryOpToString(BinaryExpr::BinaryOp op) {
     case BinaryExpr::BinaryOp::Sub: return "-";
     case BinaryExpr::BinaryOp::Mult: return "*";
     case BinaryExpr::BinaryOp::Div: return "/";
-    default: return "unknown";
+    default: return " ";
   }
 }
 
@@ -269,6 +271,11 @@ void ASTPrinter::visit(StringLiteral *expr) {
   printPiping();
   printExpr(expr->span, "StringLiteral", expr->T->toString(), "", false);
   cout << ' ' << literalColor << expr->value << clear << '\n';
+}
+
+void ASTPrinter::visit(NullExpr *expr) {
+  printPiping();
+  printExpr(expr->span, "NullExpr", expr->T->toString());
 }
 
 void ASTPrinter::visit(ArrayInitExpr *expr) {

@@ -80,6 +80,8 @@ enum class TokenKind {
   Comma,
   /// @
   At,
+  /// &
+  Ampersand,
 
   /// Compound Tokens
   /// ->

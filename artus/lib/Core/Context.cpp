@@ -17,6 +17,14 @@ Context::Context(vector<SourceFile> files) : files(std::move(files)), eof(0) {
   this->types["u32"] = new BasicType(BasicType::BasicTypeKind::UINT32);
   this->types["u64"] = new BasicType(BasicType::BasicTypeKind::UINT64);
   this->types["fp64"] = new BasicType(BasicType::BasicTypeKind::FP64);
+  this->types["*bool"] = new PointerType(this->types["bool"]);
+  this->types["*char"] = new PointerType(this->types["char"]);
+  this->types["*i32"] = new PointerType(this->types["i32"]);
+  this->types["*i64"] = new PointerType(this->types["i64"]);
+  this->types["*u8"] = new PointerType(this->types["u8"]);
+  this->types["*u32"] = new PointerType(this->types["u32"]);
+  this->types["*u64"] = new PointerType(this->types["u64"]);
+  this->types["*fp64"] = new PointerType(this->types["fp64"]);
 }
 
 Context::~Context() {

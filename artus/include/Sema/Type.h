@@ -29,6 +29,9 @@ public:
   /// evaluted to otherwise, and false otherwise.
   virtual bool isFloatingPointType() const = 0;
 
+  /// Returns true if the type is a pointer type, and false otherwise.
+  virtual bool isPointerType() const = 0;
+
   /// Returns true if the type is an array type, and false otherwise.
   virtual bool isArrayType() const = 0;
 
@@ -87,6 +90,9 @@ public:
   /// Returns true if the basic type kind is a floating point, and false
   /// otherwise.
   bool isFloatingPointType() const override { return kind == FP64; }
+
+  /// Returns true if the type is a pointer type, and false otherwise.
+  bool isPointerType() const override { return false; }
 
   /// Returns true if the type is an array type, and false otherwise.
   bool isArrayType() const override { return false; }
@@ -200,6 +206,9 @@ public:
     return returnType->isFloatingPointType();
   }
 
+  /// Returns true if the type is a pointer type, and false otherwise.
+  bool isPointerType() const override { return false; }
+
   /// Returns true if the type is an array type, and false otherwise.
   bool isArrayType() const override { return false; }
 
@@ -274,6 +283,68 @@ public:
   }
 };
 
+/// Represents a pointer type. Pointers types represent the type of the value 
+/// contained at a memory address. For example, `*i64`.
+class PointerType final : public Type {
+  /// The type of the pointer.
+  const Type *pointeeType;
+
+public:
+  PointerType(const Type *pointeeType) : pointeeType(pointeeType) {}
+
+  /// Returns the type of the pointer.
+  const Type *getPointeeType() const { return pointeeType; }
+
+  /// Returns true if the pointer type is an integer, and false otherwise.
+  bool isIntegerType() const override { return pointeeType->isIntegerType(); }
+
+  /// Returns true if the pointer type is a floating point, and false otherwise.
+  bool isFloatingPointType() const override { 
+    return pointeeType->isFloatingPointType();
+  }
+
+  /// Returns true if the type is a pointer type, and false otherwise.
+  bool isPointerType() const override { return true; }
+
+  /// Returns true if the type is an array type, and false otherwise.
+  bool isArrayType() const override { return false; }
+
+  /// Returns the bit width of the pointer type.
+  unsigned getBitWidth() const override { return pointeeType->getBitWidth(); }
+
+  /// Returns a string representation of the pointer type.
+  string toString() const override { return '*' + pointeeType->toString(); }
+
+  /// Compare a pointer type with another type. Pointer types match if and only
+  /// if the pointee types match. The return value of this function is never 2
+  /// due to explicitness of pointer types.
+  int compare(const Type *other) const override {
+    if (const PointerType *otherType = dynamic_cast<const PointerType *>(other)) {
+      if (pointeeType->compare(otherType->pointeeType) == 0)
+        return 0;
+
+      return 1;
+    }
+    return 0;
+  }
+
+  /// Returns true if this pointer type can be casted into the given type, and
+  /// false otherwise. Optionally, a `strict` flag can be passed to indicate
+  /// that the cast must be exact.
+  bool canCastTo(const Type *other, bool strict = false) const override {
+    if (const PointerType *otherType = dynamic_cast<const PointerType *>(other)) {
+      return pointeeType->canCastTo(otherType->pointeeType, strict);
+    }
+
+    return false;
+  }
+
+  /// Returns a LLVM PointerType equivelant of this pointer type.
+  llvm::Type *toLLVMType(llvm::LLVMContext &ctx) const override {
+    return llvm::PointerType::get(pointeeType->toLLVMType(ctx), 0);
+  }
+};
+
 /// Represents an array type. Array types are used to represent the type of an
 /// array declaration. For example, `i64[10]`.
 class ArrayType final : public Type {
@@ -301,6 +372,9 @@ public:
     return elementType->isFloatingPointType();
   }
 
+  /// Returns true if the type is a pointer type, and false otherwise.
+  bool isPointerType() const override { return false; }
+
   /// Returns true if the type is an array type, and false otherwise.
   bool isArrayType() const override { return true; }
 
@@ -309,7 +383,7 @@ public:
 
   /// Returns a string representation of the array type.
   string toString() const override {
-    return elementType->toString() + "[" + std::to_string(size) + "]";
+    return elementType->toString() + '[' + std::to_string(size) + ']';
   }
 
   /// Compare an array type with another type. Array types match if and only if

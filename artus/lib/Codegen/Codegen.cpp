@@ -164,6 +164,12 @@ void Codegen::visit(UnaryExpr *expr) {
     case UnaryExpr::UnaryOp::Not:
       tmp = builder->CreateNot(base);
       break;
+    case UnaryExpr::UnaryOp::Ref:
+      tmp = base;
+      break;
+    case UnaryExpr::UnaryOp::DeRef:
+      tmp = builder->CreateLoad(expr->getType()->toLLVMType(*context), base);
+      break;
     default:
       fatal("unknown unary operator");
   }
@@ -216,6 +222,11 @@ void Codegen::visit(CharLiteral *expr) {
 }
 
 void Codegen::visit(StringLiteral *expr) { /* unsupported for now */ }
+
+void Codegen::visit(NullExpr *expr) {
+  tmp = llvm::ConstantPointerNull::get(llvm::PointerType::get(
+      expr->T->toLLVMType(*context), 0));
+}
 
 void Codegen::visit(ArrayInitExpr *expr) {
   llvm::Type *T = expr->T->toLLVMType(*context);

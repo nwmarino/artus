@@ -66,6 +66,10 @@ UnaryExpr::UnaryOp Parser::getUnaryOp() const {
       return UnaryExpr::UnaryOp::Negative;
     case TokenKind::Bang: 
       return UnaryExpr::UnaryOp::Not;
+    case TokenKind::Ampersand:
+      return UnaryExpr::UnaryOp::Ref;
+    case TokenKind::Star:
+      return UnaryExpr::UnaryOp::DeRef;
     default: 
       return UnaryExpr::UnaryOp::Unknown;
   }
@@ -92,19 +96,25 @@ BinaryExpr::BinaryOp Parser::getBinaryOp() const {
   return BinaryExpr::BinaryOp::Unknown;
 }
 
-/// Parses a defined type reference. For example, `int` or `char`.
+/// Parses a defined type reference. For example, `*int` or `char[5]`.
 ///
 /// This function will parse a type reference, which can be a basic type or a
 /// user-defined type. Implicitly defined types such as FunctionTypes cannot be 
 /// parsed here.
 const Type *Parser::ParseType() {
-  assert(tok.is(TokenKind::Identifier) && "expected type identifier");
+  bool isPtr = false;
+  if (tok.is(TokenKind::Star)) {
+    isPtr = true;
+    nextToken(); // Consume the '*' token.
+  }
+
+  assert(tok.is(TokenKind::Identifier) && "expected identifier");
 
   const Token identToken = tok;
   nextToken(); // Consume the identifier token.
 
   if (!tok.is(TokenKind::OpenBracket))
-    return ctx->getType(identToken.value);
+    return ctx->getType(isPtr ? '*' + identToken.value : identToken.value);
 
   nextToken(); // Consume the '[' token.
 

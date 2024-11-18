@@ -20,6 +20,7 @@ class BooleanLiteral;
 class IntegerLiteral;
 class CharLiteral;
 class StringLiteral;
+class NullExpr;
 class ArrayInitExpr;
 class ArrayAccessExpr;
 
@@ -50,6 +51,7 @@ public:
   virtual void visit(IntegerLiteral *expr) = 0;
   virtual void visit(CharLiteral *expr) = 0;
   virtual void visit(StringLiteral *expr) = 0;
+  virtual void visit(NullExpr *expr) = 0;
   virtual void visit(ArrayInitExpr *expr) = 0;
   virtual void visit(ArrayAccessExpr *expr) = 0;
 

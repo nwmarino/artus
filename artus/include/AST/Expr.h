@@ -119,8 +119,14 @@ public:
   /// Possible kinds of unary operations.
   enum class UnaryOp {
     Unknown = -1,
+    // -
     Negative,
+    // !
     Not,
+    // &
+    Ref,
+    // *
+    DeRef,
   };
 
 private:
@@ -147,10 +153,15 @@ public:
   /// Possible kinds of binary operations.
   enum class BinaryOp {
     Unknown = -1,
+    // =
     Assign,
+    // +
     Add,
+    // -
     Sub,
+    // *
     Mult,
+    // /
     Div,
   };
 
@@ -241,6 +252,18 @@ class StringLiteral final : public Expr {
 public:
   StringLiteral(const string value, const Type *T, const Span &span)
       : Expr(T, span), value(value) {}
+
+  void pass(ASTVisitor *visitor) override { visitor->visit(this); }
+};
+
+/// A `null` expression.
+class NullExpr final : public Expr {
+  friend class ASTPrinter;
+  friend class Codegen;
+  friend class Sema;
+
+public:
+  NullExpr(const Type *T, const Span &span) : Expr(T, span) {}
 
   void pass(ASTVisitor *visitor) override { visitor->visit(this); }
 };

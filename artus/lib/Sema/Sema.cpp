@@ -221,6 +221,32 @@ void Sema::visit(UnaryExpr *expr) {
 
   // Propagate the type of the expression.
   expr->T = expr->base->T;
+
+  // Check that references '&' are only done to lvalues.
+  if (expr->op == UnaryExpr::UnaryOp::Ref) {
+    // Check that the operand is an lvalue.
+    if (!dynamic_cast<const DeclRefExpr *>(expr->base.get())) {
+      fatal("expected lvalue for unary operator: &", { expr->span.file, 
+          expr->span.line, expr->span.col });
+    }
+
+    // Nest the base type in a pointer type.
+    expr->T = ctx->getType('*' + expr->T->toString());
+  }
+
+  // Check that dereferences '*' are only done to pointers.
+  if (expr->op == UnaryExpr::UnaryOp::DeRef) {
+    // Check that the operand is a pointer type.
+    if (!expr->base->T->isPointerType()) {
+      fatal("expected pointer type for unary operator: *", { expr->span.file, 
+          expr->span.line, expr->span.col });
+    }
+
+    // Dereference the base type.
+    const PointerType *ptrType = dynamic_cast<const PointerType *>(expr->base->T);
+    assert (ptrType && "expected pointer type");
+    expr->T = ptrType->getPointeeType();
+  }
 }
 
 /// Semantic Analysis over a BinaryExpr.
@@ -243,8 +269,14 @@ void Sema::visit(BinaryExpr *expr) {
   if (!expr->isAssignment())
     return;
 
+  const DeclRefExpr *lhsRef = nullptr;
+
   // Resolve the lvalue.
-  const DeclRefExpr *lhsRef = dynamic_cast<const DeclRefExpr *>(expr->lhs.get());
+  if (const DeclRefExpr *declRefExpr = dynamic_cast<const DeclRefExpr *>(expr->lhs.get()))
+    lhsRef = declRefExpr;
+  else if (const ArrayAccessExpr *arrayAccessExpr = dynamic_cast<const ArrayAccessExpr *>(expr->lhs.get()))
+    lhsRef = dynamic_cast<const DeclRefExpr *>(arrayAccessExpr->base.get());
+
   if (!lhsRef) {
     fatal("expected lvalue to variable assignment", { expr->span.file,
       expr->span.line, expr->span.col });
@@ -306,6 +338,16 @@ void Sema::visit(CharLiteral *expr) {
 void Sema::visit(StringLiteral *expr) {
   if (expr->T->toString() != "string") {
     fatal("expected string type", { expr->span.file, 
+        expr->span.line, expr->span.col });
+  }
+}
+
+/// Semantic Analysis over a NullExpr.
+///
+/// NullExprs are valid if and only if the type exists.
+void Sema::visit(NullExpr *expr) {
+  if (!expr->T) {
+    fatal("null expression cannot be void", { expr->span.file,
         expr->span.line, expr->span.col });
   }
 }
