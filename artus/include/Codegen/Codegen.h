@@ -40,6 +40,9 @@ class Codegen : public ASTVisitor {
   /// The current function being generated.
   llvm::Function *FN;
 
+  /// Flag used to indicate if the current expression is an lvalue.
+  bool isLValue : 1 = 0;
+
   /// Creates an alloca instruction in the entry block of the function.
   [[nodiscard]] 
   llvm::AllocaInst *createAlloca(llvm::Function *fn, const std::string &var, 

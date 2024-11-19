@@ -132,21 +132,24 @@ void Codegen::visit(ExplicitCastExpr *expr) { genericCastCGN(expr); }
 
 void Codegen::visit(DeclRefExpr *expr) {
   llvm::AllocaInst *alloca = allocas[expr->ident];
+  if (!alloca) {
+    fatal("unresolved variable: " + expr->ident, 
+        { expr->span.file, expr->span.line, expr->span.col });
+  }
 
-  if (!alloca)
-    fatal("unresolved variable: " + expr->ident);
+  if (!isLValue) {
+    tmp = builder->CreateLoad(expr->T->toLLVMType(*context), alloca);
+    return;
+  }
 
   tmp = alloca;
-
-  if (!expr->T->isPointerType()) {
-    tmp = builder->CreateLoad(expr->T->toLLVMType(*context), alloca);
-  }
 }
 
 void Codegen::visit(CallExpr *expr) {
   llvm::Function *callee = functions[expr->ident];
   if (!callee) {
-    fatal("function not found in function table: " + expr->ident);
+    fatal("function not found in function table: " + expr->ident,
+        { expr->span.file, expr->span.line, expr->span.col });
   }
 
   std::vector<llvm::Value *> args;
@@ -159,6 +162,11 @@ void Codegen::visit(CallExpr *expr) {
 }
 
 void Codegen::visit(UnaryExpr *expr) {
+  // Dereference bases are pointers, so need lvalue flag.
+  if (expr->op == UnaryExpr::UnaryOp::DeRef) {
+    isLValue = true;
+  }
+
   expr->base->pass(this);
   llvm::Value *base = tmp;
 
@@ -178,9 +186,14 @@ void Codegen::visit(UnaryExpr *expr) {
     default:
       fatal("unknown unary operator");
   }
+
+  isLValue = false;
 }
 
 void Codegen::visit(BinaryExpr *expr) {
+  if (expr->isAssignment())
+    this->isLValue = true;
+
   expr->lhs->pass(this);
   llvm::Value *lhs = tmp;
   expr->rhs->pass(this);
@@ -205,6 +218,8 @@ void Codegen::visit(BinaryExpr *expr) {
     default:
       fatal("unknown binary operator");
   }
+
+  this->isLValue = false;
 }
 
 void Codegen::visit(BooleanLiteral *expr) {
@@ -242,30 +257,42 @@ void Codegen::visit(ArrayInitExpr *expr) {
 void Codegen::visit(ArrayAccessExpr *expr) {
   expr->base->pass(this);
   llvm::Value *base = tmp;
-
   expr->index->pass(this);
   llvm::Value *index = tmp;
 
-  if (expr->T->isPointerType()) {
-    vector<llvm::Value *> indices = { index };
-    auto *ptr = builder->CreateLoad(expr->T->toLLVMType(*context), base);
-    tmp = builder->CreateInBoundsGEP(expr->T->toLLVMType(*context), ptr, indices);
-  } else {
-    llvm::Value *zero = llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context), llvm::APInt::getZero(64));
-    
+  DeclRefExpr *baseExpr = dynamic_cast<DeclRefExpr *>(expr->base.get());
+  assert (baseExpr && "expected decl ref expression for array access base");
+
+  // Non lvalue array access need to be loaded; no element ptr.
+  if (!isLValue) {
+    const ArrayType *AT = dynamic_cast<const ArrayType *>(baseExpr->T);
+    assert(AT && "expected array type for array access expression");
+
+    llvm::Value *elementPtr = builder->CreateGEP(AT->toLLVMType(*context), 
+        allocas[baseExpr->ident], { builder->getInt64(0), index });
+
+    tmp = builder->CreateLoad(AT->getElementType()->toLLVMType(*context), elementPtr);
+    return;
   }
 
-  /*
-  llvm::Type *arrayType = expr->base->getType()->toLLVMType(*context);
-  llvm::AllocaInst *alloca = builder->CreateAlloca(arrayType);
+  if (baseExpr->T->isPointerType()) {
+    vector<llvm::Value *> indices = { index };
+    llvm::LoadInst *ptr = builder->CreateLoad(expr->T->toLLVMType(*context), base);
 
-  builder->CreateStore(base, alloca);
+    const PointerType *PT = dynamic_cast<const PointerType *>(expr->T);
+    assert(PT && "expected pointer type for array access expression");
 
-  llvm::Value *elementPtr = builder->CreateGEP(arrayType, alloca, { builder->getInt64(0), index });
-
-  tmp = builder->CreateLoad(arrayType->getArrayElementType(), elementPtr);
+    tmp = builder->CreateGEP(PT->getPointeeType()->toLLVMType(*context), ptr, indices);
+    return;
+  }
   
-  */
+  if (baseExpr->T->isArrayType()) {
+    tmp = builder->CreateInBoundsGEP(baseExpr->T->toLLVMType(*context), 
+        allocas[baseExpr->ident], { builder->getInt64(0), index });
+    return;
+  }
+
+  fatal("unknown array access expression type");
 }
 
 void Codegen::visit(CompoundStmt *stmt) {
