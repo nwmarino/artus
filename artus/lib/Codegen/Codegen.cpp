@@ -137,12 +137,10 @@ void Codegen::visit(DeclRefExpr *expr) {
         { expr->span.file, expr->span.line, expr->span.col });
   }
 
-  if (!isLValue) {
-    tmp = builder->CreateLoad(expr->T->toLLVMType(*context), alloca);
-    return;
-  }
-
   tmp = alloca;
+
+  if (!expr->T->isPointerType())
+    tmp = builder->CreateLoad(expr->T->toLLVMType(*context), tmp);
 }
 
 void Codegen::visit(CallExpr *expr) {
@@ -162,11 +160,6 @@ void Codegen::visit(CallExpr *expr) {
 }
 
 void Codegen::visit(UnaryExpr *expr) {
-  // Dereference bases are pointers, so need lvalue flag.
-  if (expr->op == UnaryExpr::UnaryOp::DeRef) {
-    isLValue = true;
-  }
-
   expr->base->pass(this);
   llvm::Value *base = tmp;
 
@@ -181,13 +174,14 @@ void Codegen::visit(UnaryExpr *expr) {
       tmp = base;
       break;
     case UnaryExpr::UnaryOp::DeRef:
-      tmp = builder->CreateLoad(expr->getType()->toLLVMType(*context), base);
+      if (!isLValue)
+        tmp = builder->CreateLoad(expr->getType()->toLLVMType(*context), base);
+      else
+        tmp = builder->CreateLoad(expr->base->getType()->toLLVMType(*context), base);
       break;
     default:
       fatal("unknown unary operator");
   }
-
-  isLValue = false;
 }
 
 void Codegen::visit(BinaryExpr *expr) {

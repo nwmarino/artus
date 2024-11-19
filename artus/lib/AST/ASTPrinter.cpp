@@ -184,6 +184,7 @@ void ASTPrinter::visit(ImplicitCastExpr *expr) {
   setLastChild();
   increaseIndent();
   expr->expr->pass(this);
+  decreaseIndent();
   resetLastChild();
 }
 
@@ -194,6 +195,7 @@ void ASTPrinter::visit(ExplicitCastExpr *expr)  {
   setLastChild();
   increaseIndent();
   expr->expr->pass(this);
+  decreaseIndent();
   resetLastChild();
 }
 
@@ -293,6 +295,7 @@ void ASTPrinter::visit(ArrayInitExpr *expr) {
     expr->exprs[idx]->pass(this);
   }
 
+  decreaseIndent();
   resetLastChild();
 }
 
@@ -310,8 +313,9 @@ void ASTPrinter::visit(ArrayAccessExpr *expr) {
 void ASTPrinter::visit(CompoundStmt *stmt) {
   printPiping();
   printStmt(stmt->span, "CompoundStmt");
-  resetLastChild();
   increaseIndent();
+  resetLastChild();
+
   setPiping(indent);
   for (unsigned idx = 0; idx < stmt->stmts.size(); idx++) {
     if (idx + 1 == stmt->stmts.size()) {

@@ -64,27 +64,48 @@ public:
   void setStmt(const Stmt *stmt);
 };
 
-/// Represents a parameter to a function.
-class ParamVarDecl final : public NamedDecl {
+/// Represents a variable declaration.
+class VarDecl : public NamedDecl {
   friend class ASTPrinter;
+  friend class Codegen;
   friend class Sema;
 
-  /// The type of this parameter.
+  /// The initializer expression of this variable.
+  const std::unique_ptr<Expr> init;
+
+protected:
+  /// The type of this variable.
   const Type *T;
 
-  /// If this parameter is mutable.
+  /// If the variable is mutable.
   const bool mut : 1;
 
 public:
-  ParamVarDecl(const string &name, const Type *T, const bool mut, const Span &span);
-
+  VarDecl(const string &name, const Type *T, std::unique_ptr<Expr> init,
+          const bool mut, const Span &span);
+      
   void pass(ASTVisitor *visitor) override;
 
-  /// Returns the type of this parameter.
+  /// Returns ther type of this variable.
   const Type *getType() const;
 
-  /// Returns true if the parameter is mutable, and false otherwise.
+  /// Returns true if this declaration is a parameter.
+  bool isParam() const;
+
+  /// Returns true if the variable is mutable, and false otherwise.
   unsigned isMutable() const;
+};
+
+/// Represents a parameter to a function.
+class ParamVarDecl final : public VarDecl {
+  friend class ASTPrinter;
+  friend class Sema;
+
+public:
+  ParamVarDecl(const string &name, const Type *T, const bool mut, 
+               const Span &span);
+
+  void pass(ASTVisitor *visitor) override;
 };
 
 /// Represents a function declaration.
@@ -118,34 +139,6 @@ public:
   /// Returns the parameter at the specified index, and `nullptr` if it does
   /// not exist.
   const ParamVarDecl *getParam(size_t i) const;
-};
-
-/// Represents a variable declaration.
-class VarDecl final : public NamedDecl {
-  friend class ASTPrinter;
-  friend class Codegen;
-  friend class Sema;
-
-  /// The type of this variable.
-  const Type *T;
-
-  /// The initializer expression of this variable.
-  const std::unique_ptr<Expr> init;
-
-  /// If the variable is mutable.
-  const bool mut : 1;
-
-public:
-  VarDecl(const string &name, const Type *T, std::unique_ptr<Expr> init, 
-          const bool mut, const Span &span);
-      
-  void pass(ASTVisitor *visitor) override;
-
-  /// Returns ther type of this variable.
-  const Type *getType() const;
-
-  /// Returns true if the variable is mutable, and false otherwise.
-  unsigned isMutable() const;
 };
 
 } // namespace artus

@@ -58,17 +58,27 @@ const Stmt *LabelDecl::getStmt() const { return stmt; }
 
 void LabelDecl::setStmt(const Stmt *stmt) { this->stmt = stmt; }
 
+/* VarDecl Implementation -------------------------------------------------===*/
+
+VarDecl::VarDecl(const string &name, const Type *T, unique_ptr<Expr> init, 
+                 const bool mut, const Span &span) 
+    : NamedDecl(name, span), T(T), init(std::move(init)), mut(mut) {}
+      
+void VarDecl::pass(ASTVisitor *visitor) { visitor->visit(this); }
+
+const Type *VarDecl::getType() const { return T; }
+
+bool VarDecl::isParam() const { return !init; }
+
+unsigned VarDecl::isMutable() const { return mut; }
+
 /* ParamVarDecl Implementation --------------------------------------------===*/
 
 ParamVarDecl::ParamVarDecl(const string &name, const Type *T, const bool mut,
                            const Span &span)
-    : NamedDecl(name, span), T(T), mut(mut) {}
+    : VarDecl(name, T, nullptr, mut, span) {}
 
 void ParamVarDecl::pass(ASTVisitor *visitor) { visitor->visit(this); }
-
-const Type *ParamVarDecl::getType() const { return T; }
-
-unsigned ParamVarDecl::isMutable() const { return mut; }
 
 /* FunctionDecl Implementation --------------------------------------------===*/
 
@@ -87,15 +97,3 @@ size_t FunctionDecl::getNumParams() const { return params.size(); }
 const ParamVarDecl *FunctionDecl::getParam(size_t i) const {
   return i < params.size() ? params[i].get() : nullptr;
 }
-
-/* VarDecl Implementation -------------------------------------------------===*/
-
-VarDecl::VarDecl(const string &name, const Type *T, unique_ptr<Expr> init, 
-                 const bool mut, const Span &span) 
-    : NamedDecl(name, span), T(T), init(std::move(init)), mut(mut) {}
-      
-void VarDecl::pass(ASTVisitor *visitor) { visitor->visit(this); }
-
-const Type *VarDecl::getType() const { return T; }
-
-unsigned VarDecl::isMutable() const { return mut; }

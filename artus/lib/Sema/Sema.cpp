@@ -15,6 +15,30 @@ Sema::Sema(Context *ctx) : ctx(ctx), parentFunctionType(nullptr),
     pkg->pass(this); // Sema on each package unit.
   }
 }
+
+const VarDecl *Sema::resolveReference(Expr *lvalue) {
+  if (DeclRefExpr *ref = dynamic_cast<DeclRefExpr *>(lvalue)) {
+    Decl *decl = localScope->getDecl(ref->ident);
+    if (!decl) {
+      fatal("unresolved reference: " + ref->ident,
+          { ref->span.file, ref->span.line, ref->span.col });
+    }
+
+    lastReference = ref->ident;
+    return dynamic_cast<const VarDecl *>(decl);
+  }
+
+  if (ArrayAccessExpr *arr = dynamic_cast<ArrayAccessExpr *>(lvalue)) {
+    return resolveReference(arr->base.get());
+  }
+
+  if (UnaryExpr *unary = dynamic_cast<UnaryExpr *>(lvalue)) {
+    return resolveReference(unary->base.get());
+  }
+
+  return nullptr;
+}
+
 /// Semantic Analysis over a PackageUnitDecl.
 ///
 /// PackageUnitDecls are valid if and only if they have valid declarations.
@@ -269,39 +293,25 @@ void Sema::visit(BinaryExpr *expr) {
   expr->T = expr->lhs->T;
 
   // Check that assignment is only done to mutable lvalues.
-  if (!expr->isAssignment())
+  if (!expr->isAssignment()) {
     return;
+  }
 
-  const DeclRefExpr *lhsRef = nullptr;
-
-  // Resolve the lvalue.
-  if (const DeclRefExpr *declRefExpr = dynamic_cast<const DeclRefExpr *>(expr->lhs.get()))
-    lhsRef = declRefExpr;
-  else if (const ArrayAccessExpr *arrayAccessExpr = dynamic_cast<const ArrayAccessExpr *>(expr->lhs.get()))
-    lhsRef = dynamic_cast<const DeclRefExpr *>(arrayAccessExpr->base.get());
-
-  if (!lhsRef) {
+  if (!expr->lhs->isLValue()) {
     fatal("expected lvalue to variable assignment", { expr->span.file,
-      expr->span.line, expr->span.col });
+        expr->span.line, expr->span.col });
   }
 
-  // Check that a variable lvalue is mutable.
-  if (const VarDecl *decl = dynamic_cast<const VarDecl *>(
-      localScope->getDecl(lhsRef->ident))) {
-    if (!decl->isMutable()) {
-      fatal("attempted to reassign immutable variable: " + lhsRef->getIdent(),
-          { expr->span.file, expr->span.line, expr->span.col });
-    }
-    return;
+  // Check that immutable references are not reassigned.
+  const VarDecl *decl = resolveReference(expr->lhs.get());
+  if (!decl) {
+    fatal("unresolved reference: " + lastReference, { expr->span.file,
+        expr->span.line, expr->span.col });
   }
 
-  // Check that a parameter lvalue is mutable.
-  if (const ParamVarDecl *decl = dynamic_cast<const ParamVarDecl *>(
-      localScope->getDecl(lhsRef->ident))) {
-    if (!decl->isMutable()) {
-      fatal("attempted to reassign immutable variable: " + lhsRef->getIdent(),
-          { expr->span.file, expr->span.line, expr->span.col });
-    }
+  if (!decl->isMutable()) {
+    fatal("attempted to reassign immutable variable: " + lastReference,
+        { expr->span.file, expr->span.line, expr->span.col });
   }
 }
 

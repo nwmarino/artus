@@ -161,7 +161,6 @@ std::unique_ptr<Expr> Parser::ParseCallExpression() {
 std::unique_ptr<Expr> Parser::ParseReferenceExpression() {
   Token identToken = tok; // Save the identifier token.
   nextToken();
-NOARGS:
 
   // Resolve the identifier reference.
   Decl *refDecl = scope->getDecl(identToken.value);
@@ -292,8 +291,18 @@ std::unique_ptr<Expr> Parser::ParseIntegerExpression() {
   nextToken();
 
   // Determine the type of the integer literal.
-  const Type *T = parentFunctionType && parentFunctionType->isIntegerType() ? \
-      parentFunctionType->getReturnType() : ctx->getType("i32");
+  const Type *T = nullptr;
+
+  // Try and match literals to the parent function type, should it exist.
+  if (parentFunctionType) {
+    if (const BasicType *BT = dynamic_cast<const BasicType *>(
+          parentFunctionType->getReturnType()))
+      T = parentFunctionType->getReturnType();
+  }
+
+  // Fallback to the default integer type.
+  if (!T)
+    T = ctx->getType("i32");
 
   return std::make_unique<IntegerLiteral>(
     std::stoi(intToken.value, 0, 10), T, false,

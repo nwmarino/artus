@@ -13,8 +13,15 @@ namespace artus {
 
 /// Base class for all Expression nodes. Expressions are also statements.
 class Expr : public ValueStmt {
+protected:
+  /// If this expression is a valid lvalue.
+  bool lvalue : 1;
+
 public:
-  Expr(const Type *T, const Span &span) : ValueStmt(T, span) {}
+  Expr(const Type *T, const Span &span) : ValueStmt(T, span), lvalue(false) {}
+
+  /// Returns true if this expression is an lvalue.
+  bool isLValue() const { return lvalue; }
 };
 
 /// Base class for all Cast Expressions.
@@ -77,8 +84,9 @@ class DeclRefExpr : public Expr {
 
 public:
   DeclRefExpr(const string ident, const Decl *decl, const Type *T, 
-              const Span &span)
-      : Expr(T, span), ident(ident), decl(decl) {}
+              const Span &span) : Expr(T, span), ident(ident), decl(decl) {
+    this->lvalue = true;
+  }
 
   void pass(ASTVisitor *visitor) override { visitor->visit(this); }
 
@@ -138,7 +146,9 @@ private:
 
 public:
   UnaryExpr(std::unique_ptr<Expr> base, UnaryOp op, const Span &span)
-      : Expr(base->getType(), span), base(std::move(base)), op(op) {}
+      : Expr(base->getType(), span), base(std::move(base)), op(op) {
+    this->lvalue = this->base->isLValue();
+  }
 
   void pass(ASTVisitor *visitor) override { visitor->visit(this); }
 };
@@ -177,9 +187,10 @@ private:
 
 public:
   BinaryExpr(std::unique_ptr<Expr> lhs, std::unique_ptr<Expr> rhs, 
-             BinaryOp op, const Span &span)
-      : Expr(lhs->getType(), span), lhs(std::move(lhs)), rhs(std::move(rhs)), 
-      op(op) {}
+             BinaryOp op, const Span &span) : Expr(lhs->getType(), span), 
+      lhs(std::move(lhs)), rhs(std::move(rhs)), op(op) {
+    this->lvalue = this->lhs->isLValue();
+  }
 
   void pass(ASTVisitor *visitor) override { visitor->visit(this); }
 
@@ -310,7 +321,9 @@ public:
   ArrayAccessExpr(const string &name, std::unique_ptr<Expr> base, 
                   std::unique_ptr<Expr> index, const Type *T, const Span &span)
       : Expr(T, span), name(name), base(std::move(base)), 
-      index(std::move(index)) {}
+      index(std::move(index)) {
+    this->lvalue = true;
+  }
 
   void pass(ASTVisitor *visitor) override { visitor->visit(this); }
 };

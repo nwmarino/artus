@@ -46,6 +46,12 @@ class Sema final : public ASTVisitor {
   /// The index of the current parameter being visited.
   size_t paramIndex = 0;
 
+  /// The most previous variable reference.
+  string lastReference;
+
+  /// Resolves a corresponding variable declaration for a given lvalue.
+  const VarDecl *resolveReference(Expr *lvalue);
+
 public:
   Sema(Context *ctx);
 

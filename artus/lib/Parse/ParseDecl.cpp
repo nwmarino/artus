@@ -78,13 +78,7 @@ std::unique_ptr<Decl> Parser::ParseFunctionDeclaration() {
 
   nextToken(); // Consume the '->' token.
 
-  // Unrecoverable error if the next token is not an identifier. (No void types)
-  if (!tok.is(TokenKind::Identifier)) {
-    fatal("expected type after '->' symbol", lastLoc);
-  }
-
-  const Type *returnType = ctx->getType(tok.value);
-  nextToken(); // Consume the type token.
+  const Type *returnType = ParseType();
 
   // Create the function type.
   vector<const Type *> paramTypes;
@@ -155,11 +149,6 @@ std::vector<std::unique_ptr<ParamVarDecl>> Parser::ParseFunctionParams() {
     }
 
     nextToken(); // Consume the ':' token.
-
-    if (!tok.is(TokenKind::Identifier)) {
-      trace("expected type after ':' symbol", lastLoc);
-      return {};
-    }
 
     const Type *paramType = ParseType();
 
