@@ -1,4 +1,6 @@
 #include "llvm/IR/Verifier.h"
+#include <llvm/ADT/APInt.h>
+#include <llvm/IR/Constants.h>
 #include <llvm/IR/Instructions.h>
 
 #include "../../include/AST/Expr.h"
@@ -186,14 +188,8 @@ void Codegen::visit(BinaryExpr *expr) {
 
   switch (expr->op) {
     case BinaryExpr::BinaryOp::Assign:
-      if (DeclRefExpr *lhsRef = dynamic_cast<DeclRefExpr *>(expr->lhs.get())) {
-        llvm::AllocaInst *alloca = allocas[lhsRef->ident];
-        assert(alloca && "unresolved variable");
-
-        tmp = builder->CreateStore(rhs, allocas[lhsRef->ident]);
-        break;
-      }
-      fatal("invalid lvalue");
+      tmp = builder->CreateStore(rhs, lhs);
+      break;
     case BinaryExpr::BinaryOp::Add:
       tmp = builder->CreateAdd(lhs, rhs);
       break;
@@ -250,6 +246,16 @@ void Codegen::visit(ArrayAccessExpr *expr) {
   expr->index->pass(this);
   llvm::Value *index = tmp;
 
+  if (expr->T->isPointerType()) {
+    vector<llvm::Value *> indices = { index };
+    auto *ptr = builder->CreateLoad(expr->T->toLLVMType(*context), base);
+    tmp = builder->CreateInBoundsGEP(expr->T->toLLVMType(*context), ptr, indices);
+  } else {
+    llvm::Value *zero = llvm::ConstantInt::get(llvm::Type::getInt64Ty(*context), llvm::APInt::getZero(64));
+    
+  }
+
+  /*
   llvm::Type *arrayType = expr->base->getType()->toLLVMType(*context);
   llvm::AllocaInst *alloca = builder->CreateAlloca(arrayType);
 
@@ -258,6 +264,8 @@ void Codegen::visit(ArrayAccessExpr *expr) {
   llvm::Value *elementPtr = builder->CreateGEP(arrayType, alloca, { builder->getInt64(0), index });
 
   tmp = builder->CreateLoad(arrayType->getArrayElementType(), elementPtr);
+  
+  */
 }
 
 void Codegen::visit(CompoundStmt *stmt) {
