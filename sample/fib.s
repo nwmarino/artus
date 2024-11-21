@@ -7,7 +7,7 @@ entry:
 fn @main() -> i64 {
 entry:
   fix x: i64 = 1
-  mut y: #i64 = &x
+  fix y: #i64 = &x
   @foo(y)
   fix z: i64 = #y
   ret z

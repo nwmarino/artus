@@ -224,8 +224,25 @@ void Sema::visit(CallExpr *expr) {
     expr->getArg(i)->pass(this); // Sema on each argument.
 
     if (expr->getArg(i)->T->compare(callee->params[i]->T) == 0) {
-      fatal("argument type mismatch: " + expr->ident, { expr->span.file, 
+      fatal("argument type mismatch: " + expr->ident + ": expected " 
+          + callee->params[i]->T->toString() + ", got " 
+          + expr->getArg(i)->T->toString(), { expr->span.file, 
           expr->span.line, expr->span.col });
+    }
+
+    // Check that an immutable reference is not passed to a mutable parameter.
+    if (DeclRefExpr *ref = dynamic_cast<DeclRefExpr *>(expr->getArg(i))) {
+      const VarDecl *decl = resolveReference(ref);
+      if (!decl) {
+        fatal("unresolved reference: " + ref->ident, { expr->span.file,
+            expr->span.line, expr->span.col });
+      }
+
+      if (callee->params[i]->isMutable() && !decl->isMutable()) {
+        fatal("attempted to pass immutable reference to mutable parameter: "
+            + lastReference, { expr->span.file, expr->span.line,
+            expr->span.col });
+      }
     }
   }
 
