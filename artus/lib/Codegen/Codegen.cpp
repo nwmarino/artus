@@ -175,10 +175,11 @@ void Codegen::visit(CallExpr *expr) {
 
 void Codegen::visit(UnaryExpr *expr) {
   if (expr->op == UnaryExpr::UnaryOp::Ref) {
-    this->needPtr = true;
+    needPtr = true;
   }
 
   expr->base->pass(this);
+  needPtr = false;
   llvm::Value *base = tmp;
 
   switch (expr->op) {
@@ -196,20 +197,18 @@ void Codegen::visit(UnaryExpr *expr) {
         tmp = builder->CreateLoad(expr->getType()->toLLVMType(*context), 
             base);
       break;
-    default:
-      fatal("unknown unary operator");
+    default: fatal("unknown unary operator");
   }
-
-  this->needPtr = false;
 }
 
 void Codegen::visit(BinaryExpr *expr) {
-  if (expr->isAssignment())
+  if (expr->isAssignment()) {
     needPtr = true;
+  }
 
   expr->lhs->pass(this);
-  llvm::Value *lhs = tmp;
   needPtr = false;
+  llvm::Value *lhs = tmp;
 
   expr->rhs->pass(this);
   llvm::Value *rhs = tmp;
@@ -217,6 +216,13 @@ void Codegen::visit(BinaryExpr *expr) {
   switch (expr->op) {
     case BinaryExpr::BinaryOp::Assign:
       tmp = builder->CreateStore(rhs, lhs);
+      break;
+    case BinaryExpr::BinaryOp::Equals:
+      if (expr->T->isFloatingPointType()) {
+        tmp = builder->CreateFCmpOEQ(lhs, rhs);
+        break;
+      }
+      tmp = builder->CreateICmpEQ(lhs, rhs);
       break;
     case BinaryExpr::BinaryOp::Add:
       if (expr->T->isFloatingPointType()) {
@@ -226,18 +232,28 @@ void Codegen::visit(BinaryExpr *expr) {
       tmp = builder->CreateAdd(lhs, rhs);
       break;
     case BinaryExpr::BinaryOp::Sub:
+      if (expr->T->isFloatingPointType()) {
+        tmp = builder->CreateFSub(lhs, rhs);
+        break;
+      }
       tmp = builder->CreateSub(lhs, rhs);
       break;
     case BinaryExpr::BinaryOp::Mult:
+      if (expr->T->isFloatingPointType()) {
+        tmp = builder->CreateFMul(lhs, rhs);
+        break;
+      }
       tmp = builder->CreateMul(lhs, rhs);
       break;
     case BinaryExpr::BinaryOp::Div:
+      if (expr->T->isFloatingPointType()) {
+        tmp = builder->CreateFDiv(lhs, rhs);
+        break;
+      }
       tmp = builder->CreateSDiv(lhs, rhs);
       break;
     default: fatal("unknown binary operator");
   }
-
-  needPtr = false;
 }
 
 void Codegen::visit(BooleanLiteral *expr) {

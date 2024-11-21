@@ -25,6 +25,7 @@ inline static string unaryOpToString(UnaryExpr::UnaryOp op) {
 inline static string binaryOpToString(BinaryExpr::BinaryOp op) {
   switch (op) {
     case BinaryExpr::BinaryOp::Assign: return "=";
+    case BinaryExpr::BinaryOp::Equals: return "==";
     case BinaryExpr::BinaryOp::Add: return "+";
     case BinaryExpr::BinaryOp::Sub: return "-";
     case BinaryExpr::BinaryOp::Mult: return "*";

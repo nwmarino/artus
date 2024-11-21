@@ -48,9 +48,11 @@ int Parser::getPrecedence() const {
   switch (tok.kind) {
     case TokenKind::Star:
     case TokenKind::Slash:
-      return 3;
+      return 4;
     case TokenKind::Plus:
     case TokenKind::Minus:
+      return 3;
+    case TokenKind::EqualsEquals:
       return 2;
     case TokenKind::Equals:
       return 1;
@@ -82,6 +84,8 @@ BinaryExpr::BinaryOp Parser::getBinaryOp() const {
   switch (tok.kind) {
     case TokenKind::Equals: 
       return BinaryExpr::BinaryOp::Assign;
+    case TokenKind::EqualsEquals:
+      return BinaryExpr::BinaryOp::Equals;
     case TokenKind::Plus:
       return BinaryExpr::BinaryOp::Add;
     case TokenKind::Minus:

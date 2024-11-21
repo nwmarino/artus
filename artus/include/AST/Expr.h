@@ -165,6 +165,8 @@ public:
     Unknown = -1,
     // =
     Assign,
+    /// ==
+    Equals,
     // +
     Add,
     // -

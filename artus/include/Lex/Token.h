@@ -100,8 +100,10 @@ enum class TokenKind {
 
 /// The different kinds of literal lexemmes that the lexer can produce.
 enum class LiteralKind {
+  None = -1,
+
   /// 0, 1, ...
-  Integer = 0,
+  Integer,
 
   /// 0.1, 3.14, ...
   Float,

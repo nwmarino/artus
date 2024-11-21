@@ -14,11 +14,12 @@
 
 ## Pointers
 ```rs
-/// ptr dereference
-fix x: i64 = 5
-
 /// ptr address-of
-fix y: *i64 = &x
+mut x: i64 = 5
+mut y: #i64 = &x
+
+/// ptr dereference
+#y = 0
 ```
 
 ## Arrays
@@ -30,8 +31,7 @@ mut nums: i64[3] = [0, 1, 2]
 fix a: i64 = nums[0]
 ```
 
-function signature
-
+## Functions
 ```rs
 // main
 fn @main() -> i64 { entry: ... }
@@ -40,13 +40,13 @@ fn @main() -> i64 { entry: ... }
 fn @foo(a: i64, mut b: i64[2]) -> i64 { entry: ... }
 
 // function calls, empty:
-@main
+@foo
 
 // function calls, with arguments
 @foo(1, [2, 3])
 ```
 
-variables
+## Variables
 ```rs
 // immutable assignment
 fix <identifier>: <type> = <expr>
@@ -55,9 +55,30 @@ fix <identifier>: <type> = <expr>
 mut <identifier>: <type> = <expr>
 ```
 
-statements
-
+## Statements
 ```rs
-ret <val>
+// return stmt
+ret <expr>
 ```
 
+## Control Flow
+If Statements
+```rs
+if cond {
+    ...
+}
+
+if cond {
+    ...
+} else {
+    ...
+}
+
+if cond {
+    ...
+} else if cond {
+    ...
+} else {
+    ...
+}
+```

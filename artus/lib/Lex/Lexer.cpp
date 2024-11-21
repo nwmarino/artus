@@ -23,6 +23,7 @@ string Lexer::peek(size_t n) const { return string(BufferPos + 1, n); }
 void Lexer::initToken(Token &next) {
   next.kind = TokenKind::Eof;
   next.value = "";
+  next.literalKind = LiteralKind::None;
   next.loc = loc;
 }
 

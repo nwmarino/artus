@@ -85,6 +85,7 @@ std::unique_ptr<Expr> Parser::ParsePrimaryExpression() {
 
   // Literal expression parsing.
   switch(tok.literalKind) {
+    case LiteralKind::None: break;
     case LiteralKind::Integer: return ParseIntegerExpression();
     case LiteralKind::Float: return ParseFPExpression();
     case LiteralKind::Character: return ParseCharacterExpression();
