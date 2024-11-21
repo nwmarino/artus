@@ -36,6 +36,7 @@ inline vector<string> __RESERVED = {
   "mut",
   "ret",
   "while",
+  "until",
 };
 
 namespace artus {

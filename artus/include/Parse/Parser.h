@@ -98,6 +98,7 @@ class Parser final {
   std::unique_ptr<Stmt> ParseDeclStatement();
   std::unique_ptr<Stmt> ParseIfStatement();
   std::unique_ptr<Stmt> ParseWhileStatement();
+  std::unique_ptr<Stmt> ParseUntilStatement();
   std::unique_ptr<Stmt> ParseLabelStatement();
   std::unique_ptr<Stmt> ParseJmpStatement();
   std::unique_ptr<Stmt> ParseRetStatement();

@@ -24,6 +24,8 @@ std::unique_ptr<Stmt> Parser::ParseStatement() {
     return ParseIfStatement();
   else if (tok.isKeyword("while"))
     return ParseWhileStatement();
+  else if (tok.isKeyword("until"))
+    return ParseUntilStatement();
 
   return ParseExpression();
 }
@@ -153,6 +155,34 @@ std::unique_ptr<Stmt> Parser::ParseWhileStatement() {
   }
 
   return std::make_unique<WhileStmt>(std::move(cond), std::move(body), 
+                                     createSpan(firstLoc));
+}
+
+/// Parse an until statement.
+///
+/// until:
+///   'until' <expression> <statement>
+///
+/// Expects the current token to be an 'until' keyword.
+std::unique_ptr<Stmt> Parser::ParseUntilStatement() {
+  assert(tok.isKeyword("until") && "expected 'until' keyword");
+
+  const SourceLocation firstLoc = lastLoc;
+  nextToken(); // Consume the 'until' token.
+
+  std::unique_ptr<Expr> cond = ParseExpression();
+  if (!cond) {
+    trace("expected expression after 'until' statement", lastLoc);
+    return nullptr;
+  }
+
+  std::unique_ptr<Stmt> body = ParseStatement();
+  if (!body) {
+    trace("expected statement after 'until' condition", lastLoc);
+    return nullptr;
+  }
+
+  return std::make_unique<UntilStmt>(std::move(cond), std::move(body), 
                                      createSpan(firstLoc));
 }
 

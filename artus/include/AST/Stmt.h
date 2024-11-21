@@ -132,6 +132,25 @@ public:
   void pass(ASTVisitor *visitor) override;
 };
 
+/// Represents an until loop statement.
+class UntilStmt final : public Stmt {
+  friend class ASTPrinter;
+  friend class Codegen;
+  friend class Sema;
+
+  /// The condition of the until loop.
+  std::unique_ptr<Expr> cond;
+
+  /// The body of the until loop.
+  std::unique_ptr<Stmt> body;
+
+public:
+  UntilStmt(std::unique_ptr<Expr> cond, std::unique_ptr<Stmt> body, 
+            const Span &span);
+
+  void pass(ASTVisitor *visitor) override;
+};
+
 /// Represents a label statement. For example, `label:`.
 class LabelStmt final : public Stmt {
   friend class ASTPrinter;

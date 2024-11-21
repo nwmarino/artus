@@ -29,6 +29,7 @@ class CompoundStmt;
 class DeclStmt;
 class IfStmt;
 class WhileStmt;
+class UntilStmt;
 class LabelStmt;
 class JmpStmt;
 class RetStmt;
@@ -63,6 +64,7 @@ public:
   virtual void visit(DeclStmt *stmt) = 0;
   virtual void visit(IfStmt *stmt) = 0;
   virtual void visit(WhileStmt *stmt) = 0;
+  virtual void visit(UntilStmt *stmt) = 0;
   virtual void visit(LabelStmt *stmt) = 0;
   virtual void visit(JmpStmt *stmt) = 0;
   virtual void visit(RetStmt *stmt) = 0;

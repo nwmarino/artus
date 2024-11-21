@@ -431,6 +431,38 @@ void Codegen::visit(WhileStmt *stmt) {
   builder->SetInsertPoint(mergeBlock);
 }
 
+void Codegen::visit(UntilStmt *stmt) {
+  // Initialize basic blocks for the while control flow.
+  llvm::BasicBlock *condBlock = llvm::BasicBlock::Create(*context, "cond", FN);
+  llvm::BasicBlock *loopBlock = llvm::BasicBlock::Create(*context, "until");
+  llvm::BasicBlock *mergeBlock = llvm::BasicBlock::Create(*context, "merge");
+
+  // Create a branch to the conditional evaluation block.
+  builder->CreateBr(condBlock);
+  builder->SetInsertPoint(condBlock);
+
+  // Codegen pass on the loop condition.
+  stmt->cond->pass(this);
+  llvm::Value *condVal = tmp;
+  if (!condVal) {
+    fatal("expected expression in while statement condition", 
+        { stmt->span.file, stmt->span.line, stmt->span.col });
+  }
+
+  // Repeat the loop if the condition is true.
+  builder->CreateCondBr(condVal, mergeBlock, loopBlock);
+  FN->insert(FN->end(), loopBlock);
+  builder->SetInsertPoint(loopBlock);
+
+  // Codegen pass on the loop body.
+  stmt->body->pass(this);
+  builder->CreateBr(condBlock);
+
+  // Create a branch to the merge block if the loop body has no terminator.
+  FN->insert(FN->end(), mergeBlock);
+  builder->SetInsertPoint(mergeBlock);
+}
+
 void Codegen::visit(LabelStmt *stmt) {
   if (stmt->name == "entry") {
     return;

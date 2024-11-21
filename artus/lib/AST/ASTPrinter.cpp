@@ -390,6 +390,20 @@ void ASTPrinter::visit(WhileStmt *stmt) {
   resetLastChild();
 }
 
+void ASTPrinter::visit(UntilStmt *stmt) {
+  printPiping();
+  printStmt(stmt->span, "UntilStmt");
+  resetLastChild();
+  increaseIndent();
+  setPiping(indent);
+  stmt->cond->pass(this);
+  setLastChild();
+  clearPiping(indent);
+  stmt->body->pass(this);
+  decreaseIndent();
+  resetLastChild();
+}
+
 void ASTPrinter::visit(LabelStmt *stmt) {
   printPiping();
   printStmt(stmt->span, "LabelStmt", stmt->name);

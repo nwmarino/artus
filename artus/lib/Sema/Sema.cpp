@@ -514,6 +514,20 @@ void Sema::visit(WhileStmt *stmt) {
   stmt->body->pass(this); // Sema on the body of the loop.
 }
 
+/// Semantic Analysis over an UntilStmt.
+///
+/// UntilStmts are valid if and only if the condition is of a boolean type.
+void Sema::visit(UntilStmt *stmt) {
+  stmt->cond->pass(this); // Sema on the condition.
+
+  if (!stmt->cond->T->isBooleanType()) {
+    fatal("expected boolean type", { stmt->span.file, 
+        stmt->span.line, stmt->span.col });
+  }
+
+  stmt->body->pass(this); // Sema on the body of the loop.
+}
+
 /// Semantic Analysis over a LabelStmt.
 ///
 /// LabelStmts are valid if and only if the label is declared and is named.
