@@ -197,7 +197,12 @@ public:
   void pass(ASTVisitor *visitor) override { visitor->visit(this); }
 
   /// Returns true if this binary expression is an assignment.
-  bool isAssignment() const { return op == BinaryOp::Assign; }
+  bool isAssignment() const 
+  { return op >= BinaryOp::Assign && op <= BinaryOp::Assign; }
+
+  /// Returns true if this binary expression is a comparison.
+  bool isComparison() const 
+  { return op >= BinaryOp::Equals && op <= BinaryOp::Equals; }
 };
 
 /// A boolean literal; `true` or `false`.

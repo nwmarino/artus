@@ -20,7 +20,7 @@ namespace artus {
 class CastExpr;
 
 /// This class implements a Code Generation pass over a semantically valid AST. 
-class Codegen : public ASTVisitor {
+class Codegen final : public ASTVisitor {
   /// The LLVM module to generate code into.
   std::unique_ptr<llvm::Module> module;
 
@@ -78,6 +78,7 @@ public:
 
   void visit(CompoundStmt *stmt) override;
   void visit(DeclStmt *stmt) override;
+  void visit(IfStmt *stmt) override;
   void visit(LabelStmt *stmt) override;
   void visit(JmpStmt *stmt) override;
   void visit(RetStmt *stmt) override;

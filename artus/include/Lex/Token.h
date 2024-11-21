@@ -13,9 +13,11 @@ using std::vector;
 
 /// Reference for reserved identifiers in the language.
 inline vector<string> __RESERVED = {
+  // Type-related literals and identifiers.
   "bool",
   "char",
   "string",
+  "f64",
   "i32",
   "i64",
   "u8",
@@ -24,8 +26,12 @@ inline vector<string> __RESERVED = {
   "null",
   "true",
   "false",
+
+  // Statements and control flow.
+  "else",
   "fix",
   "fn",
+  "if",
   "jmp",
   "mut",
   "ret",

@@ -304,6 +304,7 @@ void Sema::visit(BinaryExpr *expr) {
   expr->lhs->pass(this); // Sema on the left-hand side.
   expr->rhs->pass(this); // Sema on the right-hand side.
 
+  // Check that the types of the operands match, and if not, attempt to cast.
   int typeComp = expr->lhs->T->compare(expr->rhs->T);
   if (typeComp == 0) {
     fatal("binary expression type mismatch: " + expr->lhs->T->toString()
@@ -321,7 +322,13 @@ void Sema::visit(BinaryExpr *expr) {
     }
   }
 
-  // Propagate the type of the expression.
+  // Propagate the type of the expression as a boolean if it is a comparison.
+  if (expr->isComparison()) {
+    expr->T = ctx->getType("bool");
+    return;
+  }
+
+  // Propagate the type of the expression otherwise.
   expr->T = expr->lhs->T;
 
   // Check that assignment is only done to mutable lvalues.
@@ -474,6 +481,23 @@ void Sema::visit(CompoundStmt *stmt) {
 /// DeclStmts are valid if and only if the declaration is valid.
 void Sema::visit(DeclStmt *stmt) {
   stmt->decl->pass(this); // Sema on the declaration.
+}
+
+/// Semantic Analysis over an IfStmt.
+///
+/// IfStmts are valid if and only if the condition is of a boolean type.
+void Sema::visit(IfStmt *stmt) {
+  stmt->cond->pass(this); // Sema on the condition.
+
+  if (stmt->cond->T->toString() != "bool") {
+    fatal("expected boolean type", { stmt->span.file, 
+        stmt->span.line, stmt->span.col });
+  }
+
+  stmt->thenStmt->pass(this); // Sema on the then statement.
+  if (stmt->hasElse()) {
+    stmt->elseStmt->pass(this); // Sema on the else statement.
+  }
 }
 
 /// Semantic Analysis over a LabelStmt.

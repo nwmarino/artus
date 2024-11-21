@@ -38,6 +38,17 @@ DeclStmt::DeclStmt(std::unique_ptr<Decl> decl, const Span &span)
 
 void DeclStmt::pass(ASTVisitor *visitor) { visitor->visit(this); }
 
+/* IfStmt Implementation --------------------------------------------------===*/
+
+IfStmt::IfStmt(std::unique_ptr<Expr> cond, std::unique_ptr<Stmt> thenStmt, 
+               std::unique_ptr<Stmt> elseStmt, const Span &span)
+    : Stmt(span), cond(std::move(cond)), thenStmt(std::move(thenStmt)),
+      elseStmt(std::move(elseStmt)) {}
+
+void IfStmt::pass(ASTVisitor *visitor) { visitor->visit(this); }
+
+bool IfStmt::hasElse() const { return elseStmt != nullptr; }
+
 /* LabelStmt Implementation -----------------------------------------------===*/
 
 LabelStmt::LabelStmt(const string &name, const Decl *decl, const Span &span) 

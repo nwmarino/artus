@@ -20,6 +20,8 @@ std::unique_ptr<Stmt> Parser::ParseStatement() {
     return ParseJmpStatement();
   else if (tok.isKeyword("fix") || tok.isKeyword("mut"))
     return ParseDeclStatement();
+  else if (tok.isKeyword("if"))
+    return ParseIfStatement();
 
   return ParseExpression();
 }
@@ -83,6 +85,45 @@ std::unique_ptr<Stmt> Parser::ParseDeclStatement() {
   }
 
   return std::make_unique<DeclStmt>(std::move(decl), decl->getSpan());
+}
+
+/// Parse an if statement.
+///
+/// if:
+///   'if' <expression> <statement> ['else' <statement>]
+///
+/// Expects the current token to be an 'if' keyword.
+std::unique_ptr<Stmt> Parser::ParseIfStatement() {
+  assert(tok.isKeyword("if") && "expected 'if' keyword");
+
+  const SourceLocation firstLoc = lastLoc;
+  nextToken(); // Consume the 'if' token.
+
+  std::unique_ptr<Expr> cond = ParseExpression();
+  if (!cond) {
+    trace("expected expression after 'if' statement", lastLoc);
+    return nullptr;
+  }
+
+  std::unique_ptr<Stmt> thenStmt = ParseStatement();
+  if (!thenStmt) {
+    trace("expected statement after 'if' condition", lastLoc);
+    return nullptr;
+  }
+
+  std::unique_ptr<Stmt> elseStmt = nullptr;
+  if (tok.isKeyword("else")) {
+    nextToken(); // Consume the 'else' token.
+
+    elseStmt = ParseStatement();
+    if (!elseStmt) {
+      trace("expected statement after 'else' keyword", lastLoc);
+      return nullptr;
+    }
+  }
+
+  return std::make_unique<IfStmt>(std::move(cond), std::move(thenStmt), 
+                                  std::move(elseStmt), createSpan(firstLoc));
 }
 
 /// Parse a label statement.

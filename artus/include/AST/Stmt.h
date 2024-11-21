@@ -88,6 +88,31 @@ public:
   void pass(ASTVisitor *visitor) override;
 };
 
+/// Represents an if statement.
+class IfStmt final : public Stmt {
+  friend class ASTPrinter;
+  friend class Codegen;
+  friend class Sema;
+
+  /// The condition of the if statement.
+  std::unique_ptr<Expr> cond;
+
+  /// The body of the if statement.
+  std::unique_ptr<Stmt> thenStmt;
+
+  /// The body of the else statement.
+  std::unique_ptr<Stmt> elseStmt;
+
+public:
+  IfStmt(std::unique_ptr<Expr> cond, std::unique_ptr<Stmt> thenStmt, 
+         std::unique_ptr<Stmt> elseStmt, const Span &span);
+
+  void pass(ASTVisitor *visitor) override;
+
+  /// Returns true if this if statement has an else statement.
+  bool hasElse() const;
+};
+
 /// Represents a label statement. For example, `label:`.
 class LabelStmt final : public Stmt {
   friend class ASTPrinter;

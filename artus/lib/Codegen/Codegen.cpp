@@ -343,6 +343,62 @@ void Codegen::visit(DeclStmt *stmt) {
   stmt->decl->pass(this);
 }
 
+void Codegen::visit(IfStmt *stmt) {
+  // Fetch the value for the if statement condition.
+  stmt->cond->pass(this);
+  llvm::Value *condVal = tmp;
+  if (!condVal) {
+    fatal("expected expression in if statement condition");
+  }
+
+  // Initialize basic blocks for this if control flow.
+  llvm::BasicBlock *thenBlock = llvm::BasicBlock::Create(*context, 
+      "then", FN);
+  llvm::BasicBlock *elseBlock = llvm::BasicBlock::Create(*context,
+      "else");
+  llvm::BasicBlock *mergeBlock = llvm::BasicBlock::Create(*context,
+      "merge");
+
+  // Create a branch from the the then block to the else block, should it exist.
+  if (stmt->hasElse()) {
+    builder->CreateCondBr(condVal, thenBlock, elseBlock);
+  } else { // No else block, go straight to merge after the 'then' statement.
+    builder->CreateCondBr(condVal, thenBlock, mergeBlock);
+  }
+
+  // Codegen pass on the then body, and insert instructions to its basic block.
+  builder->SetInsertPoint(thenBlock);
+  stmt->thenStmt->pass(this);
+  llvm::Value *thenVal = tmp;
+  assert(thenVal && "expected value for then statement");
+
+  // If no terminator was made, branch to the merge block.
+  thenBlock = builder->GetInsertBlock();
+  if (!thenBlock->getTerminator()) {
+    builder->CreateBr(mergeBlock);
+  }
+
+  // Codegen pass on the else statement, if it exists.
+  builder->SetInsertPoint(elseBlock);
+  llvm::Value *elseVal = nullptr;
+  if (stmt->hasElse()) {
+    FN->insert(FN->end(), elseBlock);
+    stmt->elseStmt->pass(this);
+    elseBlock = builder->GetInsertBlock();
+  }
+
+  // If no terminator was made, branch to the merge block.
+  if (!stmt->hasElse() || !elseBlock->getTerminator()) {
+    builder->CreateBr(mergeBlock);
+  }
+
+  // Insert the merge block if it used.
+  if (mergeBlock->hasNPredecessorsOrMore(1)) {
+    FN->insert(FN->end(), mergeBlock);
+    builder->SetInsertPoint(mergeBlock);
+  }
+}
+
 void Codegen::visit(LabelStmt *stmt) {
   if (stmt->name == "entry") {
     return;

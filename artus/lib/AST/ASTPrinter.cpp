@@ -240,6 +240,12 @@ void ASTPrinter::visit(UnaryExpr *expr) {
 void ASTPrinter::visit(BinaryExpr *expr) {
   printPiping();
   printExpr(expr->span, "BinaryExpr", expr->T->toString(), "", false);
+  if (expr->isAssignment()) {
+    cout << " lvalue";
+  } else if (expr->isComparison()) {
+    cout << " comp";
+  }
+
   cout << ' ' << literalColor << binaryOpToString(expr->op) << clear << '\n';
 
   unsigned topIndent = indent;
@@ -333,6 +339,7 @@ void ASTPrinter::visit(CompoundStmt *stmt) {
     stmt->stmts[idx]->pass(this);
   }
 
+  decreaseIndent();
   resetLastChild();
 }
 
@@ -342,6 +349,29 @@ void ASTPrinter::visit(DeclStmt *stmt) {
   setLastChild();
   increaseIndent();
   stmt->decl->pass(this);
+  decreaseIndent();
+  resetLastChild();
+}
+
+void ASTPrinter::visit(IfStmt *stmt) {
+  printPiping();
+  printStmt(stmt->span, "IfStmt");
+  resetLastChild();
+  increaseIndent();
+  setPiping(indent);
+  stmt->cond->pass(this);
+
+  if (stmt->elseStmt) {
+    stmt->thenStmt->pass(this);
+    setLastChild();
+    clearPiping(indent);
+    stmt->elseStmt->pass(this);
+  } else {
+    setLastChild();
+    clearPiping(indent);
+    stmt->thenStmt->pass(this);
+  }
+
   decreaseIndent();
   resetLastChild();
 }
