@@ -22,6 +22,8 @@ std::unique_ptr<Stmt> Parser::ParseStatement() {
     return ParseDeclStatement();
   else if (tok.isKeyword("if"))
     return ParseIfStatement();
+  else if (tok.isKeyword("while"))
+    return ParseWhileStatement();
 
   return ParseExpression();
 }
@@ -124,6 +126,34 @@ std::unique_ptr<Stmt> Parser::ParseIfStatement() {
 
   return std::make_unique<IfStmt>(std::move(cond), std::move(thenStmt), 
                                   std::move(elseStmt), createSpan(firstLoc));
+}
+
+/// Parse a while statement.
+///
+/// while:
+///   'while' <expression> <statement>
+///
+/// Expects the current token to be a 'while' keyword.
+std::unique_ptr<Stmt> Parser::ParseWhileStatement() {
+  assert(tok.isKeyword("while") && "expected 'while' keyword");
+
+  const SourceLocation firstLoc = lastLoc;
+  nextToken(); // Consume the 'while' token.
+
+  std::unique_ptr<Expr> cond = ParseExpression();
+  if (!cond) {
+    trace("expected expression after 'while' statement", lastLoc);
+    return nullptr;
+  }
+
+  std::unique_ptr<Stmt> body = ParseStatement();
+  if (!body) {
+    trace("expected statement after 'while' condition", lastLoc);
+    return nullptr;
+  }
+
+  return std::make_unique<WhileStmt>(std::move(cond), std::move(body), 
+                                     createSpan(firstLoc));
 }
 
 /// Parse a label statement.

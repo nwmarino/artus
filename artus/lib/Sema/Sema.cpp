@@ -489,7 +489,7 @@ void Sema::visit(DeclStmt *stmt) {
 void Sema::visit(IfStmt *stmt) {
   stmt->cond->pass(this); // Sema on the condition.
 
-  if (stmt->cond->T->toString() != "bool") {
+  if (!stmt->cond->T->isBooleanType()) {
     fatal("expected boolean type", { stmt->span.file, 
         stmt->span.line, stmt->span.col });
   }
@@ -498,6 +498,20 @@ void Sema::visit(IfStmt *stmt) {
   if (stmt->hasElse()) {
     stmt->elseStmt->pass(this); // Sema on the else statement.
   }
+}
+
+/// Semantic Analysis over a WhileStmt.
+///
+/// WhileStmts are valid if and only if the condition is of a boolean type.
+void Sema::visit(WhileStmt *stmt) {
+  stmt->cond->pass(this); // Sema on the condition.
+
+  if (!stmt->cond->T->isBooleanType()) {
+    fatal("expected boolean type", { stmt->span.file, 
+        stmt->span.line, stmt->span.col });
+  }
+
+  stmt->body->pass(this); // Sema on the body of the loop.
 }
 
 /// Semantic Analysis over a LabelStmt.

@@ -49,6 +49,14 @@ void IfStmt::pass(ASTVisitor *visitor) { visitor->visit(this); }
 
 bool IfStmt::hasElse() const { return elseStmt != nullptr; }
 
+/* WhileStmt Implementation -----------------------------------------------===*/
+
+WhileStmt::WhileStmt(std::unique_ptr<Expr> cond, std::unique_ptr<Stmt> body, 
+                     const Span &span)
+    : Stmt(span), cond(std::move(cond)), body(std::move(body)) {}
+
+void WhileStmt::pass(ASTVisitor *visitor) { visitor->visit(this); }
+
 /* LabelStmt Implementation -----------------------------------------------===*/
 
 LabelStmt::LabelStmt(const string &name, const Decl *decl, const Span &span) 

@@ -21,6 +21,9 @@ class Type {
 public:
   virtual ~Type() = default;
 
+  /// Returns true if the most shallow type is definitively a boolean type.
+  virtual bool isBooleanType() const = 0;
+
   /// Returns true if the type is definitively an integer type, or can be
   /// evaluted to otherwise, and false otherwise.
   virtual bool isIntegerType() const = 0;
@@ -83,6 +86,9 @@ private:
   BasicType(BasicTypeKind kind) : kind(kind) {}
 
 public:
+  /// Returns true if the basic type kind is a boolean.
+  bool isBooleanType() const override { return kind == INT1; }
+
   /// Returns true if the basic type kind is an integer or a character, and
   /// false otherwise.
   bool isIntegerType() const override { return kind <= UINT64; }
@@ -196,6 +202,8 @@ public:
   /// Returns the type of a parameter at the given index.
   const Type *getParamType(size_t index) const { return paramTypes[index]; }
 
+  bool isBooleanType() const override { return false; }
+
   /// Returns true if the function type returns an integer, and false otherwise.
   bool isIntegerType() const override { return returnType->isIntegerType(); }
 
@@ -294,6 +302,8 @@ public:
   /// Returns the type of the pointer.
   const Type *getPointeeType() const { return pointeeType; }
 
+  bool isBooleanType() const override { return false; }
+
   /// Returns true if the pointer type is an integer, and false otherwise.
   bool isIntegerType() const override { return pointeeType->isIntegerType(); }
 
@@ -362,6 +372,8 @@ public:
 
   /// Returns the size of the array.
   size_t getSize() const { return size; }
+
+  bool isBooleanType() const override { return false; }
 
   /// Returns true if the array type is an integer, and false otherwise.
   bool isIntegerType() const override { return elementType->isIntegerType(); }

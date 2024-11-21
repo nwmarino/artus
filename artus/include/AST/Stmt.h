@@ -113,6 +113,25 @@ public:
   bool hasElse() const;
 };
 
+/// Represents a while loop statement.
+class WhileStmt final : public Stmt {
+  friend class ASTPrinter;
+  friend class Codegen;
+  friend class Sema;
+
+  /// The condition of the while loop.
+  std::unique_ptr<Expr> cond;
+
+  /// The body of the while loop.
+  std::unique_ptr<Stmt> body;
+
+public:
+  WhileStmt(std::unique_ptr<Expr> cond, std::unique_ptr<Stmt> body, 
+            const Span &span);
+
+  void pass(ASTVisitor *visitor) override;
+};
+
 /// Represents a label statement. For example, `label:`.
 class LabelStmt final : public Stmt {
   friend class ASTPrinter;
