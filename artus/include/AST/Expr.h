@@ -235,6 +235,22 @@ public:
   void pass(ASTVisitor *visitor) override { visitor->visit(this); }
 };
 
+/// A floating point literal. For example, `0.0`, `1.0`, etc.
+class FPLiteral final : public Expr {
+  friend class ASTPrinter;
+  friend class Codegen;
+  friend class Sema;
+
+  /// The literal value nested in this node.
+  const double value;
+
+public:
+  FPLiteral(const double value, const Type *T, const Span &span)
+      : Expr(T, span), value(value) {}
+
+  void pass(ASTVisitor *visitor) override { visitor->visit(this); }
+};
+
 /// A character literal. For example, `'a'`, `'b'`, etc.
 class CharLiteral final : public Expr {
   friend class ASTPrinter;

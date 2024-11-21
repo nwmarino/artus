@@ -18,6 +18,7 @@ class UnaryExpr;
 class BinaryExpr;
 class BooleanLiteral;
 class IntegerLiteral;
+class FPLiteral;
 class CharLiteral;
 class StringLiteral;
 class NullExpr;
@@ -49,6 +50,7 @@ public:
   virtual void visit(BinaryExpr *expr) = 0;
   virtual void visit(BooleanLiteral *expr) = 0;
   virtual void visit(IntegerLiteral *expr) = 0;
+  virtual void visit(FPLiteral *expr) = 0;
   virtual void visit(CharLiteral *expr) = 0;
   virtual void visit(StringLiteral *expr) = 0;
   virtual void visit(NullExpr *expr) = 0;

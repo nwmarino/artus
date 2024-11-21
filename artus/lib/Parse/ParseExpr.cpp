@@ -34,7 +34,7 @@ std::unique_ptr<Expr> Parser::ParseDefaultInitExpression(const Type *T) {
         return std::make_unique<IntegerLiteral>(0, T, false,
             createSpan(lastLoc));
       case BasicType::FP64:
-        return nullptr;
+        return std::make_unique<FPLiteral>(0.0, T, createSpan(lastLoc));
     }
   }
 
@@ -68,9 +68,11 @@ std::unique_ptr<Expr> Parser::ParseExpression() {
 
 /// Parse a primary expression.
 std::unique_ptr<Expr> Parser::ParsePrimaryExpression() {
+  // Call expressions.
   if (tok.is(TokenKind::At))
     return ParseCallExpression();
 
+  // Identifier expressions: references, boolean literals, null, casts.
   if (tok.is(TokenKind::Identifier)) {
     if (tok.isKeyword("null"))
       return ParseNullExpression();
@@ -81,12 +83,13 @@ std::unique_ptr<Expr> Parser::ParsePrimaryExpression() {
     return ParseIdentifierExpression();
   }
 
-  if (tok.is(LiteralKind::Integer))
-    return ParseIntegerExpression();
-  else if (tok.is(LiteralKind::Character))
-    return ParseCharacterExpression();
-  else if (tok.is(LiteralKind::String))
-    return ParseStringExpression();
+  // Literal expression parsing.
+  switch(tok.literalKind) {
+    case LiteralKind::Integer: return ParseIntegerExpression();
+    case LiteralKind::Float: return ParseFPExpression();
+    case LiteralKind::Character: return ParseCharacterExpression();
+    case LiteralKind::String: return ParseStringExpression();
+  }
   
   return ParseUnaryExpression();
 }
@@ -307,6 +310,22 @@ std::unique_ptr<Expr> Parser::ParseIntegerExpression() {
   return std::make_unique<IntegerLiteral>(
     std::stoi(intToken.value, 0, 10), T, false,
     createSpan(intToken.loc, intToken.loc));
+}
+
+/// Parse a floating point literal expression.
+///
+/// Expects the current token to be a floating point literal.
+std::unique_ptr<Expr> Parser::ParseFPExpression() {
+  assert(tok.is(LiteralKind::Float) && "expected floating point literal");
+
+  Token fpToken = tok; // Save the floating point token.
+  nextToken();
+
+  // Determine the type of the floating point literal.
+  const Type *T = ctx->getType("f64");
+
+  return std::make_unique<FPLiteral>(std::stod(fpToken.value), T,
+    createSpan(fpToken.loc, fpToken.loc));
 }
 
 /// Parse a character literal expression.

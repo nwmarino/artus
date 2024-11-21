@@ -10,7 +10,7 @@
 | `u32` | 32-bit unsigned | `2^32`
 | `u64` | 64-bit unsigned | `2^64`
 | `string` | string | `"abc"`
-| `fp64` | floating point | `3.14`
+| `f64` | floating point | `3.14`
 
 ## Pointers
 ```rs

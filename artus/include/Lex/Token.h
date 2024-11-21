@@ -77,6 +77,8 @@ enum class TokenKind {
   Bang,
   /// :
   Colon,
+  /// .
+  Dot,
   /// ,
   Comma,
   /// @
@@ -100,6 +102,9 @@ enum class TokenKind {
 enum class LiteralKind {
   /// 0, 1, ...
   Integer = 0,
+
+  /// 0.1, 3.14, ...
+  Float,
 
   /// a, b, ...
   Character,

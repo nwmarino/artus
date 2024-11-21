@@ -134,6 +134,7 @@ entry:
   case '+': next.kind = TokenKind::Plus; break;
   case '*': next.kind = TokenKind::Star; break;
   case ':': next.kind = TokenKind::Colon; break;
+  case '.': next.kind = TokenKind::Dot; break;
   case ',': next.kind = TokenKind::Comma; break;
   case '@': next.kind = TokenKind::At; break;
   case '#': next.kind = TokenKind::Hash; break;
@@ -153,7 +154,11 @@ entry:
     } else if (isdigit(*BufferPos)) {
       next.kind = TokenKind::Literal;
       next.literalKind = LiteralKind::Integer;
-      while (isdigit(*BufferPos)) {
+      while (isdigit(*BufferPos) || *BufferPos == '.') {
+        if (*BufferPos == '.' && next.literalKind == LiteralKind::Integer) {
+          next.literalKind = LiteralKind::Float;
+        }
+
         tmp += *BufferPos++;
         skp++;
       }
@@ -200,6 +205,7 @@ const string Lexer::dump() {
       case TokenKind::Equals: tmp = "Equals"; break;
       case TokenKind::Bang: tmp = "Bang"; break;
       case TokenKind::Colon: tmp = "Colon"; break;
+      case TokenKind::Dot: tmp = "Dot"; break;
       case TokenKind::Comma: tmp = "Comma"; break;
       case TokenKind::At: tmp = "At"; break;
       case TokenKind::Hash: tmp = "Hash"; break;

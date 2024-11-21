@@ -107,6 +107,7 @@ public:
   void visit(BinaryExpr *expr) override;
   void visit(BooleanLiteral *expr) override;
   void visit(IntegerLiteral *expr) override;
+  void visit(FPLiteral *expr) override;
   void visit(CharLiteral *expr) override;
   void visit(StringLiteral *expr) override;
   void visit(NullExpr *expr) override;

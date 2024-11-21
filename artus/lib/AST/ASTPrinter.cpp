@@ -34,8 +34,8 @@ inline static string binaryOpToString(BinaryExpr::BinaryOp op) {
 }
 
 inline void ASTPrinter::setPiping(unsigned indent) {
-  pipingState[indent] = pipingState.find(indent) == pipingState.end() ? \
-      true : pipingState[indent];
+  pipingState[indent] = pipingState.find(indent) == pipingState.end() ? true 
+      : pipingState[indent];
 }
 
 inline void ASTPrinter::clearPiping(unsigned indent) {
@@ -69,15 +69,15 @@ inline void ASTPrinter::setLastChild() { isLastChild = 1; }
 inline void ASTPrinter::resetLastChild() { isLastChild = 0; }
 
 string ASTPrinter::spanToString(const Span &span) {
-  return '<' + spanColor + span.file + clear + "<" + spanColor + \
-         std::to_string(span.line) + ':' + std::to_string(span.col) + \
-         clear + ", " + spanColor + std::to_string(span.line_nd) + ':' + \
-         std::to_string(span.col_nd) + clear + ">>";
+  return '<' + spanColor + span.file + clear + "<" + spanColor 
+         + std::to_string(span.line) + ':' + std::to_string(span.col) 
+         + clear + ", " + spanColor + std::to_string(span.line_nd) + ':' 
+         + std::to_string(span.col_nd) + clear + ">>";
 }
 
 void ASTPrinter::printDecl(const string &node, const string &name,
                            const string &type, bool newl) {
-  cout << declColor << node << clear << string(name.empty() ? 0 : 1, ' ') \
+  cout << declColor << node << clear << string(name.empty() ? 0 : 1, ' ')
        << nameColor << name << clear;
        
   if (!type.empty())
@@ -89,7 +89,7 @@ void ASTPrinter::printDecl(const string &node, const string &name,
 
 void ASTPrinter::printDecl(const Span &span, const string &node, 
                            const string &name, const string &type, bool newl) {
-  cout << declColor << node << clear << ' ' << spanToString(span) \
+  cout << declColor << node << clear << ' ' << spanToString(span)
        << string(name.empty() ? 0 : 1, ' ') << nameColor << name << clear;
 
   if (!type.empty())
@@ -101,7 +101,7 @@ void ASTPrinter::printDecl(const Span &span, const string &node,
 
 void ASTPrinter::printExpr(const Span &span, const string &node, 
                            const string &type, const string &ident, bool newl) {
-  cout << exprColor << node << clear << ' ' << spanToString(span) \
+  cout << exprColor << node << clear << ' ' << spanToString(span)
        << string(ident.empty() ? 0 : 1, ' ') << nameColor << ident << clear;
 
   if (!type.empty())
@@ -113,8 +113,8 @@ void ASTPrinter::printExpr(const Span &span, const string &node,
 
 void ASTPrinter::printStmt(const Span &span, const string &node, 
                            const string &name, bool newl) {
-  cout << stmtColor << node << clear << ' ' << spanToString(span) \
-       << string(name.empty() ? 0 : 1, ' ') << nameColor << name \
+  cout << stmtColor << node << clear << ' ' << spanToString(span)
+       << string(name.empty() ? 0 : 1, ' ') << nameColor << name
        << clear;
 
   if (newl) 
@@ -260,6 +260,12 @@ void ASTPrinter::visit(BooleanLiteral *expr) {
 void ASTPrinter::visit(IntegerLiteral *expr) {
   printPiping();
   printExpr(expr->span, "IntegerLiteral", expr->T->toString(), "", false);
+  cout << ' ' << literalColor << expr->value << clear << '\n';
+}
+
+void ASTPrinter::visit(FPLiteral *expr) {
+  printPiping();
+  printExpr(expr->span, "FPLiteral", expr->T->toString(), "", false);
   cout << ' ' << literalColor << expr->value << clear << '\n';
 }
 

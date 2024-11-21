@@ -353,6 +353,16 @@ void Sema::visit(IntegerLiteral *expr) {
   }
 }
 
+/// Semantic Analysis over a FPLiteral.
+///
+/// FPLiterals are valid if and only if they are of a floating point type.
+void Sema::visit(FPLiteral *expr) {
+  if (!expr->T->isFloatingPointType()) {
+    fatal("expected floating point type", { expr->span.file, 
+        expr->span.line, expr->span.col });
+  }
+}
+
 /// Semantic Analysis over a CharLiteral.
 ///
 /// CharLiterals are valid if and only if they are of a character type.

@@ -232,6 +232,10 @@ void Codegen::visit(IntegerLiteral *expr) {
       expr->T->getBitWidth(), expr->value, true));
 }
 
+void Codegen::visit(FPLiteral *expr) {
+  tmp = llvm::ConstantFP::get(*context, llvm::APFloat(expr->value));
+}
+
 void Codegen::visit(CharLiteral *expr) {
   tmp = llvm::ConstantInt::get(*context, llvm::APInt(8, expr->value, true));
 }
