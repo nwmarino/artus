@@ -16,7 +16,7 @@ inline static string unaryOpToString(UnaryExpr::UnaryOp op) {
     case UnaryExpr::UnaryOp::Negative: return "-";
     case UnaryExpr::UnaryOp::Not: return "!";
     case UnaryExpr::UnaryOp::Ref: return "&";
-    case UnaryExpr::UnaryOp::DeRef: return "*";
+    case UnaryExpr::UnaryOp::DeRef: return "#";
     default: return " ";
   }
 }

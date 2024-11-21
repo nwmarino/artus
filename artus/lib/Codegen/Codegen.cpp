@@ -137,10 +137,12 @@ void Codegen::visit(DeclRefExpr *expr) {
         { expr->span.file, expr->span.line, expr->span.col });
   }
 
-  tmp = alloca;
+  if (isAddrOf) {
+    tmp = alloca;
+    return;
+  }
 
-  if (!expr->T->isPointerType())
-    tmp = builder->CreateLoad(expr->T->toLLVMType(*context), tmp);
+  tmp = builder->CreateLoad(expr->T->toLLVMType(*context), alloca);
 }
 
 void Codegen::visit(CallExpr *expr) {
@@ -160,6 +162,10 @@ void Codegen::visit(CallExpr *expr) {
 }
 
 void Codegen::visit(UnaryExpr *expr) {
+  if (expr->op == UnaryExpr::UnaryOp::Ref) {
+    this->isAddrOf = true;
+  }
+
   expr->base->pass(this);
   llvm::Value *base = tmp;
 
@@ -175,13 +181,14 @@ void Codegen::visit(UnaryExpr *expr) {
       break;
     case UnaryExpr::UnaryOp::DeRef:
       if (!isLValue)
-        tmp = builder->CreateLoad(expr->getType()->toLLVMType(*context), base);
-      else
-        tmp = builder->CreateLoad(expr->base->getType()->toLLVMType(*context), base);
+        tmp = builder->CreateLoad(expr->getType()->toLLVMType(*context), 
+            base);
       break;
     default:
       fatal("unknown unary operator");
   }
+
+  this->isAddrOf = false;
 }
 
 void Codegen::visit(BinaryExpr *expr) {

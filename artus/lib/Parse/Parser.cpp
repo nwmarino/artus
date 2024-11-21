@@ -69,7 +69,7 @@ UnaryExpr::UnaryOp Parser::getUnaryOp() const {
       return UnaryExpr::UnaryOp::Not;
     case TokenKind::Ampersand:
       return UnaryExpr::UnaryOp::Ref;
-    case TokenKind::Star:
+    case TokenKind::Hash:
       return UnaryExpr::UnaryOp::DeRef;
     default: 
       return UnaryExpr::UnaryOp::Unknown;
@@ -97,7 +97,7 @@ BinaryExpr::BinaryOp Parser::getBinaryOp() const {
   return BinaryExpr::BinaryOp::Unknown;
 }
 
-/// Parses a defined type reference. For example, `*int` or `char[5]`.
+/// Parses a defined type reference. For example, `#int` or `char[5]`.
 ///
 /// This function will parse a type reference, which can be a basic type or a
 /// user-defined type. Implicitly defined types such as FunctionTypes cannot be 
@@ -105,8 +105,8 @@ BinaryExpr::BinaryOp Parser::getBinaryOp() const {
 const Type *Parser::ParseType() {
   // Parse ptr reference levels.
   string typeIdentifier;
-  while (tok.is(TokenKind::Star)) {
-    typeIdentifier.append("*");
+  while (tok.is(TokenKind::Hash)) {
+    typeIdentifier.append("#");
     nextToken(); // Consume the '*' token.
   }
 

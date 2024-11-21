@@ -313,7 +313,7 @@ public:
   unsigned getBitWidth() const override { return pointeeType->getBitWidth(); }
 
   /// Returns a string representation of the pointer type.
-  string toString() const override { return '*' + pointeeType->toString(); }
+  string toString() const override { return '#' + pointeeType->toString(); }
 
   /// Compare a pointer type with another type. Pointer types match if and only
   /// if the pointee types match. The return value of this function is never 2

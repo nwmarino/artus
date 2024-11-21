@@ -43,6 +43,9 @@ class Codegen : public ASTVisitor {
   /// Flag used to indicate if the current expression is an lvalue.
   bool isLValue : 1 = 0;
 
+  /// Flag used to indicate if a reference is under an address-of operator.
+  bool isAddrOf : 1 = 0;
+
   /// Creates an alloca instruction in the entry block of the function.
   [[nodiscard]] 
   llvm::AllocaInst *createAlloca(llvm::Function *fn, const std::string &var, 

@@ -81,6 +81,8 @@ enum class TokenKind {
   Comma,
   /// @
   At,
+  /// #
+  Hash,
   /// &
   Ampersand,
 

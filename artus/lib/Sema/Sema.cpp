@@ -121,7 +121,8 @@ void Sema::visit(VarDecl *decl) {
   decl->init->pass(this); // Sema on the initializer.
 
   if (decl->T->compare(decl->init->T) == 0) {
-    fatal("variable type mismatch: " + decl->name, 
+    fatal("variable type mismatch: " + decl->name + ": expected " + 
+        decl->T->toString() + ", got " + decl->init->T->toString(),
     { decl->span.file, decl->span.line, decl->span.col });
   }
 }
@@ -258,14 +259,14 @@ void Sema::visit(UnaryExpr *expr) {
     }
 
     // Nest the base type in a pointer type.
-    expr->T = ctx->getType('*' + expr->T->toString());
+    expr->T = ctx->getType('#' + expr->T->toString());
   }
 
   // Check that dereferences '*' are only done to pointers.
   if (expr->op == UnaryExpr::UnaryOp::DeRef) {
     // Check that the operand is a pointer type.
     if (!expr->base->T->isPointerType()) {
-      fatal("expected pointer type for unary operator: *", { expr->span.file, 
+      fatal("expected pointer type for unary operator: #", { expr->span.file, 
           expr->span.line, expr->span.col });
     }
 
