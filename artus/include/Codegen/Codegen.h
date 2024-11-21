@@ -40,11 +40,8 @@ class Codegen : public ASTVisitor {
   /// The current function being generated.
   llvm::Function *FN;
 
-  /// Flag used to indicate if the current expression is an lvalue.
-  bool isLValue : 1 = 0;
-
-  /// Flag used to indicate if a reference is under an address-of operator.
-  bool isAddrOf : 1 = 0;
+  /// Flag used to indicate if a reference is needed by pointer or by value.
+  bool needPtr : 1 = 0;
 
   /// Creates an alloca instruction in the entry block of the function.
   [[nodiscard]] 

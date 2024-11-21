@@ -1,4 +1,5 @@
 fn @main() -> i64 {
-  fix x: f64 = 1.5
-  ret 0
+  mut x: f64 = 1.5
+  x = x + 1
+  ret i64 x
 }

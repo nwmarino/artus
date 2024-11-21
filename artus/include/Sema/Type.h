@@ -140,8 +140,7 @@ public:
       if (kind == otherType->kind)
         return 1;
 
-      if (isIntegerType() && otherType->isIntegerType())
-        return 2;
+      return 2;
     }
     // TODO: support enums
     return 0;

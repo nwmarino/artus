@@ -140,7 +140,7 @@ void Sema::visit(ImplicitCastExpr *expr) {
   }
 
   // Propagate the type of the expression.
-  expr->expr->T = expr->T;
+  //expr->expr->T = expr->T;
 }
 
 /// Semantic Analysis over an ExplicitCastExpr.
@@ -151,6 +151,7 @@ void Sema::visit(ExplicitCastExpr *expr) {
   expr->expr->pass(this); // Sema on the expression.
 
   // Fetch the type if it could not be resolved at parse time.
+  /*
   if (!expr->T) {
     const Type *resolvedType = ctx->getType(expr->ident);
     if (!resolvedType) {
@@ -160,6 +161,7 @@ void Sema::visit(ExplicitCastExpr *expr) {
 
     expr->T = resolvedType;
   }
+  */
 
   // Type check the cast.
   if (!expr->expr->T->canCastTo(expr->T)) {
@@ -169,7 +171,7 @@ void Sema::visit(ExplicitCastExpr *expr) {
   }
 
   // Propagate the type of the expression.
-  expr->expr->T = expr->T;
+  //expr->expr->T = expr->T;
 }
 
 /// Semantic Analysis over a DeclRefExpr.
@@ -302,9 +304,21 @@ void Sema::visit(BinaryExpr *expr) {
   expr->lhs->pass(this); // Sema on the left-hand side.
   expr->rhs->pass(this); // Sema on the right-hand side.
 
-  if (expr->lhs->T->compare(expr->rhs->T) == 0) {
-    fatal("binary expression type mismatch", { expr->span.file, 
+  int typeComp = expr->lhs->T->compare(expr->rhs->T);
+  if (typeComp == 0) {
+    fatal("binary expression type mismatch: " + expr->lhs->T->toString()
+        + " and " + expr->rhs->T->toString(), { expr->span.file, 
         expr->span.line, expr->span.col });
+  } else if (typeComp == 2) {
+    if (expr->rhs->T->canCastTo(expr->lhs->T)) {
+      // Inject implicit cast on rhs to lhs type.
+      expr->rhs = std::make_unique<ImplicitCastExpr>(std::move(expr->rhs),
+          expr->lhs->T->toString(), expr->lhs->T, expr->rhs->span);
+    } else {
+      fatal("unable to type cast " + expr->rhs->T->toString() + " to "
+          + expr->lhs->T->toString(), { expr->span.file, 
+          expr->span.line, expr->span.col });
+    }
   }
 
   // Propagate the type of the expression.

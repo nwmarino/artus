@@ -122,7 +122,19 @@ void Codegen::genericCastCGN(CastExpr *expr) {
   expr->expr->pass(this);
 
   if (expr->T->isIntegerType()) {
+    if (expr->expr->getType()->isFloatingPointType()) {
+      tmp = builder->CreateFPToSI(tmp, expr->T->toLLVMType(*context));
+      return;
+    }
+
     tmp = builder->CreateIntCast(tmp, expr->T->toLLVMType(*context), false);
+  } else if (expr->T->isFloatingPointType()) {
+    if (expr->expr->getType()->isIntegerType()) {
+      tmp = builder->CreateSIToFP(tmp, expr->T->toLLVMType(*context));
+      return;
+    }
+
+    tmp = builder->CreateFPCast(tmp, expr->T->toLLVMType(*context));
   }
 }
 
@@ -137,7 +149,7 @@ void Codegen::visit(DeclRefExpr *expr) {
         { expr->span.file, expr->span.line, expr->span.col });
   }
 
-  if (isAddrOf) {
+  if (needPtr) {
     tmp = alloca;
     return;
   }
@@ -163,7 +175,7 @@ void Codegen::visit(CallExpr *expr) {
 
 void Codegen::visit(UnaryExpr *expr) {
   if (expr->op == UnaryExpr::UnaryOp::Ref) {
-    this->isAddrOf = true;
+    this->needPtr = true;
   }
 
   expr->base->pass(this);
@@ -180,7 +192,7 @@ void Codegen::visit(UnaryExpr *expr) {
       tmp = base;
       break;
     case UnaryExpr::UnaryOp::DeRef:
-      if (!isLValue)
+      if (!needPtr)
         tmp = builder->CreateLoad(expr->getType()->toLLVMType(*context), 
             base);
       break;
@@ -188,15 +200,17 @@ void Codegen::visit(UnaryExpr *expr) {
       fatal("unknown unary operator");
   }
 
-  this->isAddrOf = false;
+  this->needPtr = false;
 }
 
 void Codegen::visit(BinaryExpr *expr) {
   if (expr->isAssignment())
-    this->isLValue = true;
+    needPtr = true;
 
   expr->lhs->pass(this);
   llvm::Value *lhs = tmp;
+  needPtr = false;
+
   expr->rhs->pass(this);
   llvm::Value *rhs = tmp;
 
@@ -205,6 +219,10 @@ void Codegen::visit(BinaryExpr *expr) {
       tmp = builder->CreateStore(rhs, lhs);
       break;
     case BinaryExpr::BinaryOp::Add:
+      if (expr->T->isFloatingPointType()) {
+        tmp = builder->CreateFAdd(lhs, rhs);
+        break;
+      }
       tmp = builder->CreateAdd(lhs, rhs);
       break;
     case BinaryExpr::BinaryOp::Sub:
@@ -216,11 +234,10 @@ void Codegen::visit(BinaryExpr *expr) {
     case BinaryExpr::BinaryOp::Div:
       tmp = builder->CreateSDiv(lhs, rhs);
       break;
-    default:
-      fatal("unknown binary operator");
+    default: fatal("unknown binary operator");
   }
 
-  this->isLValue = false;
+  needPtr = false;
 }
 
 void Codegen::visit(BooleanLiteral *expr) {
@@ -269,7 +286,7 @@ void Codegen::visit(ArrayAccessExpr *expr) {
   assert (baseExpr && "expected decl ref expression for array access base");
 
   // Non lvalue array access need to be loaded; no element ptr.
-  if (!isLValue) {
+  if (!needPtr) {
     const ArrayType *AT = dynamic_cast<const ArrayType *>(baseExpr->T);
     assert(AT && "expected array type for array access expression");
 
