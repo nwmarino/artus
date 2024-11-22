@@ -87,6 +87,10 @@ entry:
       BufferPos++;
       skp++;
       next.kind = TokenKind::EqualsEquals;
+    } else if (peek(1) == ">") {
+      BufferPos++;
+      skp++;
+      next.kind = TokenKind::FatArrow;
     } else {
       next.kind = TokenKind::Equals;
     }
@@ -289,6 +293,7 @@ const string Lexer::dump() {
       case TokenKind::Hash: tmp = "Hash"; break;
       case TokenKind::Ampersand: tmp = "Ampersand"; break;
       case TokenKind::Arrow: tmp = "Arrow"; break;
+      case TokenKind::FatArrow: tmp = "FatArrow"; break;
       case TokenKind::EqualsEquals: tmp = "EqualsEquals"; break;
       case TokenKind::Eof: tmp = "Eof"; break;
       case TokenKind::Less: tmp = "Less"; break;

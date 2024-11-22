@@ -17,7 +17,7 @@
 | Operator | Precedence | Use |
 |----------|------------|-----|
 | `=` `+=` `-=` `*=` `/=` | 1 | Assignment
-| `&&` `||` `^^` | 2 | Logical Comparison
+| `&&` `\|\|` `^^` | 2 | Logical Comparison (and, or, xor)
 | `==` `!=` | 3 | Equality Comparison
 | `<` `>` `<=` `>=` | 4 | Inequalities
 | `+` `-` | 5 | Additive Ops

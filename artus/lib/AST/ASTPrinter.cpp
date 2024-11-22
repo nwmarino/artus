@@ -439,6 +439,52 @@ void ASTPrinter::visit(UntilStmt *stmt) {
   resetLastChild();
 }
 
+void ASTPrinter::visit(CaseStmt *stmt) {
+  printPiping();
+  printStmt(stmt->span, "CaseStmt");
+  resetLastChild();
+  increaseIndent();
+  setPiping(indent);
+  stmt->expr->pass(this);
+  setLastChild();
+  clearPiping(indent);
+  stmt->body->pass(this);
+  decreaseIndent();
+  resetLastChild();
+}
+
+void ASTPrinter::visit(DefaultStmt *stmt) {
+  printPiping();
+  printStmt(stmt->span, "DefaultStmt");
+  resetLastChild();
+  increaseIndent();
+  setPiping(indent);
+  stmt->body->pass(this);
+  decreaseIndent();
+  resetLastChild();
+}
+
+void ASTPrinter::visit(MatchStmt *stmt) {
+  printPiping();
+  printStmt(stmt->span, "MatchStmt");
+  resetLastChild();
+  increaseIndent();
+  setPiping(indent);
+  stmt->expr->pass(this);
+
+  for (unsigned idx = 0; idx < stmt->cases.size(); idx++) {
+    if (idx + 1 == stmt->cases.size()) {
+      clearPiping(indent);
+      setLastChild();
+    }
+
+    stmt->cases[idx]->pass(this);
+  }
+
+  decreaseIndent();
+  resetLastChild();
+}
+
 void ASTPrinter::visit(LabelStmt *stmt) {
   printPiping();
   printStmt(stmt->span, "LabelStmt", stmt->name);

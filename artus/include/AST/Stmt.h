@@ -1,8 +1,6 @@
 #ifndef ARTUS_AST_STMT_H
 #define ARTUS_AST_STMT_H
 
-#include <memory>
-
 #include "ASTPrinter.h"
 #include "Decl.h"
 #include "../Core/Span.h"
@@ -113,7 +111,7 @@ public:
   bool hasElse() const;
 };
 
-/// Represents a while loop statement.
+/// Represents a while loop statement: `while <expr> <stmt>`.
 class WhileStmt final : public Stmt {
   friend class ASTPrinter;
   friend class Codegen;
@@ -132,7 +130,7 @@ public:
   void pass(ASTVisitor *visitor) override;
 };
 
-/// Represents an until loop statement.
+/// Represents an until loop statement: `until <expr> <stmt>`.
 class UntilStmt final : public Stmt {
   friend class ASTPrinter;
   friend class Codegen;
@@ -149,6 +147,80 @@ public:
             const Span &span);
 
   void pass(ASTVisitor *visitor) override;
+};
+
+/// Represents a generic case in a match statement.
+class MatchCase : public Stmt {
+  friend class ASTPrinter;
+  friend class Codegen;
+  friend class Sema;
+
+protected:
+  /// The body of the case statement.
+  std::unique_ptr<Stmt> body;
+
+public:
+  MatchCase(std::unique_ptr<Stmt> body, const Span &span);
+
+  virtual bool isDefault() const = 0;
+};
+
+/// Represents an expression-based case in a match statement.
+class CaseStmt final : public MatchCase {
+  friend class ASTPrinter;
+  friend class Codegen;
+  friend class MatchStmt;
+  friend class Sema;
+
+  /// The expression to match.
+  std::unique_ptr<Expr> expr;
+
+public:
+  CaseStmt(std::unique_ptr<Expr> expr, std::unique_ptr<Stmt> body, 
+           const Span &span);
+
+  void pass(ASTVisitor *visitor) override;
+
+  bool isDefault() const override;
+};
+
+/// Represents a default `_` case in a match statement.
+class DefaultStmt final : public MatchCase {
+  friend class ASTPrinter;
+  friend class Codegen;
+  friend class Sema;
+
+public:
+  DefaultStmt(std::unique_ptr<Stmt> body, const Span &span);
+
+  void pass(ASTVisitor *visitor) override;
+
+  bool isDefault() const override;
+};
+
+/// Represents a match statement: `match <expr> { <case> ... }`.
+class MatchStmt final : public Stmt {
+  friend class ASTPrinter;
+  friend class Codegen;
+  friend class Sema;
+
+  /// The expression to match.
+  std::unique_ptr<Expr> expr;
+
+  /// The list of case statements.
+  vector<std::unique_ptr<MatchCase>> cases;
+
+public:
+  MatchStmt(std::unique_ptr<Expr> expr, 
+            vector<std::unique_ptr<MatchCase>> cases, const Span &span);
+
+  void pass(ASTVisitor *visitor) override;
+
+  /// Returns true if this match statement has a default case.
+  bool hasDefault() const;
+
+  /// Returns the default case of this match statement.
+  DefaultStmt *getDefault() const;
 };
 
 /// Represents a label statement. For example, `label:`.

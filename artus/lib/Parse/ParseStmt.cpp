@@ -26,6 +26,8 @@ std::unique_ptr<Stmt> Parser::ParseStatement() {
     return ParseWhileStatement();
   else if (tok.isKeyword("until"))
     return ParseUntilStatement();
+  else if (tok.isKeyword("match"))
+    return ParseMatchStatement();
 
   return ParseExpression();
 }
@@ -184,6 +186,100 @@ std::unique_ptr<Stmt> Parser::ParseUntilStatement() {
 
   return std::make_unique<UntilStmt>(std::move(cond), std::move(body), 
                                      createSpan(firstLoc));
+}
+
+/// Parse a match case statement.
+///
+/// match_case:
+///   <expression> => <statement>
+std::unique_ptr<MatchCase> Parser::ParseMatchCaseStatement() {
+  // Handle default cases.
+  bool isDefault = false;
+  if (tok.is(TokenKind::Identifier) && tok.value == "_") {
+    isDefault = true;
+    nextToken(); // Consume the '_' token.
+  }
+
+  // Parse the expression to match.
+  std::unique_ptr<Expr> expr = nullptr;
+  if (!isDefault) {
+    expr = ParseExpression();
+    if (!expr) {
+      fatal("expected expression in match case statement", lastLoc);
+    }
+  }
+
+  if (!tok.is(TokenKind::FatArrow)) {
+    trace("expected '=>' after match case expression", lastLoc);
+    return nullptr;
+  }
+  nextToken(); // Consume the '=>' token.
+
+  std::unique_ptr<Stmt> body = ParseStatement();
+  if (!body) {
+    trace("expected statement after match case expression", lastLoc);
+    return nullptr;
+  }
+
+  if (isDefault) {
+    return std::make_unique<DefaultStmt>(std::move(body), body->getSpan());
+  }
+
+  return std::make_unique<CaseStmt>(std::move(expr), std::move(body), 
+                                    body->getSpan());
+}
+
+/// Parse a match statement.
+///
+/// match:
+///   'match' <expression> '{' <match_case>* '}'
+///
+/// Expects the current token to be a 'match' keyword.
+std::unique_ptr<Stmt> Parser::ParseMatchStatement() {
+  assert(tok.isKeyword("match") && "expected 'match' keyword");
+
+  const SourceLocation firstLoc = lastLoc;
+  nextToken(); // Consume the 'match' token.
+
+  std::unique_ptr<Expr> expr = ParseExpression();
+  if (!expr) {
+    trace("expected expression after 'match' statement", lastLoc);
+    return nullptr;
+  }
+
+  if (!tok.is(TokenKind::OpenBrace)) {
+    trace("expected '{' after 'match' expression", lastLoc);
+    return nullptr;
+  }
+  nextToken(); // Consume the '{' token.
+
+  vector<std::unique_ptr<MatchCase>> cases;
+  while (!tok.is(TokenKind::CloseBrace)) {
+    std::unique_ptr<MatchCase> stmt = ParseMatchCaseStatement();
+    if (!stmt) {
+      trace("expected match case statement", lastLoc);
+      return nullptr;
+    }
+
+    cases.push_back(std::move(stmt));
+
+    if (tok.is(TokenKind::Comma)) {
+      nextToken(); // Consume the ',' token.
+      continue;
+    }
+
+    if (tok.is(TokenKind::CloseBrace)) {
+      break;
+    }
+
+    fatal("expected ',' or '}' after match case statement", lastLoc);
+  }
+
+  const SourceLocation lastLoc = this->lastLoc;
+  nextToken(); // Consume the '}' token.
+
+  return std::make_unique<MatchStmt>(std::move(expr), std::move(cases),
+                                     createSpan(firstLoc, lastLoc));
 }
 
 /// Parse a label statement.

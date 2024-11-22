@@ -1,7 +1,7 @@
+#include "llvm/ADT/APInt.h"
+#include "llvm/IR/Constants.h"
+#include "llvm/IR/Instructions.h"
 #include "llvm/IR/Verifier.h"
-#include <llvm/ADT/APInt.h>
-#include <llvm/IR/Constants.h>
-#include <llvm/IR/Instructions.h>
 
 #include "../../include/AST/Expr.h"
 #include "../../include/Codegen/Codegen.h"
@@ -113,8 +113,10 @@ void Codegen::visit(LabelDecl *decl) { /* unused */ }
 void Codegen::visit(VarDecl *decl) {
   decl->init->pass(this);
 
-  llvm::AllocaInst *alloca = createAlloca(builder->GetInsertBlock()->getParent(),
-      decl->name, decl->T->toLLVMType(*context));
+  llvm::AllocaInst *alloca = createAlloca(
+      builder->GetInsertBlock()->getParent(), decl->name,
+       decl->T->toLLVMType(*context)
+  );
 
   builder->CreateStore(tmp, alloca);
   allocas[decl->name] = alloca;
@@ -124,6 +126,7 @@ void Codegen::genericCastCGN(CastExpr *expr) {
   expr->expr->pass(this);
 
   if (expr->T->isIntegerType()) {
+    // Cast an integer to a floating point type.
     if (expr->expr->getType()->isFloatingPointType()) {
       tmp = builder->CreateFPToSI(tmp, expr->T->toLLVMType(*context));
       return;
@@ -131,6 +134,7 @@ void Codegen::genericCastCGN(CastExpr *expr) {
 
     tmp = builder->CreateIntCast(tmp, expr->T->toLLVMType(*context), false);
   } else if (expr->T->isFloatingPointType()) {
+    // Cast a floating point to an integer type.
     if (expr->expr->getType()->isIntegerType()) {
       tmp = builder->CreateSIToFP(tmp, expr->T->toLLVMType(*context));
       return;
@@ -176,10 +180,7 @@ void Codegen::visit(CallExpr *expr) {
 }
 
 void Codegen::visit(UnaryExpr *expr) {
-  if (expr->op == UnaryExpr::UnaryOp::Ref) {
-    needPtr = true;
-  }
-
+  needPtr = expr->op == UnaryExpr::UnaryOp::Ref;
   expr->base->pass(this);
   needPtr = false;
   llvm::Value *base = tmp;
@@ -191,15 +192,15 @@ void Codegen::visit(UnaryExpr *expr) {
     case UnaryExpr::UnaryOp::Not:
       tmp = builder->CreateNot(base);
       break;
-    case UnaryExpr::UnaryOp::Ref:
-      tmp = base;
+    case UnaryExpr::UnaryOp::Ref: // tmp is already the pointer.
       break;
     case UnaryExpr::UnaryOp::DeRef:
       if (!needPtr)
         tmp = builder->CreateLoad(expr->getType()->toLLVMType(*context), 
             base);
       break;
-    default: fatal("unknown unary operator", { expr->span.file, 
+    default: 
+      fatal("unknown unary operator", { expr->span.file,
         expr->span.line, expr->span.col });
   }
 }
@@ -354,7 +355,7 @@ void Codegen::visit(BinaryExpr *expr) {
       }
       tmp = builder->CreateSDiv(lhs, rhs);
       break;
-    default: fatal("unknown binary operator", { expr->span.file, 
+    default: fatal("unknown binary operator", { expr->span.file,
         expr->span.line, expr->span.col });
   } // end switch
 
@@ -411,19 +412,22 @@ void Codegen::visit(ArrayAccessExpr *expr) {
     llvm::Value *elementPtr = builder->CreateGEP(AT->toLLVMType(*context), 
         allocas[baseExpr->ident], { builder->getInt64(0), index });
 
-    tmp = builder->CreateLoad(AT->getElementType()->toLLVMType(*context), elementPtr);
+    tmp = builder->CreateLoad(AT->getElementType()->toLLVMType(*context), 
+        elementPtr);
     return;
   }
 
   // If the base reference is a pointer, load it first.
   if (baseExpr->T->isPointerType()) {
     vector<llvm::Value *> indices = { index };
-    llvm::LoadInst *ptr = builder->CreateLoad(expr->T->toLLVMType(*context), base);
+    llvm::LoadInst *ptr = builder->CreateLoad(expr->T->toLLVMType(*context), 
+        base);
 
     const PointerType *PT = dynamic_cast<const PointerType *>(expr->T);
     assert(PT && "expected pointer type for array access expression");
 
-    tmp = builder->CreateGEP(PT->getPointeeType()->toLLVMType(*context), ptr, indices);
+    tmp = builder->CreateGEP(PT->getPointeeType()->toLLVMType(*context), 
+        ptr, indices);
     return;
   }
   
@@ -566,6 +570,88 @@ void Codegen::visit(UntilStmt *stmt) {
 
   // Create a branch to the merge block if the loop body has no terminator.
   FN->insert(FN->end(), mergeBlock);
+  builder->SetInsertPoint(mergeBlock);
+}
+
+void Codegen::visit(CaseStmt *stmt) {
+  stmt->body->pass(this);
+}
+
+void Codegen::visit(DefaultStmt *stmt) {
+  stmt->body->pass(this);
+}
+
+void Codegen::visit(MatchStmt *stmt) {
+  // Fetch the value for the match statement expression.
+  stmt->expr->pass(this);
+  llvm::Value *matchVal = tmp;
+  if (!matchVal) {
+    fatal("expected expression in match statement", 
+        { stmt->span.file, stmt->span.line, stmt->span.col });
+  }
+
+  // Initialize basic blocks for the match control flow.
+  llvm::BasicBlock *mergeBlock = llvm::BasicBlock::Create(*context, 
+      "merge");
+  llvm::BasicBlock *defaultBlock = llvm::BasicBlock::Create(*context, 
+      "default");
+  llvm::SwitchInst *swInst = builder->CreateSwitch(matchVal, defaultBlock, 
+      stmt->cases.size());
+
+  // Codegen each of the match cases.
+  for (std::unique_ptr<MatchCase> &c : stmt->cases) {
+    // Only codegen on case statements for now.
+    CaseStmt *caseStmt = dynamic_cast<CaseStmt *>(c.get());
+    if (!caseStmt) {
+      continue;
+    }
+
+    // Initialize the basic block for the case statement body.
+    llvm::BasicBlock *caseBlock = llvm::BasicBlock::Create(*context, "case");
+
+    // Codegen pass on the case statement expression.
+    caseStmt->expr->pass(this);
+    if (!tmp) {
+      fatal("expected expression in case statement", 
+          { stmt->span.file, stmt->span.line, stmt->span.col });
+    }
+
+    // Evaluate the expression as an integer constant.
+    llvm::ConstantInt *caseVal = llvm::dyn_cast<llvm::ConstantInt>(tmp);
+    if (!caseVal) {
+      fatal("expected integer evaluable expression in case statement", 
+          { stmt->span.file, stmt->span.line, stmt->span.col });
+    }
+
+    // Add the case to the switch instruction, and codegen the body of the case.
+    swInst->addCase(caseVal, caseBlock);
+    builder->SetInsertPoint(caseBlock);
+    c->pass(this);
+    FN->insert(FN->end(), caseBlock);
+
+    // Branch to the merge block if the case body has no terminator.
+    if (!caseBlock->getTerminator()) {
+      builder->CreateBr(mergeBlock);
+    }
+  }
+
+  // If the default block is actually used, codegen for it and insert it.
+  if (defaultBlock->hasNPredecessorsOrMore(1)) {
+    builder->SetInsertPoint(defaultBlock);
+    stmt->getDefault()->pass(this);
+    if (!defaultBlock->getTerminator()) {
+      builder->CreateBr(mergeBlock);
+    }
+
+    FN->insert(FN->end(), defaultBlock);
+  }
+
+  // If the merge block is actually used, insert it.
+  if (mergeBlock->hasNPredecessorsOrMore(1)) {
+    FN->insert(FN->end(), mergeBlock);
+    builder->SetInsertPoint(mergeBlock);
+  }
+
   builder->SetInsertPoint(mergeBlock);
 }
 

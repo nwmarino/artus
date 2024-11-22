@@ -37,6 +37,7 @@ inline vector<string> __RESERVED = {
   "ret",
   "while",
   "until",
+  "match",
 };
 
 namespace artus {
@@ -103,6 +104,8 @@ enum class TokenKind {
   /// Compound Tokens
   /// ->
   Arrow,
+  /// =>
+  FatArrow,
   /// ==
   EqualsEquals,
   /// !=

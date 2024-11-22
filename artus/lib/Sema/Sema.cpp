@@ -528,6 +528,46 @@ void Sema::visit(UntilStmt *stmt) {
   stmt->body->pass(this); // Sema on the body of the loop.
 }
 
+/// Semantic Analysis over a CaseStmt.
+///
+/// CaseStmts are valid if and only if the condition and body are valid.
+void Sema::visit(CaseStmt *stmt) {
+  stmt->expr->pass(this); // Sema on the condition.
+  stmt->body->pass(this); // Sema on the body of the case.
+}
+
+/// Semantic Analysis over a DefaultStmt.
+///
+/// DefaultStmts are valid if and only if the body is valid.
+void Sema::visit(DefaultStmt *stmt) {
+  stmt->body->pass(this); // Sema on the body of the default case.
+}
+
+/// Semantic Analysis over a MatchStmt.
+///
+/// MatchStmts are valid if and only if the condition and cases are valid.
+/// It also checks if the expression is boolean, both cases exist.
+void Sema::visit(MatchStmt *stmt) {
+  stmt->expr->pass(this); // Sema on the condition.
+
+  for (std::unique_ptr<MatchCase> &s : stmt->cases) {
+    s->pass(this); // Sema on each case.
+  }
+
+  // Check that boolean matches have a true and false case.
+  if (stmt->expr->T->isBooleanType() && stmt->cases.size() != 2) {
+    fatal("boolean match statement must have exactly two cases", 
+        { stmt->span.file, stmt->span.line, stmt->span.col });
+  } 
+
+  /* not enforcing default case
+  if (!stmt->hasDefault()) {
+    fatal("match statement missing default case", { stmt->span.file, 
+        stmt->span.line, stmt->span.col });
+  }
+  */
+}
+
 /// Semantic Analysis over a LabelStmt.
 ///
 /// LabelStmts are valid if and only if the label is declared and is named.

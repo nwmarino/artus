@@ -119,6 +119,9 @@ public:
   void visit(IfStmt *stmt) override;
   void visit(WhileStmt *stmt) override;
   void visit(UntilStmt *stmt) override;
+  void visit(CaseStmt *stmt) override;
+  void visit(DefaultStmt *stmt) override;
+  void visit(MatchStmt *stmt) override;
   void visit(LabelStmt *stmt) override;
   void visit(JmpStmt *stmt) override;
   void visit(RetStmt *stmt) override;

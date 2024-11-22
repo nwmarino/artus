@@ -1,3 +1,4 @@
+#include "Stmt.h"
 #include "../../include/AST/Expr.h"
 
 using std::string;
@@ -64,6 +65,58 @@ UntilStmt::UntilStmt(std::unique_ptr<Expr> cond, std::unique_ptr<Stmt> body,
     : Stmt(span), cond(std::move(cond)), body(std::move(body)) {}
 
 void UntilStmt::pass(ASTVisitor *visitor) { visitor->visit(this); }
+
+/* MatchCase Implementation -----------------------------------------------===*/
+
+MatchCase::MatchCase(std::unique_ptr<Stmt> body, const Span &span) 
+    : Stmt(span), body(std::move(body)) {}
+
+/* CaseStmt Implementation ------------------------------------------------===*/
+
+CaseStmt::CaseStmt(std::unique_ptr<Expr> expr, std::unique_ptr<Stmt> body, 
+                   const Span &span) 
+    : MatchCase(std::move(body), span), expr(std::move(expr)) {}
+
+void CaseStmt::pass(ASTVisitor *visitor) { visitor->visit(this); }
+
+bool CaseStmt::isDefault() const { return false; }
+
+/* DefaultStmt Implementation ---------------------------------------------===*/
+
+DefaultStmt::DefaultStmt(std::unique_ptr<Stmt> body, const Span &span) 
+    : MatchCase(std::move(body), span) {}
+
+void DefaultStmt::pass(ASTVisitor *visitor) { visitor->visit(this); }
+
+bool DefaultStmt::isDefault() const { return true; }
+
+/* MatchStmt Implementation -----------------------------------------------===*/
+
+MatchStmt::MatchStmt(std::unique_ptr<Expr> expr,
+                     vector<std::unique_ptr<MatchCase>> cases, const Span &span)
+    : Stmt(span), expr(std::move(expr)), cases(std::move(cases)) {}
+
+void MatchStmt::pass(ASTVisitor *visitor) { visitor->visit(this); }
+
+bool MatchStmt::hasDefault() const {
+  for (const std::unique_ptr<MatchCase> &c : cases) {
+    MatchCase *mc = dynamic_cast<MatchCase *>(c.get());
+    if (mc && mc->isDefault()) {
+      return true;
+    }
+  }
+  return false;
+}
+
+DefaultStmt *MatchStmt::getDefault() const {
+  for (const std::unique_ptr<MatchCase> &c : cases) {
+    MatchCase *mc = dynamic_cast<MatchCase *>(c.get());
+    if (mc && mc->isDefault()) {
+      return dynamic_cast<DefaultStmt *>(mc);
+    }
+  }
+  return nullptr;
+}
 
 /* LabelStmt Implementation -----------------------------------------------===*/
 
