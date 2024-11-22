@@ -607,7 +607,7 @@ void Codegen::visit(MatchStmt *stmt) {
     }
 
     // Initialize the basic block for the case statement body.
-    llvm::BasicBlock *caseBlock = llvm::BasicBlock::Create(*context, "case");
+    llvm::BasicBlock *caseBlock = llvm::BasicBlock::Create(*context, "case", FN);
 
     // Codegen pass on the case statement expression.
     caseStmt->expr->pass(this);
@@ -626,7 +626,7 @@ void Codegen::visit(MatchStmt *stmt) {
     // Add the case to the switch instruction, and codegen the body of the case.
     swInst->addCase(caseVal, caseBlock);
     builder->SetInsertPoint(caseBlock);
-    c->pass(this);
+    caseStmt->pass(this);
     FN->insert(FN->end(), caseBlock);
 
     // Branch to the merge block if the case body has no terminator.
@@ -637,13 +637,10 @@ void Codegen::visit(MatchStmt *stmt) {
 
   // If the default block is actually used, codegen for it and insert it.
   if (defaultBlock->hasNPredecessorsOrMore(1)) {
+    FN->insert(FN->end(), defaultBlock);
     builder->SetInsertPoint(defaultBlock);
     stmt->getDefault()->pass(this);
-    if (!defaultBlock->getTerminator()) {
-      builder->CreateBr(mergeBlock);
-    }
-
-    FN->insert(FN->end(), defaultBlock);
+    builder->CreateBr(mergeBlock);
   }
 
   // If the merge block is actually used, insert it.
