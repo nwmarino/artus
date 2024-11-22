@@ -18,6 +18,9 @@ Context::Context(vector<SourceFile> files) : files(std::move(files)), eof(0) {
   this->types["u32"] = new BasicType(BasicType::BasicTypeKind::UINT32);
   this->types["u64"] = new BasicType(BasicType::BasicTypeKind::UINT64);
   this->types["f64"] = new BasicType(BasicType::BasicTypeKind::FP64);
+  this->types["str"] = new BasicType(BasicType::BasicTypeKind::STR);
+
+  // Add pointer types of basic types to the context.
   this->types["#bool"] = new PointerType(this->types["bool"]);
   this->types["#char"] = new PointerType(this->types["char"]);
   this->types["#i32"] = new PointerType(this->types["i32"]);
@@ -26,6 +29,7 @@ Context::Context(vector<SourceFile> files) : files(std::move(files)), eof(0) {
   this->types["#u32"] = new PointerType(this->types["u32"]);
   this->types["#u64"] = new PointerType(this->types["u64"]);
   this->types["#f64"] = new PointerType(this->types["f64"]);
+  this->types["#str"] = new PointerType(this->types["str"]);
 }
 
 Context::~Context() {

@@ -32,6 +32,10 @@ public:
   /// evaluted to otherwise, and false otherwise.
   virtual bool isFloatingPointType() const = 0;
 
+  /// Returns true if the type is definitively a string type, and false
+  /// otherwise.
+  virtual bool isStringType() const = 0;
+
   /// Returns true if the type is a pointer type, and false otherwise.
   virtual bool isPointerType() const = 0;
 
@@ -56,6 +60,9 @@ public:
   /// cast must be exact.
   virtual bool canCastTo(const Type *other, bool strict = false) const = 0;
 
+  /// Returns true if the type can be subscripted, and false otherwise.
+  virtual bool canSubscript() const { return false; }
+
   /// Returns the equivelant LLVM type for the given type.
   virtual llvm::Type *toLLVMType(llvm::LLVMContext &ctx) const = 0;
 };
@@ -74,7 +81,8 @@ public:
     UINT8,
     UINT32,
     UINT64,
-    FP64
+    FP64,
+    STR,
   };
 
 private:
@@ -97,6 +105,9 @@ public:
   /// otherwise.
   bool isFloatingPointType() const override { return kind == FP64; }
 
+  /// Returns true if the basic type kind is a string, and false otherwise.
+  bool isStringType() const override { return kind == STR; }
+
   /// Returns true if the type is a pointer type, and false otherwise.
   bool isPointerType() const override { return false; }
 
@@ -115,6 +126,7 @@ public:
       case UINT32: return 32;
       case UINT64: return 64;
       case FP64: return 64;
+      case STR: return 0;
     }
     return 0;
   }
@@ -133,6 +145,7 @@ public:
       case UINT32: return "u32";
       case UINT64: return "u64";
       case FP64: return "f64";
+      case STR: return "str";
     }
     return "unknown";
   }
@@ -166,6 +179,8 @@ public:
     return false;
   }
 
+  bool canSubscript() const override { return kind == STR; }
+
   /// Returns a LLVM type equivelant to this basic type.
   llvm::Type *toLLVMType(llvm::LLVMContext &ctx) const override {
     switch (kind) {
@@ -177,6 +192,7 @@ public:
       case UINT32: return llvm::Type::getInt32Ty(ctx);
       case UINT64: return llvm::Type::getInt64Ty(ctx);
       case FP64: return llvm::Type::getDoubleTy(ctx);
+      case STR: return llvm::Type::getInt8Ty(ctx)->getPointerTo();
     }
 
     return nullptr;
@@ -209,9 +225,12 @@ public:
 
   /// Returns true if the function type returns a floating point, and false
   /// otherwise.
-  bool isFloatingPointType() const override { 
-    return returnType->isFloatingPointType();
-  }
+  bool isFloatingPointType() const override 
+  { return returnType->isFloatingPointType(); }
+
+  /// Returns true if the function type returns a string type, and false 
+  /// otherwise.
+  bool isStringType() const override { return returnType->isStringType(); }
 
   /// Returns true if the type is a pointer type, and false otherwise.
   bool isPointerType() const override { return false; }
@@ -304,13 +323,15 @@ public:
 
   bool isBooleanType() const override { return false; }
 
-  /// Returns true if the pointer type is an integer, and false otherwise.
+  /// Returns true if the pointee type is an integer, and false otherwise.
   bool isIntegerType() const override { return pointeeType->isIntegerType(); }
 
-  /// Returns true if the pointer type is a floating point, and false otherwise.
-  bool isFloatingPointType() const override { 
-    return pointeeType->isFloatingPointType();
-  }
+  /// Returns true if the pointee type is a floating point, and false otherwise.
+  bool isFloatingPointType() const override 
+  { return pointeeType->isFloatingPointType(); }
+
+  /// Returns true if the pointee type is a string type, and false otherwise.
+  bool isStringType() const override { return pointeeType->isStringType(); }
 
   /// Returns true if the type is a pointer type, and false otherwise.
   bool isPointerType() const override { return true; }
@@ -318,10 +339,10 @@ public:
   /// Returns true if the type is an array type, and false otherwise.
   bool isArrayType() const override { return false; }
 
-  /// Returns the bit width of the pointer type.
+  /// Returns the bit width of the pointee type.
   unsigned getBitWidth() const override { return pointeeType->getBitWidth(); }
 
-  /// Returns a string representation of the pointer type.
+  /// Returns a string representation of the pointee type.
   string toString() const override { return '#' + pointeeType->toString(); }
 
   /// Compare a pointer type with another type. Pointer types match if and only
@@ -348,10 +369,11 @@ public:
     return false;
   }
 
+  bool canSubscript() const override { return pointeeType->isArrayType(); }
+
   /// Returns a LLVM PointerType equivelant of this pointer type.
-  llvm::Type *toLLVMType(llvm::LLVMContext &ctx) const override {
-    return llvm::PointerType::get(pointeeType->toLLVMType(ctx), 0);
-  }
+  llvm::Type *toLLVMType(llvm::LLVMContext &ctx) const override
+  { return llvm::PointerType::get(pointeeType->toLLVMType(ctx), 0); }
 };
 
 /// Represents an array type. Array types are used to represent the type of an
@@ -375,13 +397,15 @@ public:
 
   bool isBooleanType() const override { return false; }
 
-  /// Returns true if the array type is an integer, and false otherwise.
+  /// Returns true if the array element type is an integer.
   bool isIntegerType() const override { return elementType->isIntegerType(); }
 
-  /// Returns true if the array type is a floating point, and false otherwise.
-  bool isFloatingPointType() const override { 
-    return elementType->isFloatingPointType();
-  }
+  /// Returns true if the array element type is a floating point.
+  bool isFloatingPointType() const override 
+  { return elementType->isFloatingPointType(); }
+
+  /// Returns true if the array element type is a string type.
+  bool isStringType() const override { return elementType->isStringType(); }
 
   /// Returns true if the type is a pointer type, and false otherwise.
   bool isPointerType() const override { return false; }
@@ -393,9 +417,8 @@ public:
   unsigned getBitWidth() const override { return elementType->getBitWidth(); }
 
   /// Returns a string representation of the array type.
-  string toString() const override {
-    return elementType->toString() + '[' + std::to_string(size) + ']';
-  }
+  string toString() const override 
+  { return elementType->toString() + '[' + std::to_string(size) + ']'; }
 
   /// Compare an array type with another type. Array types match if and only if
   /// the element types and sizes match. The return value of this function is
@@ -427,10 +450,11 @@ public:
     return false;
   }
 
+  bool canSubscript() const override { return true; }
+
   /// Returns a LLVM ArrayType equivelant of this array type.
-  llvm::Type *toLLVMType(llvm::LLVMContext &ctx) const override {
-    return llvm::ArrayType::get(elementType->toLLVMType(ctx), size);
-  }
+  llvm::Type *toLLVMType(llvm::LLVMContext &ctx) const override 
+  { return llvm::ArrayType::get(elementType->toLLVMType(ctx), size); }
 };
 
 } // namespace artus

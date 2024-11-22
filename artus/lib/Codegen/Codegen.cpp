@@ -2,6 +2,7 @@
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Verifier.h"
+#include <llvm/Support/Alignment.h>
 
 #include "../../include/AST/Expr.h"
 #include "../../include/Codegen/Codegen.h"
@@ -376,7 +377,21 @@ void Codegen::visit(FPLiteral *expr)
 void Codegen::visit(CharLiteral *expr) 
 { tmp = llvm::ConstantInt::get(*context, llvm::APInt(8, expr->value, true)); }
 
-void Codegen::visit(StringLiteral *expr) { /* unsupported for now */ }
+void Codegen::visit(StringLiteral *expr) {
+  tmp = builder->CreateGlobalStringPtr(expr->value);
+  /*
+  llvm::Constant *str = llvm::ConstantDataArray::getString(*context, 
+      expr->value, true);
+  llvm::GlobalVariable *GV = new llvm::GlobalVariable(*module.get(), 
+      str->getType(), true, llvm::GlobalValue::PrivateLinkage, str);
+  GV->setUnnamedAddr(llvm::GlobalValue::UnnamedAddr::Global);
+  GV->setAlignment(llvm::Align(1));
+
+  llvm::Constant *zero = llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), 0);
+  llvm::Constant *indices[] = { zero, zero };
+  tmp = llvm::ConstantExpr::getGetElementPtr(str->getType(), GV, indices, true);
+  */
+}
 
 void Codegen::visit(NullExpr *expr) {
   tmp = llvm::ConstantPointerNull::get(llvm::PointerType::get(
@@ -404,16 +419,23 @@ void Codegen::visit(ArrayAccessExpr *expr) {
   DeclRefExpr *baseExpr = dynamic_cast<DeclRefExpr *>(expr->base.get());
   assert (baseExpr && "expected decl ref expression for array access base");
 
-  // Non lvalue array access need to be loaded; no element ptr.
+  // Non-lvalue array access: need element load, not element ptr.
   if (!needPtr) {
-    const ArrayType *AT = dynamic_cast<const ArrayType *>(baseExpr->T);
-    assert(AT && "expected array type for array access expression");
+    if (baseExpr->T->isArrayType()) {
+      const ArrayType *AT = dynamic_cast<const ArrayType *>(baseExpr->T);
+      assert(AT && "expected array type for array access expression");
 
-    llvm::Value *elementPtr = builder->CreateGEP(AT->toLLVMType(*context), 
-        allocas[baseExpr->ident], { builder->getInt64(0), index });
+      llvm::Value *elementPtr = builder->CreateGEP(AT->toLLVMType(*context), 
+          allocas[baseExpr->ident], { builder->getInt64(0), index });
 
-    tmp = builder->CreateLoad(AT->getElementType()->toLLVMType(*context), 
-        elementPtr);
+      tmp = builder->CreateLoad(AT->getElementType()->toLLVMType(*context), 
+          elementPtr);
+    } else if (baseExpr->T->isStringType()) {
+      llvm::Value *elementPtr = builder->CreateInBoundsGEP(builder->getInt8Ty(), 
+          base, index);
+      tmp = builder->CreateLoad(builder->getInt8Ty(), elementPtr);
+    }
+
     return;
   }
 
@@ -598,9 +620,11 @@ void Codegen::visit(MatchStmt *stmt) {
 
   llvm::SwitchInst *swInst = nullptr;
   if (stmt->hasDefault()) {
-    swInst = builder->CreateSwitch(matchVal, defaultBlock, stmt->cases.size() - 1);
+    swInst = builder->CreateSwitch(matchVal, defaultBlock, 
+        stmt->cases.size() - 1);
   } else {
-    swInst = builder->CreateSwitch(matchVal, mergeBlock, stmt->cases.size() - 1);
+    swInst = builder->CreateSwitch(matchVal, mergeBlock, 
+        stmt->cases.size() - 1);
   }
 
   // Codegen each of the match cases.

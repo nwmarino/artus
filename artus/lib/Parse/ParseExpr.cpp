@@ -35,6 +35,8 @@ std::unique_ptr<Expr> Parser::ParseDefaultInitExpression(const Type *T) {
             createSpan(lastLoc));
       case BasicType::FP64:
         return std::make_unique<FPLiteral>(0.0, T, createSpan(lastLoc));
+      case BasicType::STR:
+        return std::make_unique<StringLiteral>("", T, createSpan(lastLoc));
     }
   }
 
@@ -355,7 +357,7 @@ std::unique_ptr<Expr> Parser::ParseStringExpression() {
   nextToken();
 
   // Determine the type of the string literal.
-  const Type *T = ctx->getType("string");
+  const Type *T = ctx->getType("str");
 
   return std::make_unique<StringLiteral>(strToken.value, T,
     createSpan(strToken.loc));

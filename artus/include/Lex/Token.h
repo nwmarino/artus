@@ -16,7 +16,7 @@ inline vector<string> __RESERVED = {
   // Type-related literals and identifiers.
   "bool",
   "char",
-  "string",
+  "str",
   "f64",
   "i32",
   "i64",

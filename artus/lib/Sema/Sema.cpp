@@ -352,6 +352,14 @@ void Sema::visit(BinaryExpr *expr) {
     fatal("attempted to reassign immutable variable: " + lastReference,
         { expr->span.file, expr->span.line, expr->span.col });
   }
+
+  // Check that `str` types are not mutated.
+  if (ArrayAccessExpr *arr = dynamic_cast<ArrayAccessExpr *>(expr->lhs.get())) {
+    if (arr->base->T->isStringType()) {
+      fatal("attempted to mutate string type", { expr->span.file,
+          expr->span.line, expr->span.col });
+    }
+  }
 }
 
 /// Semantic Analysis over a BooleanLiteral.
@@ -398,7 +406,7 @@ void Sema::visit(CharLiteral *expr) {
 ///
 /// StringLiterals are valid if and only if they are of a string type.
 void Sema::visit(StringLiteral *expr) {
-  if (expr->T->toString() != "string") {
+  if (!expr->T->isStringType()) {
     fatal("expected string type", { expr->span.file, 
         expr->span.line, expr->span.col });
   }
@@ -446,8 +454,8 @@ void Sema::visit(ArrayAccessExpr *expr) {
   expr->base->pass(this); // Sema on the base expression.
   expr->index->pass(this); // Sema on the index expression.
 
-  if (!expr->base->T->isArrayType()) {
-    fatal("expected array type", { expr->span.file, 
+  if (!expr->base->T->canSubscript()) {
+    fatal("expected array type for array access", { expr->span.file,
         expr->span.line, expr->span.col });
   }
 
@@ -456,12 +464,21 @@ void Sema::visit(ArrayAccessExpr *expr) {
         expr->span.line, expr->span.col });
   }
 
-  // Resolve the array type of the base.
-  const ArrayType *AT = dynamic_cast<const ArrayType *>(expr->base->T);
-  assert(AT && "expected array type");
+  // Resolve the array element type at the access expression base.
+  if (expr->base->T->isStringType()) {
+    expr->T = ctx->getType("char");
+  } else if (expr->base->T->isPointerType()) {
+    const PointerType *PT = dynamic_cast<const PointerType *>(expr->base->T);
+    assert(PT && "expected pointer type for array access");
 
-  // Propagate the type of the expression.
-  expr->T = AT->getElementType();
+    expr->T = PT->getPointeeType();
+  } else {
+    const ArrayType *AT = dynamic_cast<const ArrayType *>(expr->base->T);
+    assert(AT && "expected array type for array access");
+
+    // Propagate the type of the expression.
+    expr->T = AT->getElementType();
+  }
 }
 
 /// Semantic Analysis over a CompoundStmt.
