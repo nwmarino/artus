@@ -2,7 +2,7 @@
 
 ## Types
 | Identifier | Name | Example |
-|---------|-------|---------|
+|------------|------|---------|
 | `bool` | boolean | `0`, `1`
 | `char` | char/8-bit | `'a'`, `256`
 | `i32` | 32-bit signed | `2^31`
@@ -14,7 +14,8 @@
 | `f64` | floating point | `3.14`
 
 ## Operators
-| Operator | Precedence | Use
+| Operator | Precedence | Use |
+|----------|------------|-----|
 | `=` `+=` `-=` `*=` `/=` | 1 | Assignment
 | `&&` `||` `^^` | 2 | Logical Comparison
 | `==` `!=` | 3 | Equality Comparison
