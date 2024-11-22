@@ -69,7 +69,8 @@ void Codegen::visit(PackageUnitDecl *decl) {
 void Codegen::visit(FunctionDecl *decl) {
   llvm::Function *FN = functions[decl->name];
   if (!FN) {
-    fatal("Function not found in function table: " + decl->name);
+    fatal("Function not found in function table: " + decl->name,
+        { decl->span.file, decl->span.line, decl->span.col });
   }
 
   this->FN = FN;
@@ -96,7 +97,8 @@ void Codegen::visit(ParamVarDecl *decl) {
   // Verify that a parent function exists and the temporary value is an arg.
   assert(FN && "Function must be set before generating code for parameters.");
   if (!llvm::isa<llvm::Argument>(tmp)) {
-    fatal("Expected an argument value for parameter declaration.");
+    fatal("Expected an argument value for parameter declaration.",
+        { decl->span.file, decl->span.line, decl->span.col });
   }
 
   // Create an alloca for the parameter in the entry block.
@@ -197,7 +199,8 @@ void Codegen::visit(UnaryExpr *expr) {
         tmp = builder->CreateLoad(expr->getType()->toLLVMType(*context), 
             base);
       break;
-    default: fatal("unknown unary operator");
+    default: fatal("unknown unary operator", { expr->span.file, 
+        expr->span.line, expr->span.col });
   }
 }
 
@@ -351,28 +354,26 @@ void Codegen::visit(BinaryExpr *expr) {
       }
       tmp = builder->CreateSDiv(lhs, rhs);
       break;
-    default: fatal("unknown binary operator");
-  }
+    default: fatal("unknown binary operator", { expr->span.file, 
+        expr->span.line, expr->span.col });
+  } // end switch
 
   needPtr = false;
 }
 
-void Codegen::visit(BooleanLiteral *expr) {
-  tmp = llvm::ConstantInt::get(*context, llvm::APInt(1, expr->value, true));
-}
+void Codegen::visit(BooleanLiteral *expr)
+{ tmp = llvm::ConstantInt::get(*context, llvm::APInt(1, expr->value, true)); }
 
 void Codegen::visit(IntegerLiteral *expr) {
   tmp = llvm::ConstantInt::get(*context, llvm::APInt(
       expr->T->getBitWidth(), expr->value, true));
 }
 
-void Codegen::visit(FPLiteral *expr) {
-  tmp = llvm::ConstantFP::get(*context, llvm::APFloat(expr->value));
-}
+void Codegen::visit(FPLiteral *expr) 
+{ tmp = llvm::ConstantFP::get(*context, llvm::APFloat(expr->value)); }
 
-void Codegen::visit(CharLiteral *expr) {
-  tmp = llvm::ConstantInt::get(*context, llvm::APInt(8, expr->value, true));
-}
+void Codegen::visit(CharLiteral *expr) 
+{ tmp = llvm::ConstantInt::get(*context, llvm::APInt(8, expr->value, true)); }
 
 void Codegen::visit(StringLiteral *expr) { /* unsupported for now */ }
 
@@ -414,6 +415,7 @@ void Codegen::visit(ArrayAccessExpr *expr) {
     return;
   }
 
+  // If the base reference is a pointer, load it first.
   if (baseExpr->T->isPointerType()) {
     vector<llvm::Value *> indices = { index };
     llvm::LoadInst *ptr = builder->CreateLoad(expr->T->toLLVMType(*context), base);
@@ -425,13 +427,15 @@ void Codegen::visit(ArrayAccessExpr *expr) {
     return;
   }
   
+  // Generic array access through an element pointer.
   if (baseExpr->T->isArrayType()) {
     tmp = builder->CreateInBoundsGEP(baseExpr->T->toLLVMType(*context), 
         allocas[baseExpr->ident], { builder->getInt64(0), index });
     return;
   }
 
-  fatal("unknown array access expression type");
+  fatal("unknown array access expression type", { expr->span.file, 
+      expr->span.line, expr->span.col });
 }
 
 void Codegen::visit(CompoundStmt *stmt) {
@@ -449,7 +453,8 @@ void Codegen::visit(IfStmt *stmt) {
   stmt->cond->pass(this);
   llvm::Value *condVal = tmp;
   if (!condVal) {
-    fatal("expected expression in if statement condition");
+    fatal("expected expression in if statement condition", 
+        { stmt->span.file, stmt->span.line, stmt->span.col });
   }
 
   // Initialize basic blocks for this if control flow.
