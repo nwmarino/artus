@@ -377,21 +377,8 @@ void Codegen::visit(FPLiteral *expr)
 void Codegen::visit(CharLiteral *expr) 
 { tmp = llvm::ConstantInt::get(*context, llvm::APInt(8, expr->value, true)); }
 
-void Codegen::visit(StringLiteral *expr) {
-  tmp = builder->CreateGlobalStringPtr(expr->value);
-  /*
-  llvm::Constant *str = llvm::ConstantDataArray::getString(*context, 
-      expr->value, true);
-  llvm::GlobalVariable *GV = new llvm::GlobalVariable(*module.get(), 
-      str->getType(), true, llvm::GlobalValue::PrivateLinkage, str);
-  GV->setUnnamedAddr(llvm::GlobalValue::UnnamedAddr::Global);
-  GV->setAlignment(llvm::Align(1));
-
-  llvm::Constant *zero = llvm::ConstantInt::get(llvm::Type::getInt32Ty(*context), 0);
-  llvm::Constant *indices[] = { zero, zero };
-  tmp = llvm::ConstantExpr::getGetElementPtr(str->getType(), GV, indices, true);
-  */
-}
+void Codegen::visit(StringLiteral *expr) 
+{ tmp = builder->CreateGlobalStringPtr(expr->value); }
 
 void Codegen::visit(NullExpr *expr) {
   tmp = llvm::ConstantPointerNull::get(llvm::PointerType::get(

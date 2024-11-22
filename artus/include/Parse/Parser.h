@@ -29,6 +29,9 @@ class Parser final {
   unsigned inLoop : 1 = 0;
   unsigned inFunction : 1 = 0;
 
+  /// Flag used to indicate if the current declaration should be made private.
+  unsigned makePriv : 1 = 0;
+
   /// Flag used to indicate if the current expession is being casted.
   unsigned isUnderCast : 1 = 0;
 

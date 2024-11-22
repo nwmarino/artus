@@ -10,7 +10,7 @@
 | `u8` | 8-bit unsigned | `2^8`
 | `u32` | 32-bit unsigned | `2^32`
 | `u64` | 64-bit unsigned | `2^64`
-| `string` | string | `"abc"`
+| `str` | string | `"abc"`
 | `f64` | floating point | `3.14`
 
 ## Operators
@@ -96,15 +96,24 @@ if cond {
 ```
 
 While Loops
-```rs
+```lua
 while cond {
     ...
 }
 ```
 
 Until Loops
-```rs
+```lua
 until cond {
     ...
+}
+```
+
+Match Statements
+```rs
+match <expr> {
+    <expr> => ...,
+    <expr> => { ... },
+    _ => { ... },
 }
 ```

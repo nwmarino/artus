@@ -24,11 +24,26 @@ protected:
   /// The name of the declaration.
   const string name;
 
+  /// If this declaration is private.
+  bool priv : 1;
+
 public:
-  NamedDecl(const string &name, const Span &span);
+  NamedDecl(const string &name, const Span &span, bool priv = false);
 
   /// Returns the name of this declaration.
   const string &getName() const;
+
+  /// Returns true if this declaration is private.
+  bool isPrivate() const;
+
+  /// Sets this declaration to private.
+  void setPrivate();
+
+  /// Sets this declaration to public.
+  void setPublic();
+
+  /// Returns true if this declaration can be imported to another package.
+  virtual bool canImport() const = 0;
 };
 
 /// Base class for scoped declarations. Scoped declarations are those which
@@ -39,7 +54,8 @@ protected:
   Scope *scope;
 
 public:
-  ScopedDecl(const string &name, Scope *scope, const Span &span);
+  ScopedDecl(const string &name, Scope *scope, const Span &span, 
+             bool priv = false);
 
   /// Returns the scope in which this declaration resides.
   Scope *getScope() const;
@@ -62,6 +78,8 @@ public:
 
   /// Sets the associated label statement.
   void setStmt(const Stmt *stmt);
+
+  bool canImport() const override;
 };
 
 /// Represents a variable declaration.
@@ -94,6 +112,8 @@ public:
 
   /// Returns true if the variable is mutable, and false otherwise.
   unsigned isMutable() const;
+
+  bool canImport() const override;
 };
 
 /// Represents a parameter to a function.
@@ -126,7 +146,8 @@ class FunctionDecl final : public ScopedDecl {
 public:
   FunctionDecl(const string &name, const Type *T,
                vector<std::unique_ptr<ParamVarDecl>> params,
-               std::unique_ptr<Stmt> body, Scope *scope, const Span &span);
+               std::unique_ptr<Stmt> body, Scope *scope, const Span &span,
+               bool priv = false);
 
   void pass(ASTVisitor *visitor) override;
 
@@ -139,6 +160,8 @@ public:
   /// Returns the parameter at the specified index, and `nullptr` if it does
   /// not exist.
   const ParamVarDecl *getParam(size_t i) const;
+
+  bool canImport() const override;
 };
 
 } // namespace artus

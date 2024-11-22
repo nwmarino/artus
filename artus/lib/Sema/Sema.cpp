@@ -322,6 +322,14 @@ void Sema::visit(BinaryExpr *expr) {
     }
   }
 
+  // If the operands are strings, check that the operator is a concatenation.
+  if (expr->lhs->T->isStringType() && expr->rhs->T->isStringType()) {
+    if (expr->op != BinaryExpr::BinaryOp::Add) {
+      fatal("expected string concatenation operator: +", { expr->span.file,
+          expr->span.line, expr->span.col });
+    }
+  }
+
   // Propagate the type of the expression as a boolean if it is a comparison.
   if (expr->isComparison()) {
     expr->T = ctx->getType("bool");

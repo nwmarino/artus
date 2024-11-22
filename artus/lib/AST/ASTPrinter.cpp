@@ -177,7 +177,14 @@ void ASTPrinter::visit(PackageUnitDecl *decl) {
 
 void ASTPrinter::visit(FunctionDecl *decl) {
   printPiping();
-  printDecl(decl->span, "FunctionDecl", decl->name, decl->T->toString());
+  printDecl(decl->span, "FunctionDecl", decl->name, 
+      decl->T->toString(), false);
+
+  if (decl->isPrivate()) {
+    cout << " private\n";
+  } else {
+    cout << '\n';
+  }
 
   increaseIndent();
   size_t paramsCount = decl->params.size();

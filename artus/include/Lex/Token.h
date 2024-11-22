@@ -34,6 +34,7 @@ inline vector<string> __RESERVED = {
   "if",
   "jmp",
   "mut",
+  "priv",
   "ret",
   "while",
   "until",

@@ -11,6 +11,11 @@ using namespace artus;
 
 /// Parse a declaration.
 std::unique_ptr<Decl> Parser::ParseDeclaration() {
+  if (tok.isKeyword("priv")) {
+    this->makePriv = true;
+    nextToken(); // Consume the 'priv' keyword.
+  }
+
   if (tok.isKeyword("fn"))
     return ParseFunctionDeclaration();
   else if (tok.isKeyword("fix"))
@@ -38,6 +43,9 @@ std::unique_ptr<Decl> Parser::ParseDeclaration() {
 /// Expects the current token to be a 'fn' keyword.
 std::unique_ptr<Decl> Parser::ParseFunctionDeclaration() {
   assert(tok.isKeyword("fn") && "expected 'fn' keyword");
+
+  bool isPriv = this->makePriv;
+  this->makePriv = false;
 
   Token fnToken = tok; // Save the 'fn' token.
   nextToken(); // Consume the 'fn' token.
@@ -107,7 +115,7 @@ std::unique_ptr<Decl> Parser::ParseFunctionDeclaration() {
 
   std::unique_ptr<FunctionDecl> fnDecl = std::make_unique<FunctionDecl>(
       functionName, T, std::move(params), std::move(body), 
-      scope, createSpan(fnToken.loc, lastLoc));
+      scope, createSpan(fnToken.loc, lastLoc), isPriv);
 
   // Add the function declaration to parent scope.
   this->scope->addDecl(fnDecl.get());
@@ -186,6 +194,11 @@ std::unique_ptr<Decl> Parser::ParseVarDeclaration(bool isMut) {
 
   const string varName = tok.value;
   nextToken(); // Consume the identifier token.
+
+  if (this->makePriv) {
+    trace("variable cannot be declared private: " + varName, lastLoc);
+    return nullptr;
+  }
 
   if (!tok.is(TokenKind::Colon)) {
     trace("expected ':' symbol after variable identifier", lastLoc);
