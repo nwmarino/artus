@@ -595,8 +595,13 @@ void Codegen::visit(MatchStmt *stmt) {
       "merge");
   llvm::BasicBlock *defaultBlock = llvm::BasicBlock::Create(*context, 
       "default");
-  llvm::SwitchInst *swInst = builder->CreateSwitch(matchVal, defaultBlock, 
-      stmt->cases.size());
+
+  llvm::SwitchInst *swInst = nullptr;
+  if (stmt->hasDefault()) {
+    swInst = builder->CreateSwitch(matchVal, defaultBlock, stmt->cases.size() - 1);
+  } else {
+    swInst = builder->CreateSwitch(matchVal, mergeBlock, stmt->cases.size() - 1);
+  }
 
   // Codegen each of the match cases.
   for (std::unique_ptr<MatchCase> &c : stmt->cases) {
@@ -627,7 +632,6 @@ void Codegen::visit(MatchStmt *stmt) {
     swInst->addCase(caseVal, caseBlock);
     builder->SetInsertPoint(caseBlock);
     caseStmt->pass(this);
-    FN->insert(FN->end(), caseBlock);
 
     // Branch to the merge block if the case body has no terminator.
     if (!caseBlock->getTerminator()) {
@@ -644,6 +648,7 @@ void Codegen::visit(MatchStmt *stmt) {
   }
 
   // If the merge block is actually used, insert it.
+  
   if (mergeBlock->hasNPredecessorsOrMore(1)) {
     FN->insert(FN->end(), mergeBlock);
     builder->SetInsertPoint(mergeBlock);
