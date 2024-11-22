@@ -193,7 +193,7 @@ void Codegen::visit(UnaryExpr *expr) {
     case UnaryExpr::UnaryOp::Not:
       tmp = builder->CreateNot(base);
       break;
-    case UnaryExpr::UnaryOp::Ref: // tmp is already the pointer.
+    case UnaryExpr::UnaryOp::Ref: // tmp is already the desired pointer.
       break;
     case UnaryExpr::UnaryOp::DeRef:
       if (!needPtr)

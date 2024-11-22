@@ -109,3 +109,31 @@ const ParamVarDecl *FunctionDecl::getParam(size_t i) const
 { return i < params.size() ? params[i].get() : nullptr; }
 
 bool FunctionDecl::canImport() const { return true; }
+
+/* FieldDecl Implementation -----------------------------------------------===*/
+
+FieldDecl::FieldDecl(const string &name, const Type *T, const Span &span)
+    : NamedDecl(name, span), T(T) {}
+
+void FieldDecl::pass(ASTVisitor *visitor) { visitor->visit(this); }
+
+const Type *FieldDecl::getType() const { return T; }
+
+bool FieldDecl::canImport() const { return false; }
+
+/* StructDecl Implementation ----------------------------------------------===*/
+
+StructDecl::StructDecl(const string &name, vector<unique_ptr<FieldDecl>> fields,
+                       Scope *scope, const Span &span, bool priv)
+    : ScopedDecl(name, scope, span, priv), fields(std::move(fields)), traits(){}
+
+void StructDecl::pass(ASTVisitor *visitor) { visitor->visit(this); }
+
+size_t StructDecl::getNumFields() const { return fields.size(); }
+
+const FieldDecl *StructDecl::getField(size_t i) const 
+{ return i < fields.size() ? fields[i].get() : nullptr; }
+
+void StructDecl::addTrait(const string &trait) { traits.push_back(trait); }
+
+bool StructDecl::canImport() const { return true; }

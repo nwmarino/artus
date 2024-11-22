@@ -164,6 +164,55 @@ public:
   bool canImport() const override;
 };
 
+/// Represents a field declaration of a struct.
+class FieldDecl final : public NamedDecl {
+  friend class ASTPrinter;
+  friend class Sema;
+
+  /// The type of this field declaration.
+  const Type *T;
+
+public:
+  FieldDecl(const string &name, const Type *T, const Span &span);
+
+  void pass(ASTVisitor *visitor) override;
+
+  /// Returns the type of this field declaration.
+  const Type *getType() const;
+
+  bool canImport() const override;
+};
+
+/// Represents a struct declaration.
+class StructDecl final : public ScopedDecl {
+  friend class ASTPrinter;
+  friend class Sema;
+
+  /// The fields of this struct declaration.
+  const vector<std::unique_ptr<FieldDecl>> fields;
+
+  /// The implemented traits of this struct declaration.
+  vector<string> traits;
+
+public:
+  StructDecl(const string &name, vector<std::unique_ptr<FieldDecl>> fields,
+             Scope *scope, const Span &span, bool priv = false);
+
+  void pass(ASTVisitor *visitor) override;
+
+  /// Returns the number of fields in this struct declaration.
+  size_t getNumFields() const;
+
+  /// Returns the field at the specified index, and `nullptr` if it does not
+  /// exist.
+  const FieldDecl *getField(size_t i) const;
+
+  /// Adds a trait to this struct declaration.
+  void addTrait(const string &trait);
+
+  bool canImport() const override;
+};
+
 } // namespace artus
 
 #endif // ARTUS_AST_DECL_H

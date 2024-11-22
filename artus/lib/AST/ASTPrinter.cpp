@@ -3,6 +3,7 @@
 
 #include "../../include/AST/ASTPrinter.h"
 #include "../../include/AST/Expr.h"
+#include "Decl.h"
 
 using std::cout;
 using std::size_t;
@@ -207,6 +208,22 @@ void ASTPrinter::visit(LabelDecl *decl) { /* unused */ }
 void ASTPrinter::visit(VarDecl *decl) {
   printPiping();
   printDecl(decl->span, "VarDecl", decl->name, decl->T->toString(), false);
+
+  if (decl->mut) {
+    cout << " mut";
+  }
+  cout << '\n';
+
+  setLastChild();
+  increaseIndent();
+  decl->init->pass(this);
+  decreaseIndent();
+  resetLastChild();
+}
+
+void ASTPrinter::visit(FieldDecl *decl) {
+  printPiping();
+  printDecl(decl->span, "FieldDecl", decl->name, decl->T->toString(), false);
 
   if (decl->mut) {
     cout << " mut";

@@ -9,6 +9,8 @@ class FunctionDecl;
 class ParamVarDecl;
 class LabelDecl;
 class VarDecl;
+class FieldDecl;
+class StructDecl;
 
 class ImplicitCastExpr;
 class ExplicitCastExpr;
@@ -47,6 +49,8 @@ public:
   virtual void visit(ParamVarDecl *decl) = 0;
   virtual void visit(LabelDecl *decl) = 0;
   virtual void visit(VarDecl *decl) = 0;
+  virtual void visit(FieldDecl *decl) = 0;
+  virtual void visit(StructDecl *decl) = 0;
 
   virtual void visit(ImplicitCastExpr *expr) = 0;
   virtual void visit(ExplicitCastExpr *expr) = 0;
