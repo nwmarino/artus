@@ -21,9 +21,8 @@ bool Parser::nextToken() {
   return ctx->nextFile();
 }
 
-bool Parser::peekToken() { 
-  return !peeking && ctx->lexer->Lex(peek) ? ++peeking : false; 
-}
+bool Parser::peekToken() 
+{ return !peeking && ctx->lexer->Lex(peek) ? ++peeking : false; }
 
 const Span Parser::createSpan(const SourceLocation &firstLoc) const {
   return { .file = firstLoc.file, .line =  firstLoc.line, 
@@ -40,23 +39,36 @@ const Span Parser::createSpan(const SourceLocation &firstLoc,
 
 void Parser::exitScope() { this->scope = scope->getParent(); }
 
-void Parser::enterScope(const ScopeContext &ctx) { 
-  this->scope = new Scope(this->scope, {}, ctx); 
-}
+void Parser::enterScope(const ScopeContext &ctx) 
+{ this->scope = new Scope(this->scope, {}, ctx); }
 
 int Parser::getPrecedence() const {
   switch (tok.kind) {
     case TokenKind::Star:
     case TokenKind::Slash:
-      return 4;
+      return 6;
     case TokenKind::Plus:
     case TokenKind::Minus:
-      return 3;
+      return 5;
+    case TokenKind::Less:
+    case TokenKind::Greater:
+    case TokenKind::LessEquals:
+    case TokenKind::GreaterEquals:
+      return 4;
     case TokenKind::EqualsEquals:
+    case TokenKind::BangEquals:
+      return 3;
+    case TokenKind::AndAnd:
+    case TokenKind::OrOr:
+    case TokenKind::XorXor:
       return 2;
     case TokenKind::Equals:
+    case TokenKind::PlusEquals:
+    case TokenKind::MinusEquals:
+    case TokenKind::StarEquals:
+    case TokenKind::SlashEquals:
       return 1;
-    default:
+    default: 
       return -1;
   }
 
@@ -76,29 +88,49 @@ UnaryExpr::UnaryOp Parser::getUnaryOp() const {
     default: 
       return UnaryExpr::UnaryOp::Unknown;
   }
-
-  return UnaryExpr::UnaryOp::Unknown;
 }
 
 BinaryExpr::BinaryOp Parser::getBinaryOp() const {
   switch (tok.kind) {
     case TokenKind::Equals: 
       return BinaryExpr::BinaryOp::Assign;
+    case TokenKind::PlusEquals:
+      return BinaryExpr::BinaryOp::AddAssign;
+    case TokenKind::MinusEquals:
+      return BinaryExpr::BinaryOp::SubAssign;
+    case TokenKind::StarEquals:
+      return BinaryExpr::BinaryOp::MultAssign;
+    case TokenKind::SlashEquals:
+      return BinaryExpr::BinaryOp::DivAssign;
     case TokenKind::EqualsEquals:
       return BinaryExpr::BinaryOp::Equals;
+    case TokenKind::BangEquals:
+      return BinaryExpr::BinaryOp::NotEquals;
+    case TokenKind::Less:
+      return BinaryExpr::BinaryOp::LessThan;
+    case TokenKind::Greater:
+      return BinaryExpr::BinaryOp::GreaterThan;
+    case TokenKind::LessEquals:
+      return BinaryExpr::BinaryOp::LessEquals;
+    case TokenKind::GreaterEquals:
+      return BinaryExpr::BinaryOp::GreaterEquals;
+    case TokenKind::AndAnd:
+      return BinaryExpr::BinaryOp::LogicalAnd;
+    case TokenKind::OrOr:
+      return BinaryExpr::BinaryOp::LogicalOr;
+    case TokenKind::XorXor:
+      return BinaryExpr::BinaryOp::LogicalXor;
     case TokenKind::Plus:
       return BinaryExpr::BinaryOp::Add;
     case TokenKind::Minus:
       return BinaryExpr::BinaryOp::Sub;
-    case TokenKind::Star: 
+    case TokenKind::Star:
       return BinaryExpr::BinaryOp::Mult;
-    case TokenKind::Slash: 
+    case TokenKind::Slash:
       return BinaryExpr::BinaryOp::Div;
-    default: 
+    default:
       return BinaryExpr::BinaryOp::Unknown;
   }
-
-  return BinaryExpr::BinaryOp::Unknown;
 }
 
 /// Parses a defined type reference. For example, `#int` or `char[5]`.

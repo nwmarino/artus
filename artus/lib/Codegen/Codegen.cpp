@@ -202,27 +202,126 @@ void Codegen::visit(UnaryExpr *expr) {
 }
 
 void Codegen::visit(BinaryExpr *expr) {
-  if (expr->isAssignment()) {
-    needPtr = true;
-  }
+  // Signify that a pointer is needed if assigning directly. (=)
+  needPtr = expr->isDirectAssignment();
 
+  // Codegen pass on the left and right hand side of the binary expression.
   expr->lhs->pass(this);
-  needPtr = false;
   llvm::Value *lhs = tmp;
-
+  needPtr = false;
   expr->rhs->pass(this);
   llvm::Value *rhs = tmp;
 
   switch (expr->op) {
-    case BinaryExpr::BinaryOp::Assign:
+    case BinaryExpr::BinaryOp::Assign: // =
       tmp = builder->CreateStore(rhs, lhs);
       break;
+    case BinaryExpr::BinaryOp::AddAssign: {
+      llvm::Value *addVal = nullptr;
+      if (expr->T->isFloatingPointType()) {
+        addVal = builder->CreateFAdd(lhs, rhs);
+      } else {
+        addVal = builder->CreateAdd(lhs, rhs);
+      }
+
+      // Get the pointer for the left hand side.
+      needPtr = true;
+      expr->lhs->pass(this);
+      tmp = builder->CreateStore(addVal, tmp);
+      break;
+    }
+    case BinaryExpr::BinaryOp::SubAssign: {
+      llvm::Value *subVal = nullptr;
+      if (expr->T->isFloatingPointType()) {
+        subVal = builder->CreateFSub(lhs, rhs);
+      } else {
+        subVal = builder->CreateSub(lhs, rhs);
+      }
+
+      // Get the pointer for the left hand side.
+      needPtr = true;
+      expr->lhs->pass(this);
+      tmp = builder->CreateStore(subVal, tmp);
+      break;
+    }
+    case BinaryExpr::BinaryOp::MultAssign: {
+      llvm::Value *multVal = nullptr;
+      if (expr->T->isFloatingPointType()) {
+        multVal = builder->CreateFMul(lhs, rhs);
+      } else {
+        multVal = builder->CreateMul(lhs, rhs);
+      }
+
+      // Get the pointer for the left hand side.
+      needPtr = true;
+      expr->lhs->pass(this);
+      tmp = builder->CreateStore(multVal, tmp);
+      break;
+    }
+    case BinaryExpr::BinaryOp::DivAssign: {
+      llvm::Value *divVal = nullptr;
+      if (expr->T->isFloatingPointType()) {
+        divVal = builder->CreateFDiv(lhs, rhs);
+      } else {
+        divVal = builder->CreateSDiv(lhs, rhs);
+      }
+
+      // Get the pointer for the left hand side.
+      needPtr = true;
+      expr->lhs->pass(this);
+      tmp = builder->CreateStore(divVal, tmp);
+      break;
+    }
     case BinaryExpr::BinaryOp::Equals:
       if (expr->T->isFloatingPointType()) {
         tmp = builder->CreateFCmpOEQ(lhs, rhs);
         break;
       }
       tmp = builder->CreateICmpEQ(lhs, rhs);
+      break;
+    case BinaryExpr::BinaryOp::NotEquals:
+      if (expr->T->isFloatingPointType()) {
+        tmp = builder->CreateFCmpONE(lhs, rhs);
+        break;
+      }
+      tmp = builder->CreateICmpNE(lhs, rhs);
+      break;
+    case BinaryExpr::BinaryOp::LessThan:
+      if (expr->T->isFloatingPointType()) {
+        tmp = builder->CreateFCmpOLT(lhs, rhs);
+        break;
+      }
+      tmp = builder->CreateICmpSLT(lhs, rhs);
+      break;
+    case BinaryExpr::BinaryOp::GreaterThan:
+      if (expr->T->isFloatingPointType()) {
+        tmp = builder->CreateFCmpOGT(lhs, rhs);
+        break;
+      }
+      tmp = builder->CreateICmpSGT(lhs, rhs);
+      break;
+    case BinaryExpr::BinaryOp::LessEquals:
+      if (expr->T->isFloatingPointType()) {
+        tmp = builder->CreateFCmpOLE(lhs, rhs);
+        break;
+      }
+      tmp = builder->CreateICmpSLE(lhs, rhs);
+      break;
+    case BinaryExpr::BinaryOp::GreaterEquals:
+      if (expr->T->isFloatingPointType()) {
+        tmp = builder->CreateFCmpOGE(lhs, rhs);
+        break;
+      }
+      tmp = builder->CreateICmpSGE(lhs, rhs);
+      break;
+    case BinaryExpr::BinaryOp::LogicalAnd:
+      tmp = builder->CreateAnd(lhs, rhs);
+      break;
+    case BinaryExpr::BinaryOp::LogicalOr:
+      tmp = builder->CreateOr(lhs, rhs);
+      break;
+    case BinaryExpr::BinaryOp::LogicalXor:
+      tmp = builder->CreateXor(lhs, rhs);
       break;
     case BinaryExpr::BinaryOp::Add:
       if (expr->T->isFloatingPointType()) {
@@ -254,6 +353,8 @@ void Codegen::visit(BinaryExpr *expr) {
       break;
     default: fatal("unknown binary operator");
   }
+
+  needPtr = false;
 }
 
 void Codegen::visit(BooleanLiteral *expr) {

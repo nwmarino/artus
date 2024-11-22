@@ -13,10 +13,14 @@ using namespace artus;
 /// Returns a string representation of a unary operator.
 inline static string unaryOpToString(UnaryExpr::UnaryOp op) {
   switch (op) {
-    case UnaryExpr::UnaryOp::Negative: return "-";
-    case UnaryExpr::UnaryOp::Not: return "!";
-    case UnaryExpr::UnaryOp::Ref: return "&";
-    case UnaryExpr::UnaryOp::DeRef: return "#";
+    case UnaryExpr::UnaryOp::Negative: 
+      return "-";
+    case UnaryExpr::UnaryOp::Not: 
+      return "!";
+    case UnaryExpr::UnaryOp::Ref: 
+      return "&";
+    case UnaryExpr::UnaryOp::DeRef: 
+      return "#";
     default: return " ";
   }
 }
@@ -24,13 +28,44 @@ inline static string unaryOpToString(UnaryExpr::UnaryOp op) {
 /// Returns a string representation of a binary operator.
 inline static string binaryOpToString(BinaryExpr::BinaryOp op) {
   switch (op) {
-    case BinaryExpr::BinaryOp::Assign: return "=";
-    case BinaryExpr::BinaryOp::Equals: return "==";
-    case BinaryExpr::BinaryOp::Add: return "+";
-    case BinaryExpr::BinaryOp::Sub: return "-";
-    case BinaryExpr::BinaryOp::Mult: return "*";
-    case BinaryExpr::BinaryOp::Div: return "/";
-    default: return " ";
+    case BinaryExpr::BinaryOp::Assign: 
+      return "=";
+    case BinaryExpr::BinaryOp::AddAssign: 
+      return "+=";
+    case BinaryExpr::BinaryOp::SubAssign: 
+      return "-=";
+    case BinaryExpr::BinaryOp::MultAssign: 
+      return "*=";
+    case BinaryExpr::BinaryOp::DivAssign: 
+      return "/=";
+    case BinaryExpr::BinaryOp::Equals: 
+      return "==";
+    case BinaryExpr::BinaryOp::NotEquals: 
+      return "!=";
+    case BinaryExpr::BinaryOp::LessThan: 
+      return "<";
+    case BinaryExpr::BinaryOp::LessEquals: 
+      return "<=";
+    case BinaryExpr::BinaryOp::GreaterThan: 
+      return ">";
+    case BinaryExpr::BinaryOp::GreaterEquals: 
+      return ">=";
+    case BinaryExpr::BinaryOp::LogicalAnd: 
+      return "&&";
+    case BinaryExpr::BinaryOp::LogicalOr: 
+      return "||";
+    case BinaryExpr::BinaryOp::LogicalXor: 
+      return "^^";
+    case BinaryExpr::BinaryOp::Add: 
+     return "+";
+    case BinaryExpr::BinaryOp::Sub: 
+      return "-";
+    case BinaryExpr::BinaryOp::Mult: 
+      return "*";
+    case BinaryExpr::BinaryOp::Div: 
+      return "/";
+    default: 
+      return " ";
   }
 }
 

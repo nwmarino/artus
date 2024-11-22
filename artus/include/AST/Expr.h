@@ -165,8 +165,32 @@ public:
     Unknown = -1,
     // =
     Assign,
-    /// ==
+    // +=
+    AddAssign,
+    // -=
+    SubAssign,
+    // *=
+    MultAssign,
+    // /=
+    DivAssign,
+    // ==
     Equals,
+    // !=
+    NotEquals,
+    // <
+    LessThan,
+    // >
+    GreaterThan,
+    // <=
+    LessEquals,
+    // >=
+    GreaterEquals,
+    // &&
+    LogicalAnd,
+    // ||
+    LogicalOr,
+    // ^^
+    LogicalXor,
     // +
     Add,
     // -
@@ -196,13 +220,16 @@ public:
 
   void pass(ASTVisitor *visitor) override { visitor->visit(this); }
 
+  /// Returns true if this binary expression is a direct assignment.
+  bool isDirectAssignment() const { return op == BinaryOp::Assign; }
+
   /// Returns true if this binary expression is an assignment.
   bool isAssignment() const 
-  { return op >= BinaryOp::Assign && op <= BinaryOp::Assign; }
+  { return op >= BinaryOp::Assign && op <= BinaryOp::DivAssign; }
 
   /// Returns true if this binary expression is a comparison.
   bool isComparison() const 
-  { return op >= BinaryOp::Equals && op <= BinaryOp::Equals; }
+  { return op >= BinaryOp::Equals && op <= BinaryOp::LogicalXor; }
 };
 
 /// A boolean literal; `true` or `false`.

@@ -95,12 +95,36 @@ enum class TokenKind {
   Hash,
   /// &
   Ampersand,
+  /// <
+  Less,
+  /// >
+  Greater,
 
   /// Compound Tokens
   /// ->
   Arrow,
   /// ==
   EqualsEquals,
+  /// !=
+  BangEquals,
+  /// +=
+  PlusEquals,
+  /// -=
+  MinusEquals,
+  /// *=
+  StarEquals,
+  /// /=
+  SlashEquals,
+  /// <=
+  LessEquals,
+  /// >=
+  GreaterEquals,
+  /// &&
+  AndAnd,
+  /// ||
+  OrOr,
+  /// ^^
+  XorXor,
 
   /// End of file
   Eof,

@@ -1,6 +1,7 @@
 # artus
 
-| type id | desc. | example |
+## Types
+| Identifier | Name | Example |
 |---------|-------|---------|
 | `bool` | boolean | `0`, `1`
 | `char` | char/8-bit | `'a'`, `256`
@@ -11,6 +12,16 @@
 | `u64` | 64-bit unsigned | `2^64`
 | `string` | string | `"abc"`
 | `f64` | floating point | `3.14`
+
+## Operators
+| Operator | Precedence | Use
+| `=` `+=` `-=` `*=` `/=` | 1 | Assignment
+| `&&` `||` `^^` | 2 | Logical Comparison
+| `==` `!=` | 3 | Equality Comparison
+| `<` `>` `<=` `>=` | 4 | Inequalities
+| `+` `-` | 5 | Additive Ops
+| `*` `/` | 6 | Multiplicative Ops
+| `#` `&` `!` `-` | 7 | Unary Ops
 
 ## Pointers
 ```rs
@@ -79,6 +90,20 @@ if cond {
 } else if cond {
     ...
 } else {
+    ...
+}
+```
+
+While Loops
+```rs
+while cond {
+    ...
+}
+```
+
+Until Loops
+```rs
+until cond {
     ...
 }
 ```

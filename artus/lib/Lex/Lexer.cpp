@@ -55,7 +55,7 @@ entry:
   size_t skp = 1;
   switch (*BufferPos) {
 
-  /// Character literals.
+  // Character literals.
   case '\'':
     next.kind = TokenKind::Literal;
     next.literalKind = LiteralKind::Character;
@@ -67,7 +67,7 @@ entry:
     }
     break;
 
-  /// String literals.
+  // String literals.
   case '"':
     next.kind = TokenKind::Literal;
     next.literalKind = LiteralKind::String;
@@ -81,7 +81,7 @@ entry:
     }
     break;
 
-  /// Equals operators or equality tokens.
+  // Equals operators or equality tokens.
   case '=':
     if (peek(1) == "=") {
       BufferPos++;
@@ -92,56 +92,134 @@ entry:
     }
     break;
 
-  /// Subtraction operators or arrow tokens.
+  // Addition operators.
+  case '+':
+    if (peek(1) == "=") {
+      BufferPos++;
+      skp++;
+      next.kind = TokenKind::PlusEquals;
+    } else {
+      next.kind = TokenKind::Plus;
+    }
+    break;
+
+  // Subtraction operators or arrow tokens.
   case '-':
     if (peek(1) == ">") {
       BufferPos++;
       skp++;
       next.kind = TokenKind::Arrow;
+    } else if (peek(1) == "=") {
+      BufferPos++;
+      skp++;
+      next.kind = TokenKind::MinusEquals;
     } else {
       next.kind = TokenKind::Minus;
     }
     break;
 
-  /// Division operators or line comments.
+  // Multiplication operators.
+  case '*':
+    if (peek(1) == "=") {
+      BufferPos++;
+      skp++;
+      next.kind = TokenKind::StarEquals;
+    } else {
+      next.kind = TokenKind::Star;
+    }
+    break;
+
+  // Division operators or line comments.
   case '/':
     if (peek(1) == "/") {
       BufferPos++;
       skp++;
       next.kind = TokenKind::LineComment;
+    } else if (peek(1) == "=") {
+      BufferPos++;
+      skp++;
+      next.kind = TokenKind::SlashEquals;
     } else {
       next.kind = TokenKind::Slash;
     }
     break;
 
-  /// Bang or not equals.
+  // Bang or not equals.
   case '!':
-    /*
     if (peek(1) == "=") {
       BufferPos++;
       skp++;
-      next.kind = TokenKind::NotEquals;
-    }*/
-    next.kind = TokenKind::Bang;
+      next.kind = TokenKind::BangEquals;
+    } else {
+      next.kind = TokenKind::Bang;
+    }
     break;
 
-  /// Basic token lexing.
+  // Less than inequalities.
+  case '<':
+    if (peek(1) == "=") {
+      BufferPos++;
+      skp++;
+      next.kind = TokenKind::LessEquals;
+    } else {
+      next.kind = TokenKind::Less;
+    }
+    break;
+
+  // Greater than inequalities.
+  case '>':
+    if (peek(1) == "=") {
+      BufferPos++;
+      skp++;
+      next.kind = TokenKind::GreaterEquals;
+    } else {
+      next.kind = TokenKind::Greater;
+    }
+    break;
+
+  // Or operators.
+  case '|':
+    if (peek(1) == "|") {
+      BufferPos++;
+      skp++;
+      next.kind = TokenKind::OrOr;
+    }
+    break;
+
+  // And operators.
+  case '&':
+    if (peek(1) == "&") {
+      BufferPos++;
+      skp++;
+      next.kind = TokenKind::AndAnd;
+    } else {
+      next.kind = TokenKind::Ampersand;
+    }
+    break;
+
+  // Xor operators.
+  case '^':
+    if (peek(1) == "^") {
+      BufferPos++;
+      skp++;
+      next.kind = TokenKind::XorXor;
+    }
+    break;
+
+  // Basic token lexing.
   case '(': next.kind = TokenKind::OpenParen; break;
   case ')': next.kind = TokenKind::CloseParen; break;
   case '{': next.kind = TokenKind::OpenBrace; break;
   case '}': next.kind = TokenKind::CloseBrace; break;
   case '[': next.kind = TokenKind::OpenBracket; break;
   case ']': next.kind = TokenKind::CloseBracket; break;
-  case '+': next.kind = TokenKind::Plus; break;
-  case '*': next.kind = TokenKind::Star; break;
   case ':': next.kind = TokenKind::Colon; break;
   case '.': next.kind = TokenKind::Dot; break;
   case ',': next.kind = TokenKind::Comma; break;
   case '@': next.kind = TokenKind::At; break;
   case '#': next.kind = TokenKind::Hash; break;
-  case '&': next.kind = TokenKind::Ampersand; break;
 
-  /// Identifiers and numeric literals.
+  // Identifiers and numeric literals.
   default:
     if (isalpha(*BufferPos) || *BufferPos == '_') {
       next.kind = TokenKind::Identifier;
@@ -168,7 +246,6 @@ entry:
       break;
     }
 
-    /// Unresolved token.
     fatal(std::string("unresolved token: '") + *BufferPos + '\'', loc);
   } // end switch
 
@@ -214,6 +291,18 @@ const string Lexer::dump() {
       case TokenKind::Arrow: tmp = "Arrow"; break;
       case TokenKind::EqualsEquals: tmp = "EqualsEquals"; break;
       case TokenKind::Eof: tmp = "Eof"; break;
+      case TokenKind::Less: tmp = "Less"; break;
+      case TokenKind::Greater: tmp = "Greater"; break;
+      case TokenKind::BangEquals: tmp = "BangEquals"; break;
+      case TokenKind::PlusEquals: tmp = "PlusEquals"; break;
+      case TokenKind::MinusEquals: tmp = "MinusEquals"; break;
+      case TokenKind::StarEquals: tmp = "StarEquals"; break;
+      case TokenKind::SlashEquals: tmp = "SlashEquals"; break;
+      case TokenKind::LessEquals: tmp = "LessEquals"; break;
+      case TokenKind::GreaterEquals: tmp = "GreaterEquals"; break;
+      case TokenKind::AndAnd: tmp = "AndAnd"; break;
+      case TokenKind::OrOr: tmp = "OrOr"; break;
+      case TokenKind::XorXor: tmp = "XorXor"; break;
     }
 
     result += std::format("{:15}{}\n", loc, tmp);

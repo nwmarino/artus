@@ -1,7 +1,8 @@
 fn @main() -> i64 {
   mut x: i64 = 5
-  until x == 10 {
-    x = x + 1
+  while x != 80 {
+    x *= 2
   }
-  ret x
+  x -= 5
+  ret x 
 }
