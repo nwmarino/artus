@@ -3,8 +3,9 @@ struct A {
 }
 
 fn @main() -> i64 {
-  mut x: str = "hello"
-  ret x[9]
+  mut y: i64[3] = [0, 1, 2]
+  y = [1, 2, 3]
+  ret y[0]
 }
 
 fn @foo() -> #A {

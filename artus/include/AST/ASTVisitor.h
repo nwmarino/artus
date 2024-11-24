@@ -23,8 +23,8 @@ class FPLiteral;
 class CharLiteral;
 class StringLiteral;
 class NullExpr;
-class ArrayInitExpr;
-class ArrayAccessExpr;
+class ArrayExpr;
+class ArraySubscriptExpr;
 
 class CompoundStmt;
 class DeclStmt;
@@ -60,8 +60,8 @@ public:
   virtual void visit(CharLiteral *expr) = 0;
   virtual void visit(StringLiteral *expr) = 0;
   virtual void visit(NullExpr *expr) = 0;
-  virtual void visit(ArrayInitExpr *expr) = 0;
-  virtual void visit(ArrayAccessExpr *expr) = 0;
+  virtual void visit(ArrayExpr *expr) = 0;
+  virtual void visit(ArraySubscriptExpr *expr) = 0;
 
   virtual void visit(CompoundStmt *stmt) = 0;
   virtual void visit(DeclStmt *stmt) = 0;

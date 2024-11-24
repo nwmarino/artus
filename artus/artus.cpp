@@ -26,6 +26,7 @@ using namespace artus;
   printf("Options:\n");
   printf("  -o: Specify the output file\n");
   printf("  -d: Enable debug mode\n");
+  printf("  -t: Print compilation time\n");
   printf("  -nc: Skip code generation\n");
   printf("  -ll: Emit LLVM IR\n");
   printf("  -S: Emit assembly\n");

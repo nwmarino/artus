@@ -28,7 +28,7 @@ const VarDecl *Sema::resolveReference(Expr *lvalue) {
     return dynamic_cast<const VarDecl *>(decl);
   }
 
-  if (ArrayAccessExpr *arr = dynamic_cast<ArrayAccessExpr *>(lvalue)) {
+  if (ArraySubscriptExpr *arr = dynamic_cast<ArraySubscriptExpr *>(lvalue)) {
     return resolveReference(arr->base.get());
   }
 
@@ -341,7 +341,7 @@ void Sema::visit(BinaryExpr *expr) {
   }
 
   // Check that `str` types are not mutated.
-  if (ArrayAccessExpr *arr = dynamic_cast<ArrayAccessExpr *>(expr->lhs.get())) {
+  if (ArraySubscriptExpr *arr = dynamic_cast<ArraySubscriptExpr *>(expr->lhs.get())) {
     if (arr->base->T->isStringType()) {
       fatal("attempted to mutate string type", { expr->span.file,
           expr->span.line, expr->span.col });
@@ -356,11 +356,11 @@ void Sema::visit(CharLiteral *expr) { /* no work to be done */ }
 void Sema::visit(StringLiteral *expr) { /* no work to be done */ }
 void Sema::visit(NullExpr *expr) { /* no work to be done */ }
 
-/// Semantic Analysis over an ArrayInitExpr.
+/// Semantic Analysis over an ArrayExpr.
 ///
 /// ArrayInitExprs are valid if and only if all of their expressions are of the
 /// same type as the array.
-void Sema::visit(ArrayInitExpr *expr) {
+void Sema::visit(ArrayExpr *expr) {
   const ArrayType *AT = dynamic_cast<const ArrayType *>(expr->T);
   assert(AT && "expected array type");
 
@@ -379,11 +379,11 @@ void Sema::visit(ArrayInitExpr *expr) {
   }
 }
 
-/// Semantic Analysis over a ArrayAccessExpr.
+/// Semantic Analysis over a ArraySubscriptExpr.
 ///
 /// ArrayAccessExprs are valid if and only if they are of the same type as their
 /// array. The index is also checked to be of an integer type.
-void Sema::visit(ArrayAccessExpr *expr) {
+void Sema::visit(ArraySubscriptExpr *expr) {
   expr->base->pass(this); // Sema on the base expression.
   expr->index->pass(this); // Sema on the index expression.
 

@@ -342,7 +342,7 @@ public:
 };
 
 /// An array initialization expression. For example, `[1, 2, 3]`.
-class ArrayInitExpr final : public Expr {
+class ArrayExpr final : public Expr {
   friend class ASTPrinter;
   friend class Codegen;
   friend class ReferenceAnalysis;
@@ -352,7 +352,7 @@ class ArrayInitExpr final : public Expr {
   vector<std::unique_ptr<Expr>> exprs;
 
 public:
-  ArrayInitExpr(vector<std::unique_ptr<Expr>> exprs, const Type *T, 
+  ArrayExpr(vector<std::unique_ptr<Expr>> exprs, const Type *T, 
                 const Span &span)
       : Expr(T, span), exprs(std::move(exprs)) {}
 
@@ -366,7 +366,7 @@ public:
 };
 
 /// An array access expression. For example, `arr[0]`.
-class ArrayAccessExpr final : public Expr {
+class ArraySubscriptExpr final : public Expr {
   friend class ASTPrinter;
   friend class Codegen;
   friend class ReferenceAnalysis;
@@ -382,7 +382,7 @@ class ArrayAccessExpr final : public Expr {
   std::unique_ptr<Expr> index;
 
 public:
-  ArrayAccessExpr(const string &name, std::unique_ptr<Expr> base, 
+  ArraySubscriptExpr(const string &name, std::unique_ptr<Expr> base, 
                   std::unique_ptr<Expr> index, const Type *T, const Span &span)
       : Expr(T, span), name(name), base(std::move(base)), 
       index(std::move(index)) {

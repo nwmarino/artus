@@ -275,7 +275,7 @@ void ReferenceAnalysis::visit(NullExpr *expr) {
       ("invalid null pointer type: " + expr->T->toString()).c_str());
 }
 
-void ReferenceAnalysis::visit(ArrayInitExpr *expr) {
+void ReferenceAnalysis::visit(ArrayExpr *expr) {
   // Pass on each of the expressions.
   for (std::unique_ptr<Expr> &e : expr->exprs) {
     e->pass(this);
@@ -291,7 +291,7 @@ void ReferenceAnalysis::visit(ArrayInitExpr *expr) {
       ("invalid array list type: " + expr->T->toString()).c_str());
 }
 
-void ReferenceAnalysis::visit(ArrayAccessExpr *expr) {
+void ReferenceAnalysis::visit(ArraySubscriptExpr *expr) {
   expr->base->pass(this);
   expr->index->pass(this);
 

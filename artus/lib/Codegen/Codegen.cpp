@@ -391,7 +391,7 @@ void Codegen::visit(NullExpr *expr) {
       expr->T->toLLVMType(*context), 0));
 }
 
-void Codegen::visit(ArrayInitExpr *expr) {
+void Codegen::visit(ArrayExpr *expr) {
   llvm::Type *T = expr->T->toLLVMType(*context);
   llvm::Value *array = llvm::UndefValue::get(T);
 
@@ -403,7 +403,7 @@ void Codegen::visit(ArrayInitExpr *expr) {
   tmp = array;
 }
 
-void Codegen::visit(ArrayAccessExpr *expr) {
+void Codegen::visit(ArraySubscriptExpr *expr) {
   expr->base->pass(this);
   llvm::Value *base = tmp;
   expr->index->pass(this);

@@ -368,9 +368,9 @@ void ASTPrinter::visit(NullExpr *expr) {
   printExpr(expr->span, "NullExpr", expr->T->toString());
 }
 
-void ASTPrinter::visit(ArrayInitExpr *expr) {
+void ASTPrinter::visit(ArrayExpr *expr) {
   printPiping();
-  printExpr(expr->span, "ArrayInitExpr", expr->T->toString());
+  printExpr(expr->span, "ArrayExpr", expr->T->toString());
   resetLastChild();
   increaseIndent();
   setPiping(indent);
@@ -387,9 +387,9 @@ void ASTPrinter::visit(ArrayInitExpr *expr) {
   resetLastChild();
 }
 
-void ASTPrinter::visit(ArrayAccessExpr *expr) {
+void ASTPrinter::visit(ArraySubscriptExpr *expr) {
   printPiping();
-  printExpr(expr->span, "ArrayAccessExpr", expr->T->toString(), expr->name);
+  printExpr(expr->span, "ArraySubscriptExpr", expr->T->toString(), expr->name);
   resetLastChild();
   increaseIndent();
   expr->base->pass(this);

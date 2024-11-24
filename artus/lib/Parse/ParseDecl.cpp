@@ -216,7 +216,7 @@ std::unique_ptr<Decl> Parser::ParseVarDeclaration(bool isMut) {
         trace("expected array type for array initialization", lastLoc);
         return nullptr;
       }
-      initExpr = ParseArrayInitExpression(AT);
+      initExpr = ParseArrayExpression(AT);
     } else
       initExpr = ParseExpression();
 

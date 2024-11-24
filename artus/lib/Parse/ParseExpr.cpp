@@ -46,7 +46,7 @@ std::unique_ptr<Expr> Parser::ParseDefaultInitExpression(const Type *T) {
       exprs.push_back(ParseDefaultInitExpression(AT->getElementType()));
     }
 
-    return std::make_unique<ArrayInitExpr>(std::move(exprs), T, 
+    return std::make_unique<ArrayExpr>(std::move(exprs), T, 
         createSpan(lastLoc));
   }
 
@@ -73,6 +73,8 @@ std::unique_ptr<Expr> Parser::ParsePrimaryExpression() {
   // Call expressions.
   if (tok.is(TokenKind::At))
     return ParseCallExpression();
+  else if (tok.is(TokenKind::OpenBracket))
+    return ParseArrayExpression(nullptr);
 
   // Identifier expressions: references, boolean literals, null, casts.
   if (tok.is(TokenKind::Identifier)) {
@@ -380,16 +382,15 @@ std::unique_ptr<Expr> Parser::ParseNullExpression() {
   return std::make_unique<NullExpr>(T, createSpan(nullToken.loc));
 }
 
-/// Parse an array initialization expression.
+/// Parse an array expression, i.e. `[1, 2, 3]`.
 ///
 /// Expects the current token to be an open bracket.
-std::unique_ptr<Expr> Parser::ParseArrayInitExpression(const ArrayType *T) {
+std::unique_ptr<Expr> Parser::ParseArrayExpression(const ArrayType *T) {
   assert(tok.is(TokenKind::OpenBracket) && "expected '['");
 
   SourceLocation firstLoc = tok.loc;
   nextToken(); // Eat the '[' token.
 
-  size_t idxs = 0;
   vector<std::unique_ptr<Expr>> exprs = {};
   while (!tok.is(TokenKind::CloseBracket)) {
     std::unique_ptr<Expr> expr = ParseExpression();
@@ -398,7 +399,6 @@ std::unique_ptr<Expr> Parser::ParseArrayInitExpression(const ArrayType *T) {
     }
 
     exprs.push_back(std::move(expr));
-    idxs++;
 
     // Expect a terminator or another expression.
     if (tok.is(TokenKind::Comma)) {
@@ -410,13 +410,31 @@ std::unique_ptr<Expr> Parser::ParseArrayInitExpression(const ArrayType *T) {
 
   nextToken(); // Eat the ']' token.
 
-  // Check that the number of expressions matches the array size.
-  if (idxs != T->getSize()) {
-    fatal("expected " + std::to_string(T->getSize()) + " expressions in array "
-        "initializer, got " + std::to_string(idxs), lastLoc);
+  if (exprs.size() < 1) {
+    fatal("expected at least one expression in array initializer", lastLoc);
   }
 
-  return std::make_unique<ArrayInitExpr>(std::move(exprs), T,
+  // Check that the number of expressions matches the array size.
+  if (T && exprs.size() != T->getSize()) {
+    fatal("expected " + std::to_string(T->getSize()) + " expressions in array "
+        "initializer, got " + std::to_string(exprs.size()), lastLoc);
+  }
+
+  // If an array type was not provided, infer one ourselves.
+  if (!T) {
+    // At this point, assume all expressions are of the same type.
+    size_t size = exprs.size();
+    const Type *elemType = exprs.at(0)->getType();
+
+    // Get a type for the array.
+    const Type *T = ctx->getType(elemType->toString() 
+        + "[" + std::to_string(size) + "]");
+
+    return std::make_unique<ArrayExpr>(std::move(exprs), T, 
+        createSpan(firstLoc, lastLoc));
+  }
+
+  return std::make_unique<ArrayExpr>(std::move(exprs), T,
     createSpan(firstLoc, lastLoc));
 }
 
@@ -462,6 +480,6 @@ std::unique_ptr<Expr> Parser::ParseArrayAccessExpression() {
   }
   nextToken(); // Eat the ']' token.
 
-  return std::make_unique<ArrayAccessExpr>(baseToken.value, std::move(base),
+  return std::make_unique<ArraySubscriptExpr>(baseToken.value, std::move(base),
       std::move(index), nullptr, createSpan(baseToken.loc, lastLoc));
 }

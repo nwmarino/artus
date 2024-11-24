@@ -111,8 +111,8 @@ public:
   void visit(CharLiteral *expr) override;
   void visit(StringLiteral *expr) override;
   void visit(NullExpr *expr) override;
-  void visit(ArrayInitExpr *expr) override;
-  void visit(ArrayAccessExpr *expr) override;
+  void visit(ArrayExpr *expr) override;
+  void visit(ArraySubscriptExpr *expr) override;
 
   void visit(CompoundStmt *stmt) override;
   void visit(DeclStmt *stmt) override;
