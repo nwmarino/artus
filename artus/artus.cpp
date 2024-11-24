@@ -1,3 +1,4 @@
+#include <chrono>
 #include <cstdlib>
 #include <fstream>
 
@@ -9,6 +10,9 @@
 using std::ofstream;
 using std::fstream;
 using std::string;
+using std::chrono::high_resolution_clock;
+using std::chrono::milliseconds;
+using std::chrono::time_point;
 
 using namespace artus;
 
@@ -63,8 +67,9 @@ InputContainer parseCommandArgs(int argc, char **argv) {
     if (strcmp(argv[i], "-h") == 0) {
       printHelp();
     }
-    
-    if (strcmp(argv[i], "-d") == 0)
+    if (strcmp(argv[i], "-t") == 0)
+      flags.printTime = 1;
+    else if (strcmp(argv[i], "-d") == 0)
       flags.debug = 1;
     else if (strcmp(argv[i], "-S") == 0)
       flags.emitASM = 1;
@@ -103,6 +108,9 @@ int main(int argc, char **argv) {
     printHelp(true);
   }
 
+  // Start timer for compilation.
+  time_point start = high_resolution_clock::now();
+
   InputContainer input = parseCommandArgs(argc, argv);
 
   llvm::InitializeAllTargets();
@@ -112,6 +120,14 @@ int main(int argc, char **argv) {
   llvm::InitializeAllAsmParsers();
 
   Driver driver = Driver(input);
+
+  // Stop timer for compilation, and calculate duration.
+  time_point stop = high_resolution_clock::now();
+  auto duration = std::chrono::duration_cast<milliseconds>(stop - start);
+
+  if (input.flags.printTime) {
+    printf("artus: compilation took: %ldms\n", duration.count());
+  }
 
   return EXIT_SUCCESS;
 }

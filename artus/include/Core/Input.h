@@ -40,6 +40,9 @@ struct CompilerFlags {
 
   /// To print the AST post-sema.
   unsigned int printAST : 1;
+
+  /// To print the time compilation took.
+  unsigned int printTime : 1;
 };
 
 /// Wrapper object for compiler flags and input.

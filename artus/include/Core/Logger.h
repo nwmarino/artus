@@ -25,6 +25,9 @@ void warn(const string &msg, const SourceLocation &loc);
 /// marked `[[noreturn]]` as certain phases of compilation may recover.
 void trace(const string &msg, const SourceLocation &loc);
 
+/// Display a neutral info message.
+void info(const string &msg);
+
 } // namespace artus
 
 #endif // ARTUS_CORE_LOGGER_H

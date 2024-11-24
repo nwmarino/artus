@@ -38,3 +38,7 @@ void artus::trace(const string &msg, const SourceLocation &loc) {
   printf("%s:%zu:%zu: %s%s\n", loc.file.c_str(), loc.line, loc.col,
       TRACE.c_str(), msg.c_str());
 }
+
+void artus::info(const string &msg) {
+  printf("artus: %s\n", msg.c_str());
+}
