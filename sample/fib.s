@@ -3,8 +3,11 @@ struct A {
 }
 
 fn @main() -> i64 {
+  fix x: A = A {
+    val: 10,
+  }
+
   mut y: i64[3] = [0, 1, 2]
-  y = [1, 2, 3]
   ret y[0]
 }
 

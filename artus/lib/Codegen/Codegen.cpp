@@ -122,11 +122,20 @@ void Codegen::visit(VarDecl *decl) {
 }
 
 void Codegen::visit(FieldDecl *decl) {
-
+  /* no work to be done */
 }
 
 void Codegen::visit(StructDecl *decl) {
+  // Create the struct type and struct in the module.
+  llvm::Type *T = decl->getType()->toLLVMType(*context);
+  llvm::StructType *ST = llvm::cast<llvm::StructType>(T);
+  if (!ST) {
+    fatal("invalid struct type: " + decl->name,
+        { decl->span.file, decl->span.line, decl->span.col });
+  }
 
+  // Add the struct to the struct table.
+  this->structs[decl->name] = ST;
 }
 
 void Codegen::genericCastCGN(CastExpr *expr) {
@@ -455,6 +464,18 @@ void Codegen::visit(ArraySubscriptExpr *expr) {
 
   fatal("unknown array access expression type", { expr->span.file, 
       expr->span.line, expr->span.col });
+}
+
+void Codegen::visit(StructInitExpr *expr) {
+  llvm::Type *T = expr->T->toLLVMType(*context);
+  llvm::Value *structVal = llvm::UndefValue::get(T);
+
+  for (size_t i = 0; i < expr->getNumFields(); ++i) {
+    expr->getField(i)->pass(this);
+    structVal = builder->CreateInsertValue(structVal, tmp, i);
+  }
+
+  tmp = structVal;
 }
 
 void Codegen::visit(CompoundStmt *stmt) {

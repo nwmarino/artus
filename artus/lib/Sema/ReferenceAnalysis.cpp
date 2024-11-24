@@ -321,6 +321,37 @@ void ReferenceAnalysis::visit(ArraySubscriptExpr *expr) {
       ("invalid array access type: " + expr->T->toString()).c_str());
 }
 
+void ReferenceAnalysis::visit(StructInitExpr *expr) {
+  // Resolve the struct.
+  const Decl *decl = resolveReference(expr->name,
+      { expr->span.file, expr->span.line, expr->span.col });
+
+  const StructDecl *SD = dynamic_cast<const StructDecl *>(decl);
+  if (!SD) {
+    fatal("expected struct: " + expr->name, 
+        { expr->span.file, expr->span.line, expr->span.col });
+  }
+
+  // Check that the struct has the correct number of fields.
+  if (expr->fields.size() != SD->fields.size()) {
+    fatal("expected " + std::to_string(SD->fields.size()) + " fields, got " 
+        + std::to_string(expr->fields.size()), { expr->span.file,
+        expr->span.line, expr->span.col });
+  }
+  
+  // Pass on each of the field initializers.
+  for (const pair<string, std::unique_ptr<Expr>> &f : expr->fields) {
+    f.second->pass(this);
+  }
+
+  // Type is null by parser, resolve it.
+  expr->T = resolveType(expr->name,
+      { expr->span.file, expr->span.line, expr->span.col });
+
+  assert(expr->T->isAbsolute() && 
+      ("invalid struct type: " + expr->T->toString()).c_str());
+}
+
 void ReferenceAnalysis::visit(CompoundStmt *stmt) {
   this->localScope = stmt->scope;
   for (const std::unique_ptr<Stmt> &s : stmt->stmts) {

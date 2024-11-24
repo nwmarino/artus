@@ -9,6 +9,10 @@
 #include "../Core/Span.h"
 #include "../Sema/Type.h"
 
+using std::pair;
+using std::size_t;
+using std::string;
+
 namespace artus {
 
 /// Base class for all Expression nodes. Expressions are also statements.
@@ -390,6 +394,35 @@ public:
   }
 
   void pass(ASTVisitor *visitor) override { visitor->visit(this); }
+};
+
+/// A struct initialization expression. For example, `Foo { a: 1, b: 2 }`.
+class StructInitExpr final : public Expr {
+  friend class ASTPrinter;
+  friend class Codegen;
+  friend class ReferenceAnalysis;
+  friend class Sema;
+
+  /// The name of the struct.
+  const string name;
+
+  /// The list of field initializers.
+  vector<pair<string, std::unique_ptr<Expr>>> fields;
+
+public:
+  StructInitExpr(const string &name, 
+                 vector<pair<string, std::unique_ptr<Expr>>> fields, 
+                 const Type *T, const Span &span)
+      : Expr(T, span), name(name), fields(std::move(fields)) {}
+
+  void pass(ASTVisitor *visitor) override { visitor->visit(this); }
+
+  /// Returns the number of fields in this struct.
+  size_t getNumFields() const { return fields.size(); }
+
+  /// Returns the field expression at the index \p i.
+  Expr *getField(size_t i) 
+  { return i < getNumFields() ? this->fields.at(i).second.get() : nullptr; }
 };
 
 } // namespace artus

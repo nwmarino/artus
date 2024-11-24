@@ -33,6 +33,7 @@ class Codegen final : public ASTVisitor {
   /// A map of all functions and allocas in the current context.
   map<string, llvm::Function *> functions;
   map<string, llvm::AllocaInst *> allocas;
+  map<string, llvm::StructType *> structs;
 
   /// The current value being generated.
   llvm::Value *tmp;
@@ -76,6 +77,7 @@ public:
   void visit(NullExpr *expr) override;
   void visit(ArrayExpr *expr) override;
   void visit(ArraySubscriptExpr *expr) override;
+  void visit(StructInitExpr *expr) override;
 
   void visit(CompoundStmt *stmt) override;
   void visit(DeclStmt *stmt) override;

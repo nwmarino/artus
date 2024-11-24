@@ -148,6 +148,7 @@ public:
 /// Represents a field declaration of a struct.
 class FieldDecl final : public NamedDecl {
   friend class ASTPrinter;
+  friend class Codegen;
   friend class ReferenceAnalysis;
   friend class Sema;
 
@@ -174,6 +175,7 @@ public:
 /// Represents a struct declaration.
 class StructDecl final : public ScopedDecl {
   friend class ASTPrinter;
+  friend class Codegen;
   friend class ReferenceAnalysis;
   friend class Sema;
 
@@ -183,9 +185,12 @@ class StructDecl final : public ScopedDecl {
   /// The implemented traits of this struct declaration.
   vector<string> traits;
 
+  /// The associated struct type.
+  const Type *T;
+
 public:
   StructDecl(const string &name, vector<std::unique_ptr<FieldDecl>> fields,
-             Scope *scope, const Span &span, bool priv = false);
+             Scope *scope, const Type *T, const Span &span, bool priv = false);
 
   void pass(ASTVisitor *visitor) override;
 
@@ -195,6 +200,13 @@ public:
   /// Returns the field at the specified index, and `nullptr` if it does not
   /// exist.
   const FieldDecl *getField(size_t i) const;
+
+  /// Returns the type of the field given its name, and `nullptr` if it does not
+  /// exist.
+  const Type *getFieldType(const string &name) const;
+
+  /// Returns the type of this struct.
+  const Type *getType() const;
 
   /// Adds a trait to this struct declaration.
   void addTrait(const string &trait);

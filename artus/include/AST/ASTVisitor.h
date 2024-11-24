@@ -25,6 +25,7 @@ class StringLiteral;
 class NullExpr;
 class ArrayExpr;
 class ArraySubscriptExpr;
+class StructInitExpr;
 
 class CompoundStmt;
 class DeclStmt;
@@ -62,6 +63,7 @@ public:
   virtual void visit(NullExpr *expr) = 0;
   virtual void visit(ArrayExpr *expr) = 0;
   virtual void visit(ArraySubscriptExpr *expr) = 0;
+  virtual void visit(StructInitExpr *expr) = 0;
 
   virtual void visit(CompoundStmt *stmt) = 0;
   virtual void visit(DeclStmt *stmt) = 0;

@@ -95,6 +95,7 @@ class Parser final {
   std::unique_ptr<Expr> ParseNullExpression();
   std::unique_ptr<Expr> ParseArrayExpression(const ArrayType *T);
   std::unique_ptr<Expr> ParseArrayAccessExpression();
+  std::unique_ptr<Expr> ParseStructInitExpression();
 
   std::unique_ptr<Stmt> ParseStatement();
   std::unique_ptr<Stmt> ParseCompoundStatement();

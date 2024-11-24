@@ -113,6 +113,7 @@ public:
   void visit(NullExpr *expr) override;
   void visit(ArrayExpr *expr) override;
   void visit(ArraySubscriptExpr *expr) override;
+  void visit(StructInitExpr *expr) override;
 
   void visit(CompoundStmt *stmt) override;
   void visit(DeclStmt *stmt) override;

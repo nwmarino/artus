@@ -343,7 +343,7 @@ std::unique_ptr<Decl> Parser::ParseStructDeclaration() {
 
   // Create the struct declaration.
   std::unique_ptr<StructDecl> structDecl = std::make_unique<StructDecl>(
-      structName, std::move(fields), scope, createSpan(structToken.loc),
+      structName, std::move(fields), scope, ST, createSpan(structToken.loc),
       isPrivate);
 
   // Add the struct declaration to parent scope.

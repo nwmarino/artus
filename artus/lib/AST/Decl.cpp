@@ -114,8 +114,9 @@ bool FieldDecl::canImport() const { return false; }
 /* StructDecl Implementation ----------------------------------------------===*/
 
 StructDecl::StructDecl(const string &name, vector<unique_ptr<FieldDecl>> fields,
-                       Scope *scope, const Span &span, bool priv)
-    : ScopedDecl(name, scope, span, priv), fields(std::move(fields)), traits(){}
+                       Scope *scope, const Type *T, const Span &span, bool priv)
+    : ScopedDecl(name, scope, span, priv), fields(std::move(fields)), traits(),
+    T(T) {}
 
 void StructDecl::pass(ASTVisitor *visitor) { visitor->visit(this); }
 
@@ -123,6 +124,16 @@ size_t StructDecl::getNumFields() const { return fields.size(); }
 
 const FieldDecl *StructDecl::getField(size_t i) const 
 { return i < fields.size() ? fields[i].get() : nullptr; }
+
+const Type *StructDecl::getFieldType(const string &name) const {
+    for (const unique_ptr<FieldDecl> &field : this->fields) {
+      if (field->getName() == name) 
+        return field->getType();
+    }
+    return nullptr;
+}
+
+const Type *StructDecl::getType() const { return T; }
 
 void StructDecl::addTrait(const string &trait) { traits.push_back(trait); }
 

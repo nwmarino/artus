@@ -597,7 +597,7 @@ public:
       fieldTypes.push_back(field->toLLVMType(ctx));
     }
 
-    return llvm::StructType::create(fieldTypes, name);
+    return llvm::StructType::create(ctx, fieldTypes, name);
   }
 };
 

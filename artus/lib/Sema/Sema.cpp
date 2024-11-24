@@ -400,6 +400,35 @@ void Sema::visit(ArraySubscriptExpr *expr) {
   }
 }
 
+/// Semantic Analysis over a StructInitExpr.
+///
+/// StructInitExprs are valid if and only if all of their fields are valid.
+void Sema::visit(StructInitExpr *expr) {
+  // By reference analysis, this expression refers to a struct already.
+  const StructDecl *SD = dynamic_cast<const StructDecl *>(
+      localScope->getDecl(expr->name));
+  assert(SD && "expected struct declaration");
+
+  // Type check each field.
+  for (const auto &field : expr->fields) {
+    field.second->pass(this); // Sema on the field expression.
+
+    // Check that the field exists in the struct.
+    const Type *FT = SD->getFieldType(field.first);
+    if (!FT) {
+      fatal("undeclared field: " + field.first, { expr->span.file,
+          expr->span.line, expr->span.col });
+    }
+
+    // Type check the field.
+    if (field.second->T->compare(FT) == 0) {
+      fatal("field type mismatch: " + field.first + ": expected " + 
+          FT->toString() + ", got " + field.second->T->toString(), 
+          { expr->span.file, expr->span.line, expr->span.col });
+    }
+  }
+}
+
 /// Semantic Analysis over a CompoundStmt.
 ///
 /// CompoundStmts are valid if and only if all of their statements are valid.

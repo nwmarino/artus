@@ -398,6 +398,25 @@ void ASTPrinter::visit(ArraySubscriptExpr *expr) {
   resetLastChild();
 }
 
+void ASTPrinter::visit(StructInitExpr *expr) {
+  printPiping();
+  printExpr(expr->span, "StructInitExpr", expr->T->toString(), expr->name);
+  resetLastChild();
+  increaseIndent();
+  setPiping(indent);
+  for (unsigned idx = 0; idx < expr->fields.size(); idx++) {
+    if (idx + 1 == expr->fields.size()) {
+      clearPiping(indent);
+      setLastChild();
+    }
+
+    expr->fields[idx].second->pass(this);
+  }
+
+  decreaseIndent();
+  resetLastChild();
+}
+
 void ASTPrinter::visit(CompoundStmt *stmt) {
   printPiping();
   printStmt(stmt->span, "CompoundStmt");

@@ -6,6 +6,10 @@
 #include "../../include/Lex/Token.h"
 #include "../../include/Core/SourceLocation.h"
 
+using std::pair;
+using std::size_t;
+using std::string;
+
 using namespace artus;
 
 /// Parse a default initialization expression dependent on the given type.
@@ -106,6 +110,8 @@ std::unique_ptr<Expr> Parser::ParseIdentifierExpression() {
   peekToken();
   if (peek.is(TokenKind::OpenBracket))
     return ParseArrayAccessExpression();
+  else if (peek.is(TokenKind::OpenBrace))
+    return ParseStructInitExpression();
   else if (peek.is(TokenKind::Equals))
     return ParseReferenceExpression();
 
@@ -482,4 +488,53 @@ std::unique_ptr<Expr> Parser::ParseArrayAccessExpression() {
 
   return std::make_unique<ArraySubscriptExpr>(baseToken.value, std::move(base),
       std::move(index), nullptr, createSpan(baseToken.loc, lastLoc));
+}
+
+/// Parse a struct initialization expression.
+///
+/// Expects the current token to be an identifier, and the peeked token to be an
+/// opening brace.
+std::unique_ptr<Expr> Parser::ParseStructInitExpression() {
+  assert(tok.is(TokenKind::Identifier) && "expected identifier");
+
+  Token structToken = tok; // Save the identifier token.
+  nextToken();
+
+  if (!tok.is(TokenKind::OpenBrace)) {
+    fatal("expected '{' after struct identifier", tok.loc);
+  }
+  nextToken(); // Eat the identifier token.
+
+  vector<pair<string, std::unique_ptr<Expr>>> exprs = {};
+  while (!tok.is(TokenKind::CloseBrace)) {
+    if (!tok.is(TokenKind::Identifier)) {
+      fatal("expected field identifier in struct initializer", tok.loc);
+    }
+
+    const string fieldName = tok.value; // Save the field name.
+    nextToken();
+
+    if (!tok.is(TokenKind::Colon)) {
+      fatal("expected ':' after field identifier", tok.loc);
+    }
+    nextToken(); // Eat the ':' token.
+
+    std::unique_ptr<Expr> expr = ParseExpression();
+    if (!expr) {
+      fatal("expected expression in struct initializer", tok.loc);
+    }
+
+    exprs.push_back(std::make_pair(fieldName, std::move(expr)));
+
+    // Expect a terminator or another expression.
+    if (tok.is(TokenKind::Comma)) {
+      nextToken(); // Eat the ',' token.
+    } else if (!tok.is(TokenKind::CloseBrace)) {
+      fatal("expected '}' after struct initializer", tok.loc);
+    }
+  }
+  nextToken(); // Eat the '}' token.
+
+  return std::make_unique<StructInitExpr>(structToken.value, std::move(exprs),
+      nullptr, createSpan(structToken.loc, lastLoc));
 }
