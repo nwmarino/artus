@@ -98,6 +98,8 @@ class Parser final {
   std::unique_ptr<Expr> ParseStructInitExpression();
 
   std::unique_ptr<Stmt> ParseStatement();
+  std::unique_ptr<Stmt> ParseBreakStatement();
+  std::unique_ptr<Stmt> ParseContinueStatement();
   std::unique_ptr<Stmt> ParseCompoundStatement();
   std::unique_ptr<Stmt> ParseDeclStatement();
   std::unique_ptr<Stmt> ParseIfStatement();

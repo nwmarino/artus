@@ -17,6 +17,16 @@ Codegen::Codegen(Context *ctx, llvm::TargetMachine *TM) {
   module = std::make_unique<llvm::Module>(
       ctx->cache->getActive()->getIdentifier(), *context);
 
+  this->functions = {};
+  this->allocas = {};
+  this->structs = {};
+
+  this->tmp = nullptr;
+  this->FN = nullptr;
+  this->hostCondBlock = nullptr;
+  this->hostMergeBlock = nullptr;
+  this->needPtr = false;
+
   // Setup the target triple and data layout for the module.
   module->setTargetTriple(TM->getTargetTriple().getTriple());
   module->setDataLayout(TM->createDataLayout());
@@ -478,6 +488,16 @@ void Codegen::visit(StructInitExpr *expr) {
   tmp = structVal;
 }
 
+void Codegen::visit(BreakStmt *stmt) {
+  if (!builder->GetInsertBlock()->getTerminator())
+    builder->CreateBr(hostMergeBlock);
+}
+
+void Codegen::visit(ContinueStmt *stmt) {
+  if (!builder->GetInsertBlock()->getTerminator())
+    builder->CreateBr(hostCondBlock);
+}
+
 void Codegen::visit(CompoundStmt *stmt) {
   for (const std::unique_ptr<Stmt> &s : stmt->stmts) {
     s->pass(this);
@@ -551,6 +571,12 @@ void Codegen::visit(WhileStmt *stmt) {
   llvm::BasicBlock *loopBlock = llvm::BasicBlock::Create(*context, "while");
   llvm::BasicBlock *mergeBlock = llvm::BasicBlock::Create(*context, "merge");
 
+  // Forward the condition and merge blocks.
+  llvm::BasicBlock *prevCondBlock = this->hostCondBlock;
+  llvm::BasicBlock *prevMergeBlock = this->hostMergeBlock;
+  this->hostCondBlock = condBlock;
+  this->hostMergeBlock = mergeBlock;
+
   // Create a branch to the conditional evaluation block.
   builder->CreateBr(condBlock);
   builder->SetInsertPoint(condBlock);
@@ -575,6 +601,10 @@ void Codegen::visit(WhileStmt *stmt) {
   // Create a branch to the merge block if the loop body has no terminator.
   FN->insert(FN->end(), mergeBlock);
   builder->SetInsertPoint(mergeBlock);
+
+  // Reset the condition and merge blocks.
+  this->hostCondBlock = prevCondBlock;
+  this->hostMergeBlock = prevMergeBlock;
 }
 
 void Codegen::visit(UntilStmt *stmt) {
@@ -582,6 +612,12 @@ void Codegen::visit(UntilStmt *stmt) {
   llvm::BasicBlock *condBlock = llvm::BasicBlock::Create(*context, "cond", FN);
   llvm::BasicBlock *loopBlock = llvm::BasicBlock::Create(*context, "until");
   llvm::BasicBlock *mergeBlock = llvm::BasicBlock::Create(*context, "merge");
+
+  // Forward the condition and merge blocks.
+  llvm::BasicBlock *prevCondBlock = this->hostCondBlock;
+  llvm::BasicBlock *prevMergeBlock = this->hostMergeBlock;
+  this->hostCondBlock = condBlock;
+  this->hostMergeBlock = mergeBlock;
 
   // Create a branch to the conditional evaluation block.
   builder->CreateBr(condBlock);
@@ -607,6 +643,10 @@ void Codegen::visit(UntilStmt *stmt) {
   // Create a branch to the merge block if the loop body has no terminator.
   FN->insert(FN->end(), mergeBlock);
   builder->SetInsertPoint(mergeBlock);
+
+  // Reset the condition and merge blocks.
+  this->hostCondBlock = prevCondBlock;
+  this->hostMergeBlock = prevMergeBlock;
 }
 
 void Codegen::visit(CaseStmt *stmt) {

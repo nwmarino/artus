@@ -1,5 +1,6 @@
 #include "Stmt.h"
 #include "../../include/AST/Expr.h"
+#include "ASTVisitor.h"
 
 using std::string;
 using std::vector;
@@ -17,6 +18,18 @@ const Span &Stmt::getSpan() const { return span; }
 ValueStmt::ValueStmt(const Type *T, const Span &span) : Stmt(span), T(T) {}
 
 const Type *ValueStmt::getType() const { return T; }
+
+/* BreakStmt Implementation -----------------------------------------------===*/
+
+BreakStmt::BreakStmt(const Span &span) : Stmt(span) {}
+
+void BreakStmt::pass(ASTVisitor *visitor) { visitor->visit(this); }
+
+/* ContinueStmt Implementation --------------------------------------------===*/
+
+ContinueStmt::ContinueStmt(const Span &span) : Stmt(span) {}
+
+void ContinueStmt::pass(ASTVisitor *visitor) { visitor->visit(this); }
 
 /* CompoundStmt Implementation --------------------------------------------===*/
 

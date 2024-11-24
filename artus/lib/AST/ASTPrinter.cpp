@@ -417,6 +417,16 @@ void ASTPrinter::visit(StructInitExpr *expr) {
   resetLastChild();
 }
 
+void ASTPrinter::visit(BreakStmt *stmt) {
+  printPiping();
+  printStmt(stmt->span, "BreakStmt");
+}
+
+void ASTPrinter::visit(ContinueStmt *stmt) {
+  printPiping();
+  printStmt(stmt->span, "ContinueStmt");
+}
+
 void ASTPrinter::visit(CompoundStmt *stmt) {
   printPiping();
   printStmt(stmt->span, "CompoundStmt");

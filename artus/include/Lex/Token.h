@@ -28,6 +28,8 @@ inline vector<string> __RESERVED = {
   "false",
 
   // Keywords.
+  "break",
+  "continue",
   "else",
   "fix",
   "fn",

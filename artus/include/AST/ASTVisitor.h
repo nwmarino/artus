@@ -28,6 +28,8 @@ class ArraySubscriptExpr;
 class StructInitExpr;
 
 class CompoundStmt;
+class BreakStmt;
+class ContinueStmt;
 class DeclStmt;
 class IfStmt;
 class WhileStmt;
@@ -65,6 +67,8 @@ public:
   virtual void visit(ArraySubscriptExpr *expr) = 0;
   virtual void visit(StructInitExpr *expr) = 0;
 
+  virtual void visit(BreakStmt *stmt) = 0;
+  virtual void visit(ContinueStmt *stmt) = 0;
   virtual void visit(CompoundStmt *stmt) = 0;
   virtual void visit(DeclStmt *stmt) = 0;
   virtual void visit(IfStmt *stmt) = 0;

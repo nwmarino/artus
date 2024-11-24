@@ -360,6 +360,9 @@ void ReferenceAnalysis::visit(CompoundStmt *stmt) {
   this->localScope = localScope->getParent();
 }
 
+void ReferenceAnalysis::visit(BreakStmt *stmt) { /* no work to be done */ }
+void ReferenceAnalysis::visit(ContinueStmt *stmt) { /* no work to be done */ }
+
 void ReferenceAnalysis::visit(DeclStmt *stmt) { 
   stmt->decl->pass(this); 
 }

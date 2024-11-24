@@ -429,6 +429,26 @@ void Sema::visit(StructInitExpr *expr) {
   }
 }
 
+/// Semantic Analysis over a BreakStmt.
+///
+/// BreakStmts are valid if and only if they are within a loop.
+void Sema::visit(BreakStmt *stmt) {
+  if (!this->inLoop) {
+    fatal("break statement outside of loop", 
+        { stmt->span.file, stmt->span.line, stmt->span.col });
+  }
+}
+
+/// Semantic Analysis over a ContinueStmt.
+///
+/// ContinueStmts are valid if and only if they are within a loop.
+void Sema::visit(ContinueStmt *stmt) {
+  if (!this->inLoop) {
+    fatal("continue statement outside of loop", 
+        { stmt->span.file, stmt->span.line, stmt->span.col });
+  }
+}
+
 /// Semantic Analysis over a CompoundStmt.
 ///
 /// CompoundStmts are valid if and only if all of their statements are valid.
@@ -476,7 +496,15 @@ void Sema::visit(WhileStmt *stmt) {
         stmt->span.line, stmt->span.col });
   }
 
+  // Setup new loop flags.
+  unsigned prevInLoop = this->inLoop;
+  LoopKind prevLoopKind = this->loopKind;
+  this->inLoop = 1;
+  this->loopKind = LoopKind::WHILE;
+
   stmt->body->pass(this); // Sema on the body of the loop.
+  this->inLoop = prevInLoop;
+  this->loopKind = prevLoopKind;
 }
 
 /// Semantic Analysis over an UntilStmt.
@@ -490,7 +518,15 @@ void Sema::visit(UntilStmt *stmt) {
         stmt->span.line, stmt->span.col });
   }
 
+  // Setup new loop flags.
+  unsigned prevInLoop = this->inLoop;
+  LoopKind prevLoopKind = this->loopKind;
+  this->inLoop = 1;
+  this->loopKind = LoopKind::UNTIL;
+
   stmt->body->pass(this); // Sema on the body of the loop.
+  this->inLoop = prevInLoop;
+  this->loopKind = prevLoopKind;
 }
 
 /// Semantic Analysis over a CaseStmt.

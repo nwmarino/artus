@@ -46,6 +46,32 @@ public:
   const Type *getType() const;
 };
 
+/// Represents a `break` statement in a loop.
+class BreakStmt final : public Stmt {
+  friend class ASTPrinter;
+  friend class Codegen;
+  friend class ReferenceAnalysis;
+  friend class Sema;
+
+public:
+  BreakStmt(const Span &span);
+
+  void pass(ASTVisitor *visitor) override;
+};
+
+/// Represents a `cont` statement in a loop.
+class ContinueStmt final : public Stmt {
+  friend class ASTPrinter;
+  friend class Codegen;
+  friend class ReferenceAnalysis;
+  friend class Sema;
+
+public:
+  ContinueStmt(const Span &span);
+
+  void pass(ASTVisitor *visitor) override;
+};
+
 /// Represents a list of statements, enclosed by braces.
 class CompoundStmt final : public Stmt {
   friend class ASTPrinter;

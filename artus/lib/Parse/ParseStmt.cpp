@@ -10,7 +10,11 @@ std::unique_ptr<Stmt> Parser::ParseStatement() {
   if (tok.is(TokenKind::OpenBrace))
     return ParseCompoundStatement();
 
-  if (tok.isKeyword("ret"))
+  if (tok.isKeyword("break"))
+    return ParseBreakStatement();
+  else if (tok.isKeyword("continue"))
+    return ParseContinueStatement();
+  else if (tok.isKeyword("ret"))
     return ParseRetStatement();
   else if (tok.isKeyword("fix") || tok.isKeyword("mut"))
     return ParseDeclStatement();
@@ -24,6 +28,36 @@ std::unique_ptr<Stmt> Parser::ParseStatement() {
     return ParseMatchStatement();
 
   return ParseExpression();
+}
+
+/// Parse a break statement.
+///
+/// break:
+///   'break'
+///
+/// Expects the current token to be a 'break' keyword.
+std::unique_ptr<Stmt> Parser::ParseBreakStatement() {
+  assert(tok.isKeyword("break") && "expected 'break' keyword");
+
+  const SourceLocation firstLoc = lastLoc;
+  nextToken(); // Consume the 'break' token.
+
+  return std::make_unique<BreakStmt>(createSpan(firstLoc));
+}
+
+/// Parse a continue statement.
+///
+/// continue:
+///   'continue'
+///
+/// Expects the current token to be a 'continue' keyword.
+std::unique_ptr<Stmt> Parser::ParseContinueStatement() {
+  assert(tok.isKeyword("continue") && "expected 'continue' keyword");
+
+  const SourceLocation firstLoc = lastLoc;
+  nextToken(); // Consume the 'continue' token.
+
+  return std::make_unique<ContinueStmt>(createSpan(firstLoc));
 }
 
 /// Parse a compound statement.

@@ -20,7 +20,13 @@ class Sema final : public ASTVisitor {
   /// The possible kinds of loop that the visitor can be traversing.
   enum class LoopKind {
     /// No loop.
-    NOL = 0,
+    NOL = -1,
+
+    /// While loops.
+    WHILE,
+
+    /// Until loops.
+    UNTIL,
   };
 
   /// Flag to indicate if the main function has been found.
@@ -79,6 +85,8 @@ public:
   void visit(ArraySubscriptExpr *expr) override;
   void visit(StructInitExpr *expr) override;
 
+  void visit(BreakStmt *stmt) override;
+  void visit(ContinueStmt *stmt) override;
   void visit(CompoundStmt *stmt) override;
   void visit(DeclStmt *stmt) override;
   void visit(IfStmt *stmt) override;

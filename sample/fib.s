@@ -1,16 +1,20 @@
-struct A {
-  val: i64,
-}
-
 fn @main() -> i64 {
-  fix x: A = A {
-    val: 10,
+  mut x: i64 = 0
+  mut y: i64 = 0
+
+  while x < 10 {
+    if x == 7 {
+      break
+    }
+
+    x += 1
+
+    if x == 5 {
+      continue
+    }
+
+    y += 1
   }
 
-  mut y: i64[3] = [0, 1, 2]
-  ret y[0]
-}
-
-fn @foo() -> #A {
-  ret null
+  ret x
 }

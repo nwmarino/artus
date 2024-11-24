@@ -41,8 +41,16 @@ class Codegen final : public ASTVisitor {
   /// The current function being generated.
   llvm::Function *FN;
 
+  /// The current target condition block, if it exists. This is used to insert
+  /// branches for control flow statements found in nested bodies. (i.e. loops).
+  llvm::BasicBlock *hostCondBlock;
+
+  /// The current target merge block, if it exists. This is used to insert
+  /// branches for control flow statements found in nested bodies. (i.e. loops).
+  llvm::BasicBlock *hostMergeBlock;
+
   /// Flag used to indicate if a reference is needed by pointer or by value.
-  bool needPtr : 1 = 0;
+  bool needPtr : 1;
 
   /// Creates an alloca instruction in the entry block of the function.
   [[nodiscard]] 
@@ -79,6 +87,8 @@ public:
   void visit(ArraySubscriptExpr *expr) override;
   void visit(StructInitExpr *expr) override;
 
+  void visit(BreakStmt *stmt) override;
+  void visit(ContinueStmt *stmt) override;
   void visit(CompoundStmt *stmt) override;
   void visit(DeclStmt *stmt) override;
   void visit(IfStmt *stmt) override;
