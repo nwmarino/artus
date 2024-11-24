@@ -125,12 +125,29 @@ size_t StructDecl::getNumFields() const { return fields.size(); }
 const FieldDecl *StructDecl::getField(size_t i) const 
 { return i < fields.size() ? fields[i].get() : nullptr; }
 
+int StructDecl::getFieldIndex(const string &field) const {
+  for (size_t i = 0; i < fields.size(); ++i) {
+    if (fields[i]->getName() == field) 
+      return i;
+  }
+  return -1;
+}
+
 const Type *StructDecl::getFieldType(const string &name) const {
-    for (const unique_ptr<FieldDecl> &field : this->fields) {
-      if (field->getName() == name) 
-        return field->getType();
+  for (const unique_ptr<FieldDecl> &field : this->fields) {
+    if (field->getName() == name) 
+      return field->getType();
+  }
+  return nullptr;
+}
+
+bool StructDecl::isFieldMutable(const string &name) const {
+  for (const unique_ptr<FieldDecl> &field : this->fields) {
+    if (field->getName() == name) {
+      return field->isMutable();
     }
-    return nullptr;
+  }
+  return false;
 }
 
 const Type *StructDecl::getType() const { return T; }

@@ -425,6 +425,36 @@ public:
   { return i < getNumFields() ? this->fields.at(i).second.get() : nullptr; }
 };
 
+/// A struct member access expression. For example, `foo.bar`.
+class MemberExpr final : public Expr {
+  friend class ASTPrinter;
+  friend class Codegen;
+  friend class ReferenceAnalysis;
+  friend class Sema;
+
+  /// The base of the member access.
+  std::unique_ptr<Expr> base;
+
+  /// The name of the member.
+  const string member;
+
+  /// The index of the member in the base struct.
+  int index = -1;
+
+public:
+  MemberExpr(std::unique_ptr<Expr> base, const string &member, 
+             const Type *T, const Span &span)
+      : Expr(T, span), base(std::move(base)), member(member) {
+    this->lvalue = true;
+  }
+
+  void pass(ASTVisitor *visitor) override { visitor->visit(this); }
+
+  Expr *getBase() const { return base.get(); }
+
+  const string &getMember() const { return member; }
+};
+
 } // namespace artus
 
 #endif // ARTUS_AST_EXPR_H

@@ -84,6 +84,7 @@ public:
   void visit(ArrayExpr *expr) override;
   void visit(ArraySubscriptExpr *expr) override;
   void visit(StructInitExpr *expr) override;
+  void visit(MemberExpr *expr) override;
 
   void visit(BreakStmt *stmt) override;
   void visit(ContinueStmt *stmt) override;

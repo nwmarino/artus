@@ -36,6 +36,10 @@ const VarDecl *Sema::resolveReference(Expr *lvalue) {
     return resolveReference(unary->base.get());
   }
 
+  if (MemberExpr *member = dynamic_cast<MemberExpr *>(lvalue)) {
+    return resolveReference(member->base.get());
+  }
+
   return nullptr;
 }
 
@@ -347,6 +351,19 @@ void Sema::visit(BinaryExpr *expr) {
           expr->span.line, expr->span.col });
     }
   }
+
+  // Check that immutable fields are not mutated.
+  if (MemberExpr *member = dynamic_cast<MemberExpr *>(expr->lhs.get())) {
+    // By reference analysis, the member expression base is of a struct type.
+    StructDecl *SD = dynamic_cast<StructDecl *>(globalScope->getDecl(
+        member->base->T->toString()));
+    assert(SD && "invalid struct declaration");
+
+    if (!SD->isFieldMutable(member->getMember())) {
+      fatal("attempted to reassign immutable field: " + member->getMember(),
+          { expr->span.file, expr->span.line, expr->span.col });
+    }
+  }
 }
 
 void Sema::visit(BooleanLiteral *expr) { /* no work to be done */ }
@@ -427,6 +444,13 @@ void Sema::visit(StructInitExpr *expr) {
           { expr->span.file, expr->span.line, expr->span.col });
     }
   }
+}
+
+/// Semantic Analysis over a MemberExpr.
+///
+/// MemberExprs are valid if and only if the base is valid.
+void Sema::visit(MemberExpr *expr) {
+  expr->base->pass(this);
 }
 
 /// Semantic Analysis over a BreakStmt.

@@ -352,6 +352,43 @@ void ReferenceAnalysis::visit(StructInitExpr *expr) {
       ("invalid struct type: " + expr->T->toString()).c_str());
 }
 
+void ReferenceAnalysis::visit(MemberExpr *expr) {
+  expr->base->pass(this);
+
+  // Resolve the base as a struct reference.
+  if (!expr->base->getType()->isStructType()) {
+    fatal("expected struct reference", { expr->span.file,
+        expr->span.line, expr->span.col });
+  }
+
+  // Get the struct type of the base expression.
+  const Decl *decl = resolveReference(expr->base->getType()->toString(), 
+      { expr->span.file, expr->span.line, expr->span.col });
+
+  const StructDecl *SD = dynamic_cast<const StructDecl *>(decl);
+  if (!SD) {
+    fatal("expected struct reference for member access: " + expr->getMember(),
+        { expr->span.file, expr->span.line, expr->span.col });
+  }
+
+  // Set the type of the member expression according to the struct field type.
+  const Type *fieldType = SD->getFieldType(expr->getMember());
+  if (!fieldType) {
+    fatal("field: " + expr->getMember() + " does not exist for struct " 
+        + expr->base->getType()->toString(), { expr->span.file, 
+        expr->span.line, expr->span.col });
+  }
+
+  // Propogate the type.
+  expr->T = fieldType;
+
+  // Assign the field index.
+  expr->index = SD->getFieldIndex(expr->getMember());
+
+  assert(expr->T->isAbsolute() && 
+      ("invalid member type: " + expr->T->toString()).c_str());
+}
+
 void ReferenceAnalysis::visit(CompoundStmt *stmt) {
   this->localScope = stmt->scope;
   for (const std::unique_ptr<Stmt> &s : stmt->stmts) {

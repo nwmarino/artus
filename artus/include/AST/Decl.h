@@ -201,9 +201,15 @@ public:
   /// exist.
   const FieldDecl *getField(size_t i) const;
 
+  /// Returns the index of the given field, and -1 if it does not exist.
+  int getFieldIndex(const string &field) const;
+
   /// Returns the type of the field given its name, and `nullptr` if it does not
   /// exist.
   const Type *getFieldType(const string &name) const;
+
+  /// Returns true if the given field is mutable.
+  bool isFieldMutable(const string &name) const;
 
   /// Returns the type of this struct.
   const Type *getType() const;

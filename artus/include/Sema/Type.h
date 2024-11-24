@@ -45,6 +45,9 @@ public:
   /// Returns true if the type is an array type, and false otherwise.
   virtual bool isArrayType() const = 0;
 
+  /// Returns true if the type is a struct type and has members.
+  virtual bool isStructType() const { return false; }
+
   /// Returns the bit width of the type. For example, an `i64` would return 64.
   virtual unsigned getBitWidth() const = 0;
 
@@ -548,6 +551,8 @@ class StructType final : public DefinedType {
 public:
   StructType(const string &name, vector<const Type *> fields)
       : DefinedType(name), fields(fields) {}
+
+  bool isStructType() const override { return true; }
 
   /// Returns true if all field types are absolute.
   bool isAbsolute() const override {

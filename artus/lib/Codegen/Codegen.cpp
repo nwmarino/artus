@@ -2,11 +2,15 @@
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Verifier.h"
+#include <llvm/IR/DerivedTypes.h>
 #include <llvm/Support/Alignment.h>
 
 #include "../../include/AST/Expr.h"
 #include "../../include/Codegen/Codegen.h"
 #include "../../include/Core/Logger.h"
+
+using std::size_t;
+using std::string;
 
 using namespace artus;
 
@@ -486,6 +490,35 @@ void Codegen::visit(StructInitExpr *expr) {
   }
 
   tmp = structVal;
+}
+
+void Codegen::visit(MemberExpr *expr) {
+  unsigned oldNeedPtr = this->needPtr;
+  this->needPtr = true;
+  expr->base->pass(this);
+  llvm::Value *basePtr = tmp;
+  this->needPtr = oldNeedPtr;
+
+  llvm::StructType *ST = llvm::cast<llvm::StructType>(
+      expr->base->getType()->toLLVMType(*context));
+
+  int idx = expr->index;
+  if (idx == -1) {
+    fatal("member " + expr->getMember() + " undeclared in base struct",
+        { expr->span.file, expr->span.line, expr->span.col });
+  }
+
+  // Create a GEP to access the member by the struct pointer.
+  llvm::Value *memberPtr = builder->CreateStructGEP(ST, basePtr, idx);
+
+  // Return the pointer to the member if it's needed.
+  if (needPtr) {
+    tmp = memberPtr;
+    return;
+  }
+
+  // Otherwise, return the loaded value of the member.
+  tmp = builder->CreateLoad(expr->getType()->toLLVMType(*context), memberPtr);
 }
 
 void Codegen::visit(BreakStmt *stmt) {

@@ -110,6 +110,8 @@ std::unique_ptr<Expr> Parser::ParseIdentifierExpression() {
   peekToken();
   if (peek.is(TokenKind::OpenBracket))
     return ParseArrayAccessExpression();
+  else if (peek.is(TokenKind::Dot))
+    return ParseMemberExpression();
   else if (peek.is(TokenKind::OpenBrace))
     return ParseStructInitExpression();
   else if (peek.is(TokenKind::Equals))
@@ -537,4 +539,40 @@ std::unique_ptr<Expr> Parser::ParseStructInitExpression() {
 
   return std::make_unique<StructInitExpr>(structToken.value, std::move(exprs),
       nullptr, createSpan(structToken.loc, lastLoc));
+}
+
+/// Parse a member access expression.
+///
+/// Expects the current token to be an identifier, and the peeked token to be
+/// a dot.
+std::unique_ptr<Expr> Parser::ParseMemberExpression(std::unique_ptr<Expr> base) {
+  assert(tok.is(TokenKind::Identifier) && "expected identifier");
+
+  // Get a reference expression to the base.
+  if (!base) {
+    base = ParseReferenceExpression();
+  }
+  const SourceLocation firstLoc = { base->getSpan().file, base->getSpan().line,
+      base->getSpan().col };
+
+  if (!tok.is(TokenKind::Dot)) {
+    fatal("expected '.' after base identifier", tok.loc);
+  }
+  nextToken(); // Eat the '.' token.
+
+  if (!tok.is(TokenKind::Identifier)) {
+    fatal("expected member identifier after '.'", tok.loc);
+  }
+
+  const string fieldName = tok.value; // Save the field name.
+  nextToken(); // Eat the field identifier token.
+
+  // Handle recursive member access (depths greater than 1).
+  if (tok.is(TokenKind::Dot)) {
+    return ParseMemberExpression(std::make_unique<MemberExpr>(std::move(base),
+        fieldName, nullptr, createSpan(firstLoc, lastLoc)));
+  }
+
+  return std::make_unique<MemberExpr>(std::move(base), fieldName,
+      nullptr, createSpan(firstLoc, lastLoc));
 }
