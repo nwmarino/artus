@@ -61,31 +61,11 @@ public:
   Scope *getScope() const;
 };
 
-/// Represents the declaration of a label statement.
-class LabelDecl final : public NamedDecl {
-  friend class Sema;
-
-  /// The associated label statement.
-  const Stmt *stmt;
-
-public:
-  LabelDecl(const string &name, const Span &span);
-
-  void pass(ASTVisitor *visitor) override;
-
-  /// Returns the associated label statement.
-  const Stmt *getStmt() const;
-
-  /// Sets the associated label statement.
-  void setStmt(const Stmt *stmt);
-
-  bool canImport() const override;
-};
-
 /// Represents a variable declaration.
 class VarDecl : public NamedDecl {
   friend class ASTPrinter;
   friend class Codegen;
+  friend class ReferenceAnalysis;
   friend class Sema;
 
   /// The initializer expression of this variable.
@@ -132,6 +112,7 @@ public:
 class FunctionDecl final : public ScopedDecl {
   friend class ASTPrinter;
   friend class Codegen;
+  friend class ReferenceAnalysis;
   friend class Sema;
 
   /// The return type of this function declaration.
@@ -167,18 +148,25 @@ public:
 /// Represents a field declaration of a struct.
 class FieldDecl final : public NamedDecl {
   friend class ASTPrinter;
+  friend class ReferenceAnalysis;
   friend class Sema;
 
   /// The type of this field declaration.
   const Type *T;
 
+  /// If the field is mutable.
+  const bool mut : 1;
+
 public:
-  FieldDecl(const string &name, const Type *T, const Span &span);
+  FieldDecl(const string &name, const Type *T, const bool mut, const Span &span);
 
   void pass(ASTVisitor *visitor) override;
 
   /// Returns the type of this field declaration.
   const Type *getType() const;
+
+  /// Returns true if this field declaration is mutable.
+  bool isMutable() const;
 
   bool canImport() const override;
 };
@@ -186,6 +174,7 @@ public:
 /// Represents a struct declaration.
 class StructDecl final : public ScopedDecl {
   friend class ASTPrinter;
+  friend class ReferenceAnalysis;
   friend class Sema;
 
   /// The fields of this struct declaration.

@@ -53,19 +53,6 @@ void PackageUnitDecl::addDecl(unique_ptr<Decl> decl)
 void PackageUnitDecl::addImport(const string &import)
 { imports.push_back(import); }
 
-/* LabelDecl Implementation -----------------------------------------------===*/
-
-LabelDecl::LabelDecl(const string &name, const Span &span)
-    : NamedDecl(name, span), stmt(nullptr) {}
-
-void LabelDecl::pass(ASTVisitor *visitor) { visitor->visit(this); }
-
-const Stmt *LabelDecl::getStmt() const { return stmt; }
-
-void LabelDecl::setStmt(const Stmt *stmt) { this->stmt = stmt; }
-
-bool LabelDecl::canImport() const { return false; }
-
 /* VarDecl Implementation -------------------------------------------------===*/
 
 VarDecl::VarDecl(const string &name, const Type *T, unique_ptr<Expr> init, 
@@ -112,12 +99,15 @@ bool FunctionDecl::canImport() const { return true; }
 
 /* FieldDecl Implementation -----------------------------------------------===*/
 
-FieldDecl::FieldDecl(const string &name, const Type *T, const Span &span)
-    : NamedDecl(name, span), T(T) {}
+FieldDecl::FieldDecl(const string &name, const Type *T, const bool mut,
+                     const Span &span)
+    : NamedDecl(name, span), T(T), mut(mut) {}
 
 void FieldDecl::pass(ASTVisitor *visitor) { visitor->visit(this); }
 
 const Type *FieldDecl::getType() const { return T; }
+
+bool FieldDecl::isMutable() const { return mut; }
 
 bool FieldDecl::canImport() const { return false; }
 

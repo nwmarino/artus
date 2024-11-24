@@ -203,8 +203,6 @@ void ASTPrinter::visit(ParamVarDecl *decl) {
   printDecl(decl->span, "ParamVarDecl", decl->name, decl->T->toString());
 }
 
-void ASTPrinter::visit(LabelDecl *decl) { /* unused */ }
-
 void ASTPrinter::visit(VarDecl *decl) {
   printPiping();
   printDecl(decl->span, "VarDecl", decl->name, decl->T->toString(), false);
@@ -225,15 +223,33 @@ void ASTPrinter::visit(FieldDecl *decl) {
   printPiping();
   printDecl(decl->span, "FieldDecl", decl->name, decl->T->toString(), false);
 
-  if (decl->mut) {
+  if (decl->isMutable()) {
     cout << " mut";
   }
   cout << '\n';
+}
 
-  setLastChild();
+void ASTPrinter::visit(StructDecl *decl) {
+  printPiping();
+  printDecl(decl->span, "StructDecl", decl->name, "", false);
+
+  if (decl->isPrivate()) {
+    cout << " private\n";
+  } else {
+    cout << '\n';
+  }
+
   increaseIndent();
-  decl->init->pass(this);
-  decreaseIndent();
+  setPiping(indent);
+  size_t fieldsCount = decl->fields.size();
+  for (unsigned idx = 0; idx < fieldsCount; idx++) {
+    if (idx + 1 == fieldsCount) {
+      clearPiping(indent);
+      setLastChild();
+    }
+    decl->fields[idx]->pass(this);
+  }
+
   resetLastChild();
 }
 
@@ -507,16 +523,6 @@ void ASTPrinter::visit(MatchStmt *stmt) {
 
   decreaseIndent();
   resetLastChild();
-}
-
-void ASTPrinter::visit(LabelStmt *stmt) {
-  printPiping();
-  printStmt(stmt->span, "LabelStmt", stmt->name);
-}
-
-void ASTPrinter::visit(JmpStmt *stmt) {
-  printPiping();
-  printStmt(stmt->span, "JmpStmt", stmt->name);
 }
 
 void ASTPrinter::visit(RetStmt *stmt) {

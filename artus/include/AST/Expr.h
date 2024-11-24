@@ -46,6 +46,7 @@ public:
 class ImplicitCastExpr final : public CastExpr {
   friend class ASTPrinter;
   friend class Codegen;
+  friend class ReferenceAnalysis;
   friend class Sema;
 
 public:
@@ -60,6 +61,7 @@ public:
 class ExplicitCastExpr final : public CastExpr {
   friend class ASTPrinter;
   friend class Codegen;
+  friend class ReferenceAnalysis;
   friend class Sema;
 
 public:
@@ -74,6 +76,7 @@ public:
 class DeclRefExpr : public Expr {
   friend class ASTPrinter;
   friend class Codegen;
+  friend class ReferenceAnalysis;
   friend class Sema;
 
   /// The identifier of the referenced declaration.
@@ -98,6 +101,7 @@ public:
 class CallExpr final : public DeclRefExpr {
   friend class ASTPrinter;
   friend class Codegen;
+  friend class ReferenceAnalysis;
   friend class Sema;
 
   /// The arguments of the call.
@@ -121,6 +125,7 @@ public:
 class UnaryExpr final : public Expr {
   friend class ASTPrinter;
   friend class Codegen;
+  friend class ReferenceAnalysis;
   friend class Sema;
 
 public:
@@ -157,6 +162,7 @@ public:
 class BinaryExpr final : public Expr {
   friend class ASTPrinter;
   friend class Codegen;
+  friend class ReferenceAnalysis;
   friend class Sema;
 
 public:
@@ -236,6 +242,7 @@ public:
 class BooleanLiteral final : public Expr {
   friend class ASTPrinter;
   friend class Codegen;
+  friend class ReferenceAnalysis;
   friend class Sema;
 
   /// The literal value nested in this node.
@@ -252,6 +259,7 @@ public:
 class IntegerLiteral final : public Expr {
   friend class ASTPrinter;
   friend class Codegen;
+  friend class ReferenceAnalysis;
   friend class Sema;
 
   /// The literal value nested in this node.
@@ -273,6 +281,7 @@ public:
 class FPLiteral final : public Expr {
   friend class ASTPrinter;
   friend class Codegen;
+  friend class ReferenceAnalysis;
   friend class Sema;
 
   /// The literal value nested in this node.
@@ -289,6 +298,7 @@ public:
 class CharLiteral final : public Expr {
   friend class ASTPrinter;
   friend class Codegen;
+  friend class ReferenceAnalysis;
   friend class Sema;
 
   /// The literal value nested in this node.
@@ -305,6 +315,7 @@ public:
 class StringLiteral final : public Expr {
   friend class ASTPrinter;
   friend class Codegen;
+  friend class ReferenceAnalysis;
   friend class Sema;
 
   /// The literal value nested in this node.
@@ -321,6 +332,7 @@ public:
 class NullExpr final : public Expr {
   friend class ASTPrinter;
   friend class Codegen;
+  friend class ReferenceAnalysis;
   friend class Sema;
 
 public:
@@ -333,6 +345,7 @@ public:
 class ArrayInitExpr final : public Expr {
   friend class ASTPrinter;
   friend class Codegen;
+  friend class ReferenceAnalysis;
   friend class Sema;
 
   /// The list of expressions in the array.
@@ -356,6 +369,7 @@ public:
 class ArrayAccessExpr final : public Expr {
   friend class ASTPrinter;
   friend class Codegen;
+  friend class ReferenceAnalysis;
   friend class Sema;
 
   /// The name of the base.

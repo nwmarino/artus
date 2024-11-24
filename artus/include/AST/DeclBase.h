@@ -45,6 +45,7 @@ public:
 class PackageUnitDecl final : public DeclBase {
   friend class ASTPrinter;
   friend class Codegen;
+  friend class ReferenceAnalysis;
   friend class Sema;
 
   /// The unique name or identifier associated with this package.

@@ -32,6 +32,7 @@ public:
 
 /// Base class for expressions, and statements which may possess a value.
 class ValueStmt : public Stmt {
+  friend class ReferenceAnalysis;
   friend class Sema;
 
 protected:
@@ -49,6 +50,7 @@ public:
 class CompoundStmt final : public Stmt {
   friend class ASTPrinter;
   friend class Codegen;
+  friend class ReferenceAnalysis;
   friend class Sema;
 
   /// The list of statements.
@@ -75,6 +77,7 @@ public:
 class DeclStmt final : public Stmt {
   friend class ASTPrinter;
   friend class Codegen;
+  friend class ReferenceAnalysis;
   friend class Sema;
 
   /// The declaration of the variable.
@@ -90,6 +93,7 @@ public:
 class IfStmt final : public Stmt {
   friend class ASTPrinter;
   friend class Codegen;
+  friend class ReferenceAnalysis;
   friend class Sema;
 
   /// The condition of the if statement.
@@ -115,6 +119,7 @@ public:
 class WhileStmt final : public Stmt {
   friend class ASTPrinter;
   friend class Codegen;
+  friend class ReferenceAnalysis;
   friend class Sema;
 
   /// The condition of the while loop.
@@ -134,6 +139,7 @@ public:
 class UntilStmt final : public Stmt {
   friend class ASTPrinter;
   friend class Codegen;
+  friend class ReferenceAnalysis;
   friend class Sema;
 
   /// The condition of the until loop.
@@ -153,6 +159,7 @@ public:
 class MatchCase : public Stmt {
   friend class ASTPrinter;
   friend class Codegen;
+  friend class ReferenceAnalysis;
   friend class Sema;
 
 protected:
@@ -170,6 +177,7 @@ class CaseStmt final : public MatchCase {
   friend class ASTPrinter;
   friend class Codegen;
   friend class MatchStmt;
+  friend class ReferenceAnalysis;
   friend class Sema;
 
   /// The expression to match.
@@ -188,6 +196,7 @@ public:
 class DefaultStmt final : public MatchCase {
   friend class ASTPrinter;
   friend class Codegen;
+  friend class ReferenceAnalysis;
   friend class Sema;
 
 public:
@@ -202,6 +211,7 @@ public:
 class MatchStmt final : public Stmt {
   friend class ASTPrinter;
   friend class Codegen;
+  friend class ReferenceAnalysis;
   friend class Sema;
 
   /// The expression to match.
@@ -223,55 +233,11 @@ public:
   DefaultStmt *getDefault() const;
 };
 
-/// Represents a label statement. For example, `label:`.
-class LabelStmt final : public Stmt {
-  friend class ASTPrinter;
-  friend class Codegen;
-  friend class Sema;
-
-  /// The name of the label.
-  const string name;
-
-  /// The associated label declaration.
-  const Decl *decl;
-
-public:
-  LabelStmt(const string &name, const Decl *decl, const Span &span);
-
-  void pass(ASTVisitor *visitor) override;
-
-  /// Returns the name of the label.
-  const string &getName() const;
-
-  /// Returns the associated label declaration.
-  const Decl *getDecl() const;
-
-  /// Sets the associated label declaration.
-  void setDecl(const Decl *decl);
-};
-
-/// Represents a `jmp` statement. For example, `jmp label`.
-class JmpStmt final : public Stmt {
-  friend class ASTPrinter;
-  friend class Codegen;
-  friend class Sema;
-
-  /// The name of the label to jump to.
-  const string name;
-
-  /// The associated label declaration.
-  const Decl *decl;
-
-public:
-  JmpStmt(const string &name, const Decl *decl, const Span &span);
-
-  void pass(ASTVisitor *visitor) override;
-};
-
 /// Represents a return statement. For example, `ret 0`.
 class RetStmt final : public ValueStmt {
   friend class ASTPrinter;
   friend class Codegen;
+  friend class ReferenceAnalysis;
   friend class Sema;
 
   /// The expression to return.

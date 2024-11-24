@@ -372,7 +372,12 @@ std::unique_ptr<Expr> Parser::ParseNullExpression() {
   Token nullToken = tok; // Save the null token.
   nextToken();
 
-  return std::make_unique<NullExpr>(nullptr, createSpan(nullToken.loc));
+  const Type *T = nullptr;
+  if (parentFunctionType) {
+    T = parentFunctionType->getReturnType();
+  }
+
+  return std::make_unique<NullExpr>(T, createSpan(nullToken.loc));
 }
 
 /// Parse an array initialization expression.

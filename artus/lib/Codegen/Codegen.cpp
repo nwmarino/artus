@@ -109,8 +109,6 @@ void Codegen::visit(ParamVarDecl *decl) {
   allocas[tmp->getName().str()] = alloca;
 }
 
-void Codegen::visit(LabelDecl *decl) { /* unused */ }
-
 void Codegen::visit(VarDecl *decl) {
   decl->init->pass(this);
 
@@ -121,6 +119,14 @@ void Codegen::visit(VarDecl *decl) {
 
   builder->CreateStore(tmp, alloca);
   allocas[decl->name] = alloca;
+}
+
+void Codegen::visit(FieldDecl *decl) {
+
+}
+
+void Codegen::visit(StructDecl *decl) {
+
 }
 
 void Codegen::genericCastCGN(CastExpr *expr) {
@@ -666,39 +672,6 @@ void Codegen::visit(MatchStmt *stmt) {
   }
 
   builder->SetInsertPoint(mergeBlock);
-}
-
-void Codegen::visit(LabelStmt *stmt) {
-  if (stmt->name == "entry") {
-    return;
-  }
-
-  llvm::BasicBlock *labelBB = llvm::BasicBlock::Create(*context, 
-    stmt->name, FN);
-  builder->CreateBr(labelBB);
-  builder->SetInsertPoint(labelBB);
-}
-
-void Codegen::visit(JmpStmt *stmt) {
-  /*
-  llvm::BasicBlock *jmpBB = nullptr;
-  for (llvm::BasicBlock &BB : *FN) {
-    if (BB.getName() == stmt->name) {
-      jmpBB = &BB;
-      break;
-    }
-  }
-
-  if (!jmpBB) {
-    fatal("label not found in function: " + stmt->name);
-  }
-
-  builder->CreateBr(jmpBB);*/
-
-  llvm::BasicBlock *jmpBB = llvm::BasicBlock::Create(*context, 
-    stmt->name, FN);
-  builder->CreateBr(jmpBB);
-  builder->SetInsertPoint(jmpBB);
 }
 
 void Codegen::visit(RetStmt *stmt) {

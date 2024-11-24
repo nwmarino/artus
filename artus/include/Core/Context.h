@@ -26,6 +26,7 @@ class Context final {
   friend class Codegen;
   friend class Driver;
   friend class Parser;
+  friend class ReferenceAnalysis;
   friend class Sema;
 
   /// The source files to be compiled.
@@ -46,9 +47,14 @@ class Context final {
   /// If the lexer has reached the end of the current source stream.
   unsigned int eof : 1;
 
+  /// Resets the type table for a new package.
+  void resetTypes();
+
+  /// Add a new defined type (struct/enum) to the context.
+  void addDefinedType(const string &name, const Type *T);
+
 public:
   Context(vector<SourceFile> files);
-
   ~Context();
 
   /// Iterates to the next source file in the context.

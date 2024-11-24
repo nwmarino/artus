@@ -64,6 +64,7 @@ add_executable(artus
     lib/Parse/ParseDecl.cpp
     lib/Parse/ParseExpr.cpp
     lib/Parse/ParseStmt.cpp
+    lib/Sema/ReferenceAnalysis.cpp
     lib/Sema/Sema.cpp
 )
 

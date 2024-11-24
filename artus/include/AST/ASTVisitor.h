@@ -7,7 +7,6 @@ namespace artus {
 class PackageUnitDecl;
 class FunctionDecl;
 class ParamVarDecl;
-class LabelDecl;
 class VarDecl;
 class FieldDecl;
 class StructDecl;
@@ -35,8 +34,6 @@ class UntilStmt;
 class CaseStmt;
 class DefaultStmt;
 class MatchStmt;
-class LabelStmt;
-class JmpStmt;
 class RetStmt;
 
 /// This class defines a visitor pattern interface to traverse a built AST.
@@ -47,7 +44,6 @@ public:
   virtual void visit(PackageUnitDecl *decl) = 0;
   virtual void visit(FunctionDecl *decl) = 0;
   virtual void visit(ParamVarDecl *decl) = 0;
-  virtual void visit(LabelDecl *decl) = 0;
   virtual void visit(VarDecl *decl) = 0;
   virtual void visit(FieldDecl *decl) = 0;
   virtual void visit(StructDecl *decl) = 0;
@@ -75,8 +71,6 @@ public:
   virtual void visit(CaseStmt *stmt) = 0;
   virtual void visit(DefaultStmt *stmt) = 0;
   virtual void visit(MatchStmt *stmt) = 0;
-  virtual void visit(LabelStmt *stmt) = 0;
-  virtual void visit(JmpStmt *stmt) = 0;
   virtual void visit(RetStmt *stmt) = 0;
 };
 

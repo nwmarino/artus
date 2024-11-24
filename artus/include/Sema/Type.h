@@ -21,6 +21,9 @@ class Type {
 public:
   virtual ~Type() = default;
 
+  /// Returns true if the type is absolute and not a qualified reference.
+  virtual bool isAbsolute() const { return true; }
+
   /// Returns true if the most shallow type is definitively a boolean type.
   virtual bool isBooleanType() const = 0;
 
@@ -65,6 +68,44 @@ public:
 
   /// Returns the equivelant LLVM type for the given type.
   virtual llvm::Type *toLLVMType(llvm::LLVMContext &ctx) const = 0;
+};
+
+/// Represents a reference to a possibly qualified type. This type is used
+/// prior to type resolution and assigned during sema.
+class TypeRef final : public Type {
+  /// The identifier of the type.
+  const string identifier;
+
+public:
+  TypeRef(const string &identifier) : identifier(identifier) {}
+
+  bool isAbsolute()          const override { return false; }
+  bool isBooleanType()       const override { return false; }
+  bool isIntegerType()       const override { return false; }
+  bool isFloatingPointType() const override { return false; }
+  bool isStringType()        const override { return false; }
+  bool isPointerType()       const override { return false; }
+  bool isArrayType()         const override { return false; }
+
+  unsigned getBitWidth() const override { return 0; }
+
+  string toString() const override { return identifier; }
+
+  int compare(const Type *other) const override {
+    if (const TypeRef *otherType = dynamic_cast<const TypeRef *>(other)) {
+      if (identifier == otherType->identifier)
+        return 1;
+
+      return 2;
+    }
+    return 0;
+  }
+
+  bool canCastTo(const Type *other, bool strict = false) const override 
+  { return false; }
+
+  llvm::Type *toLLVMType(llvm::LLVMContext &ctx) const override 
+  { return nullptr; }
 };
 
 /// Class to represent basic, built-in types, such as `i64` or `char`.
@@ -211,9 +252,25 @@ class FunctionType final : public Type {
 public:
   FunctionType(const Type *returnType, vector<const Type *> paramTypes)
       : returnType(returnType), paramTypes(paramTypes) {}
+    
+  /// Returns true if all parameters are absolute, as well as the return type.
+  bool isAbsolute() const override {
+    if (!returnType->isAbsolute())
+      return false;
 
-  /// Returns the return type of the function.
+    for (const Type *paramType : paramTypes) {
+      if (!paramType->isAbsolute())
+        return false;
+    }
+
+    return true;
+  }
+
+  /// Returns the return type of the function type.
   const Type *getReturnType() const { return returnType; }
+
+  /// Returns the parameter types of the function type.
+  const vector<const Type *> getParamTypes() const { return paramTypes; }
 
   /// Returns the type of a parameter at the given index.
   const Type *getParamType(size_t index) const { return paramTypes[index]; }
@@ -318,6 +375,9 @@ class PointerType final : public Type {
 public:
   PointerType(const Type *pointeeType) : pointeeType(pointeeType) {}
 
+  /// Returns if the pointee type is absolute.
+  bool isAbsolute() const override { return pointeeType->isAbsolute(); }
+
   /// Returns the type of the pointer.
   const Type *getPointeeType() const { return pointeeType; }
 
@@ -389,6 +449,9 @@ public:
   ArrayType(const Type *elementType, size_t size)
       : elementType(elementType), size(size) {}
 
+  /// Returns if the element type is absolute.
+  bool isAbsolute() const override { return elementType->isAbsolute(); }
+
   /// Returns the type of the array.
   const Type *getElementType() const { return elementType; }
 
@@ -455,6 +518,87 @@ public:
   /// Returns a LLVM ArrayType equivelant of this array type.
   llvm::Type *toLLVMType(llvm::LLVMContext &ctx) const override 
   { return llvm::ArrayType::get(elementType->toLLVMType(ctx), size); }
+};
+
+/// Base class for all source-defined types (structs, enums, etc.).
+class DefinedType : public Type {
+protected:
+  /// The name of the defined type.
+  const string name;
+
+public:
+  DefinedType(const string &name) : name(name) {}
+
+  bool isBooleanType()       const override { return false; }
+  bool isIntegerType()       const override { return false; }
+  bool isFloatingPointType() const override { return false; }
+  bool isStringType()        const override { return false; }
+  bool isPointerType()       const override { return false; }
+  bool isArrayType()         const override { return false; }
+
+  /// Returns a string representation of the struct type.
+  string toString() const override { return name; }
+};
+
+/// Represesnts a defined struct type.
+class StructType final : public DefinedType {
+  /// The fields of the struct type.
+  const vector<const Type *> fields;
+
+public:
+  StructType(const string &name, vector<const Type *> fields)
+      : DefinedType(name), fields(fields) {}
+
+  /// Returns true if all field types are absolute.
+  bool isAbsolute() const override {
+    for (const Type *field : fields) {
+      if (!field->isAbsolute())
+        return false;
+    }
+    return true;
+  }
+
+  /// Returns the number of fields in the struct type.
+  size_t getNumFields() const { return fields.size(); }
+
+  /// Returns the type of a field at the given index.
+  const Type *getFieldType(size_t i) const 
+  { return i < fields.size() ? fields[i] : nullptr; }
+
+  /// Returns the bit width of the struct type.
+  unsigned getBitWidth() const override {
+    unsigned width = 0;
+    for (const Type *field : fields) {
+      width += field->getBitWidth();
+    }
+    return width;
+  }
+
+  /// Compare a struct type with another type. Struct types match if and only if
+  /// the names and fields match. The return value of this function is never 2
+  /// due to explicitness of struct types.
+  int compare(const Type *other) const override {
+    if (const StructType *otherType = dynamic_cast<const StructType *>(other)) {
+      return name == otherType->name;
+    }
+    return 0;
+  }
+
+  /// Returns true if this struct type can be casted into the given type, and
+  /// false otherwise. Optionally, a `strict` flag can be passed to indicate
+  /// that the cast must be exact.
+  bool canCastTo(const Type *other, bool strict = false) const override 
+  { return false; }
+
+  /// Returns a LLVM StructType equivelant of this struct type.
+  llvm::Type *toLLVMType(llvm::LLVMContext &ctx) const override {
+    vector<llvm::Type *> fieldTypes;
+    for (const Type *field : fields) {
+      fieldTypes.push_back(field->toLLVMType(ctx));
+    }
+
+    return llvm::StructType::create(fieldTypes, name);
+  }
 };
 
 } // namespace artus

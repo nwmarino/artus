@@ -58,8 +58,9 @@ public:
   void visit(PackageUnitDecl *decl) override;
   void visit(FunctionDecl *decl) override;
   void visit(ParamVarDecl *decl) override;
-  void visit(LabelDecl *decl) override;
   void visit(VarDecl *decl) override;
+  void visit(FieldDecl *decl) override;
+  void visit(StructDecl *decl) override;
 
   void visit(ImplicitCastExpr *expr) override;
   void visit(ExplicitCastExpr *expr) override;
@@ -84,8 +85,6 @@ public:
   void visit(CaseStmt *stmt) override;
   void visit(DefaultStmt *stmt) override;
   void visit(MatchStmt *stmt) override;
-  void visit(LabelStmt *stmt) override;
-  void visit(JmpStmt *stmt) override;
   void visit(RetStmt *stmt) override;
 };
 

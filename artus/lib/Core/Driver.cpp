@@ -24,6 +24,7 @@
 #include "../../include/Core/Driver.h"
 #include "../../include/Core/Logger.h"
 #include "../../include/Parse/Parser.h"
+#include "../../include/Sema/ReferenceAnalysis.h"
 #include "../../include/Sema/Sema.h"
 
 using std::error_code;
@@ -133,6 +134,8 @@ Driver::Driver(const InputContainer &input) : flags(input.flags) {
 
   Parser parser = Parser(this->ctx);
   parser.buildAST();
+
+  ReferenceAnalysis refAnalysis = ReferenceAnalysis(this->ctx);
   
   Sema sema = Sema(this->ctx);
 

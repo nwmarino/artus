@@ -10,14 +10,8 @@ std::unique_ptr<Stmt> Parser::ParseStatement() {
   if (tok.is(TokenKind::OpenBrace))
     return ParseCompoundStatement();
 
-  peekToken();
-  if (peek.is(TokenKind::Colon))
-    return ParseLabelStatement();
-
   if (tok.isKeyword("ret"))
     return ParseRetStatement();
-  else if (tok.isKeyword("jmp"))
-    return ParseJmpStatement();
   else if (tok.isKeyword("fix") || tok.isKeyword("mut"))
     return ParseDeclStatement();
   else if (tok.isKeyword("if"))
@@ -280,60 +274,6 @@ std::unique_ptr<Stmt> Parser::ParseMatchStatement() {
 
   return std::make_unique<MatchStmt>(std::move(expr), std::move(cases),
                                      createSpan(firstLoc, lastLoc));
-}
-
-/// Parse a label statement.
-///
-/// label:
-///   <identifier> ':'
-///
-/// Expects current token to be an identifier, followed by a peeked colon.
-std::unique_ptr<Stmt> Parser::ParseLabelStatement() {
-  assert(tok.is(TokenKind::Identifier) && \
-      "expected identifier to define label");
-
-  Token idToken = tok;
-  nextToken(); // Consume the identifier token.
-
-  assert(tok.is(TokenKind::Colon) && "expected colon after label identifier");
-
-  const Span span = createSpan(idToken.loc);
-  nextToken(); // Consume the colon token.
-  
-  // Store a new label declaration in scope.
-  LabelDecl *labelDecl = new LabelDecl(idToken.value, span);
-  scope->addDecl(labelDecl);
-
-  // Initialize the statement, and store it in the associated declaration.
-  std::unique_ptr<LabelStmt> labelStmt = std::make_unique<LabelStmt>(
-      idToken.value, labelDecl, span);
-  labelDecl->setStmt(labelStmt.get());
-
-  return labelStmt;
-}
-
-/// Parse a jmp statement.
-///
-/// jmp:
-///   'jmp' <identifier>
-///
-/// Expects the current token to be a 'jmp' keyword.
-std::unique_ptr<Stmt> Parser::ParseJmpStatement() {
-  assert(tok.isKeyword("jmp") && "expected 'jmp' keyword");
-
-  const SourceLocation firstLoc = lastLoc;
-  nextToken(); // Consume the 'jmp' token.
-
-  if (!tok.is(TokenKind::Identifier)) {
-    trace("expected identifier after 'jmp' statement", lastLoc);
-    return nullptr;
-  }
-
-  Token idToken = tok; // Store the identifier token.
-  nextToken();
-
-  return std::make_unique<JmpStmt>(idToken.value, nullptr, 
-      createSpan(firstLoc));
 }
 
 /// Parse a ret statement.

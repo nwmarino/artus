@@ -101,6 +101,7 @@ void Sema::visit(FunctionDecl *decl) {
 /// the parent function's parameter list.
 void Sema::visit(ParamVarDecl *decl) {
   const Type *targetType = parentFunctionType->getParamType(paramIndex);
+
   // Check that the type of the parameter is valid.
   if (decl->T->compare(targetType) == 0) {
     fatal("parameter type mismatch: " + decl->name, 
@@ -108,23 +109,47 @@ void Sema::visit(ParamVarDecl *decl) {
   }
 }
 
-/// Semantic Analysis over a LabelDecl.
-void Sema::visit(LabelDecl *decl) { /* unused */ }
-
 /// Semantic Analysis over a VarDecl.
 ///
 /// VarDecls are valid if and only if they are of the same type as their
 /// initializer.
 void Sema::visit(VarDecl *decl) {
-  lvalueType = decl->T;
+  lvalueType = decl->T; // Assign the variable type for the initializer pass.
+  decl->init->pass(this);
 
-  decl->init->pass(this); // Sema on the initializer.
-
+  // Check that the assigned variable type and the initializer type match.
   if (decl->T->compare(decl->init->T) == 0) {
     fatal("variable type mismatch: " + decl->name + ": expected " + 
         decl->T->toString() + ", got " + decl->init->T->toString(),
     { decl->span.file, decl->span.line, decl->span.col });
   }
+
+  lvalueType = nullptr;
+}
+
+void Sema::visit(FieldDecl *decl) { /* no work to be done */ }
+
+/// Semantic Analysis over a StructDecl.
+///
+/// StructDecls are valid if and only if they have valid, unique fields.
+void Sema::visit(StructDecl *decl) {
+  localScope = decl->scope;
+
+  // Check that there are no duplicate fields.
+  for (size_t i = 0; i < decl->fields.size(); i++) {
+    for (size_t j = i + 1; j < decl->fields.size(); j++) {
+      if (decl->fields[i]->name == decl->fields[j]->name) {
+        fatal("duplicate field: " + decl->fields[i]->name, 
+        { decl->span.file, decl->span.line, decl->span.col });
+      }
+    }
+  }
+
+  for (const std::unique_ptr<FieldDecl> &field : decl->fields) {
+    field->pass(this); // Sema on each field.
+  }
+
+  localScope = localScope->getParent();
 }
 
 /// Semantic Analysis over an ImplicitCastExpr.
@@ -134,13 +159,9 @@ void Sema::visit(VarDecl *decl) {
 void Sema::visit(ImplicitCastExpr *expr) {
   expr->expr->pass(this); // Sema on the expression.
 
-  if (expr->T->compare(expr->expr->T) == 0) {
-    fatal("implicit cast type mismatch", { expr->span.file, 
-        expr->span.line, expr->span.col });
-  }
-
-  // Propagate the type of the expression.
-  //expr->expr->T = expr->T;
+  // Assert that the cast is valid, as it was injected by the compiler.
+  assert(expr->expr->T->canCastTo(expr->T) && 
+      "implicit cast type mismatch");
 }
 
 /// Semantic Analysis over an ExplicitCastExpr.
@@ -150,68 +171,25 @@ void Sema::visit(ImplicitCastExpr *expr) {
 void Sema::visit(ExplicitCastExpr *expr) {
   expr->expr->pass(this); // Sema on the expression.
 
-  // Fetch the type if it could not be resolved at parse time.
-  /*
-  if (!expr->T) {
-    const Type *resolvedType = ctx->getType(expr->ident);
-    if (!resolvedType) {
-      fatal("unresolved type: " + expr->ident, { expr->span.file, 
-          expr->span.line, expr->span.col });
-    }
-
-    expr->T = resolvedType;
-  }
-  */
-
   // Type check the cast.
   if (!expr->expr->T->canCastTo(expr->T)) {
     fatal("explicit cast type mismatch: " + expr->expr->T->toString() + 
           " to " + expr->ident, { expr->span.file, 
         expr->span.line, expr->span.col });
   }
-
-  // Propagate the type of the expression.
-  //expr->expr->T = expr->T;
 }
 
-/// Semantic Analysis over a DeclRefExpr.
-///
-/// DeclRefExprs are valid if and only if the declaration they are referencing
-/// is valid.
-void Sema::visit(DeclRefExpr *expr) {
-  const Decl *decl = localScope->getDecl(expr->ident);
-
-  if (!decl) {
-    fatal("unresolved reference: " + expr->ident, { expr->span.file, 
-        expr->span.line, expr->span.col });
-  }
-
-  // Propagate the type of the expression.
-  if (const VarDecl *VarDecl = dynamic_cast<const class VarDecl *>(decl))
-    expr->T = VarDecl->T;
-  else if (const ParamVarDecl *ParamVarDecl = dynamic_cast<const class ParamVarDecl *>(decl))
-    expr->T = ParamVarDecl->T;
-}
+void Sema::visit(DeclRefExpr *expr) { /* no work to be done */ }
 
 /// Semantic Analysis over a CallExpr.
 ///
 /// CallExprs are valid if and only if the callee is a function in scope and the
 /// arguments match both in count and type to the function.
 void Sema::visit(CallExpr *expr) {
-  // Attempt to resolve the function.
-  const Decl *decl = localScope->getDecl(expr->ident);
-
-  if (!decl) {
-    fatal("unresolved reference: " + expr->ident, { expr->span.file, 
-        expr->span.line, expr->span.col });
-  }
-
-  // Check that the callee is a function.
-  const FunctionDecl *callee = dynamic_cast<const FunctionDecl *>(decl);
-  if (!callee) {
-    fatal("expected function type: " + expr->ident, { expr->span.file, 
-        expr->span.line, expr->span.col });
-  }
+  // By reference analysis, this expression refers to a function already.
+  const FunctionDecl *callee = dynamic_cast<const FunctionDecl *>(
+      localScope->getDecl(expr->ident));
+  assert(callee && "expected function declaration");
 
   // Check that the number of arguments matches the number of parameters.
   if (expr->getNumArgs() != callee->getNumParams()) {
@@ -225,6 +203,7 @@ void Sema::visit(CallExpr *expr) {
   for (size_t i = 0; i < expr->getNumArgs(); i++) {
     expr->getArg(i)->pass(this); // Sema on each argument.
 
+    // Type check the function call argument with the parameter.
     if (expr->getArg(i)->T->compare(callee->params[i]->T) == 0) {
       fatal("argument type mismatch: " + expr->ident + ": expected " 
           + callee->params[i]->T->toString() + ", got " 
@@ -269,7 +248,7 @@ void Sema::visit(UnaryExpr *expr) {
   // Propagate the type of the expression.
   expr->T = expr->base->T;
 
-  // Check that references '&' are only done to lvalues.
+  // Check that reference operators '&' are only done to lvalues.
   if (expr->op == UnaryExpr::UnaryOp::Ref) {
     // Check that the operand is an lvalue.
     if (!dynamic_cast<const DeclRefExpr *>(expr->base.get())) {
@@ -281,7 +260,7 @@ void Sema::visit(UnaryExpr *expr) {
     expr->T = ctx->getType('#' + expr->T->toString());
   }
 
-  // Check that dereferences '*' are only done to pointers.
+  // Check that dereference operators '#' are only done to pointers.
   if (expr->op == UnaryExpr::UnaryOp::DeRef) {
     // Check that the operand is a pointer type.
     if (!expr->base->T->isPointerType()) {
@@ -370,67 +349,12 @@ void Sema::visit(BinaryExpr *expr) {
   }
 }
 
-/// Semantic Analysis over a BooleanLiteral.
-/// 
-/// BooleanLiterals are valid if and only if they are of a boolean type.
-void Sema::visit(BooleanLiteral *expr) {
-  if (expr->T->toString() != "bool") {
-    fatal("expected boolean type", { expr->span.file, 
-        expr->span.line, expr->span.col });
-  }
-}
-
-/// Semantic Analysis over an IntegerLiteral.
-///
-/// IntegerLiterals are valid if and only if they are of an integer type.
-void Sema::visit(IntegerLiteral *expr) {
-  if (!expr->T->isIntegerType()) {
-    fatal("expected integer type", { expr->span.file, 
-        expr->span.line, expr->span.col });
-  }
-}
-
-/// Semantic Analysis over a FPLiteral.
-///
-/// FPLiterals are valid if and only if they are of a floating point type.
-void Sema::visit(FPLiteral *expr) {
-  if (!expr->T->isFloatingPointType()) {
-    fatal("expected floating point type", { expr->span.file, 
-        expr->span.line, expr->span.col });
-  }
-}
-
-/// Semantic Analysis over a CharLiteral.
-///
-/// CharLiterals are valid if and only if they are of a character type.
-void Sema::visit(CharLiteral *expr) {
-  if (expr->T->toString() != "char") {
-    fatal("expected character type", { expr->span.file, 
-        expr->span.line, expr->span.col });
-  }
-}
-
-/// Semantic Analysis over a StringLiteral.
-///
-/// StringLiterals are valid if and only if they are of a string type.
-void Sema::visit(StringLiteral *expr) {
-  if (!expr->T->isStringType()) {
-    fatal("expected string type", { expr->span.file, 
-        expr->span.line, expr->span.col });
-  }
-}
-
-/// Semantic Analysis over a NullExpr.
-///
-/// NullExprs are valid if and only if the type exists.
-void Sema::visit(NullExpr *expr) {
-  expr->T = lvalueType;
-
-  if (!expr->T) {
-    fatal("null expression cannot be void", { expr->span.file,
-        expr->span.line, expr->span.col });
-  }
-}
+void Sema::visit(BooleanLiteral *expr) { /* no work to be done */ }
+void Sema::visit(IntegerLiteral *expr) { /* no work to be done */ }
+void Sema::visit(FPLiteral *expr) { /* no work to be done */ }
+void Sema::visit(CharLiteral *expr) { /* no work to be done */ }
+void Sema::visit(StringLiteral *expr) { /* no work to be done */ }
+void Sema::visit(NullExpr *expr) { /* no work to be done */ }
 
 /// Semantic Analysis over an ArrayInitExpr.
 ///
@@ -443,6 +367,7 @@ void Sema::visit(ArrayInitExpr *expr) {
   for (const std::unique_ptr<Expr> &e : expr->exprs) {
     e->pass(this); // Sema on the expression.
 
+    // Check that each element type matches the array type.
     if (e->T->compare(AT->getElementType()) == 0) {
       fatal("array expression type mismatch: " + e->T->toString() + " for " 
           + AT->getElementType()->toString(), { expr->span.file, 
@@ -462,30 +387,16 @@ void Sema::visit(ArrayAccessExpr *expr) {
   expr->base->pass(this); // Sema on the base expression.
   expr->index->pass(this); // Sema on the index expression.
 
+  // Enforce only certain types of array-like accessing.
   if (!expr->base->T->canSubscript()) {
     fatal("expected array type for array access", { expr->span.file,
         expr->span.line, expr->span.col });
   }
 
+  // Enforce only integer literals for indexing.
   if (!expr->index->T->isIntegerType()) {
     fatal("expected integer index type", { expr->span.file, 
         expr->span.line, expr->span.col });
-  }
-
-  // Resolve the array element type at the access expression base.
-  if (expr->base->T->isStringType()) {
-    expr->T = ctx->getType("char");
-  } else if (expr->base->T->isPointerType()) {
-    const PointerType *PT = dynamic_cast<const PointerType *>(expr->base->T);
-    assert(PT && "expected pointer type for array access");
-
-    expr->T = PT->getPointeeType();
-  } else {
-    const ArrayType *AT = dynamic_cast<const ArrayType *>(expr->base->T);
-    assert(AT && "expected array type for array access");
-
-    // Propagate the type of the expression.
-    expr->T = AT->getElementType();
   }
 }
 
@@ -583,47 +494,6 @@ void Sema::visit(MatchStmt *stmt) {
   if (stmt->expr->T->isBooleanType() && stmt->cases.size() != 2) {
     fatal("boolean match statement must have exactly two cases", 
         { stmt->span.file, stmt->span.line, stmt->span.col });
-  } 
-
-  /* not enforcing default case
-  if (!stmt->hasDefault()) {
-    fatal("match statement missing default case", { stmt->span.file, 
-        stmt->span.line, stmt->span.col });
-  }
-  */
-}
-
-/// Semantic Analysis over a LabelStmt.
-///
-/// LabelStmts are valid if and only if the label is declared and is named.
-void Sema::visit(LabelStmt *stmt) {
-  // Check that the label has a name.
-  if (stmt->name.empty()) {
-    fatal("unnamed label", { stmt->span.file, 
-        stmt->span.line, stmt->span.col });
-  }
-
-  // Check that the label is not already declared.
-  const LabelDecl *decl = dynamic_cast<const LabelDecl *>(
-      localScope->getDecl(stmt->name));
-
-  if (!decl) {
-    fatal("label not declared: " + stmt->name, { stmt->span.file,
-        stmt->span.line, stmt->span.col });
-  }
-}
-
-/// Semantic Analysis over a JmpStmt.
-//
-/// JmpStmts are valid if and only if the label they are jumping to is declared.
-void Sema::visit(JmpStmt *stmt) {
-  // Check that the label is not already declared.
-  const LabelDecl *decl = dynamic_cast<const LabelDecl *>(
-      localScope->getDecl(stmt->name));
-
-  if (!decl) {
-    fatal("unresolved label: " + stmt->name, { stmt->span.file,
-        stmt->span.line, stmt->span.col });
   }
 }
 
@@ -638,9 +508,6 @@ void Sema::visit(RetStmt *stmt) {
   }
 
   stmt->expr->pass(this); // Sema on the expression.
-
-  // Handle unresolved return types. (i.e. a call or reference)
-  stmt->T = stmt->expr->T;
 
   // Check that the return type matches the function's return type.
   switch (stmt->T->compare(parentFunctionType->getReturnType())) {

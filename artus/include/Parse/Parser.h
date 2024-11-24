@@ -102,17 +102,17 @@ class Parser final {
   std::unique_ptr<Stmt> ParseIfStatement();
   std::unique_ptr<Stmt> ParseWhileStatement();
   std::unique_ptr<Stmt> ParseUntilStatement();
-  std::unique_ptr<MatchCase> ParseMatchCaseStatement();
   std::unique_ptr<Stmt> ParseMatchStatement();
-  std::unique_ptr<Stmt> ParseLabelStatement();
-  std::unique_ptr<Stmt> ParseJmpStatement();
   std::unique_ptr<Stmt> ParseRetStatement();
 
   std::unique_ptr<Decl> ParseDeclaration();
   std::unique_ptr<Decl> ParseFunctionDeclaration();
-  std::vector<std::unique_ptr<ParamVarDecl>> ParseFunctionParams();
   std::unique_ptr<Decl> ParseVarDeclaration(bool isMut = 0);
+  std::unique_ptr<Decl> ParseStructDeclaration();
 
+  std::unique_ptr<MatchCase> ParseMatchCaseStatement();
+  std::vector<std::unique_ptr<FieldDecl>> ParseFieldDeclarations();
+  std::vector<std::unique_ptr<ParamVarDecl>> ParseFunctionParams();
   std::unique_ptr<PackageUnitDecl> ParsePackageUnit();
 
   std::unique_ptr<Expr> ParseDefaultInitExpression(const Type *T);

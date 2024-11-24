@@ -1,60 +1,35 @@
-#ifndef ARTUS_SEMA_SEMA_H
-#define ARTUS_SEMA_SEMA_H
+#ifndef ARTUS_SEMA_REFERENCEANALYSIS_H
+#define ARTUS_SEMA_REFERENCEANALYSIS_H
 
 #include "../AST/ASTVisitor.h"
-#include "../AST/Decl.h"
-#include "../AST/Expr.h"
 #include "../Core/Context.h"
-#include "Scope.h"
 
-using std::size_t;
+using std::string;
 
 namespace artus {
 
-/// This class implements a Semantic Analysis pass over an AST. The checks
-/// involved include name resolution, type checking, and control flow analysis.
-class Sema final : public ASTVisitor {
-  /// The context associated with the semantic analysis pass.
+/// This class implements a reference analysis pass over an AST. The checks
+/// involved include name and type resolution.
+class ReferenceAnalysis final : public ASTVisitor {
+  /// The context associated with the reference analysis pass.
   Context *ctx;
-
-  /// The possible kinds of loop that the visitor can be traversing.
-  enum class LoopKind {
-    /// No loop.
-    NOL = 0,
-  };
-
-  /// Flag to indicate if the main function has been found.
-  unsigned hasMain : 1;
-
-  /// Flag to indicate if the visitor is currently traversing a function.
-  unsigned inFunction : 1;
-
-  /// Flag to indicate if the visitor is currently traversing a loop.
-  unsigned inLoop : 1;
-  LoopKind loopKind = LoopKind::NOL;
 
   /// Relevant scope quantifiers.
   Scope *globalScope;
   Scope *localScope;
 
-  /// The type of the top-level function, if it exists.
-  const FunctionType *parentFunctionType;
+  /// Resolves a name reference given its identifier. Raises a fatal error if an
+  /// indentifier is unresolved. Otherwise, returns the declaration.
+  const Decl *resolveReference(const string &ident, 
+                               const SourceLocation &loc) const;
 
-  /// The type of the parent lvalue, if it exists.
-  const Type *lvalueType;
-
-  /// The index of the current parameter being visited.
-  size_t paramIndex = 0;
-
-  /// The most previous variable reference.
-  string lastReference;
-
-  /// Resolves a corresponding variable declaration for a given lvalue.
-  const VarDecl *resolveReference(Expr *lvalue);
+  /// Resolves a type given its identifier. Raises a fatal error if a type is
+  /// unresolved, that is, the returned type would have been a `nullptr`.
+  const Type *resolveType(const string &ident, const SourceLocation &loc) const;
 
 public:
-  Sema(Context *ctx);
-  ~Sema() = default;
+  ReferenceAnalysis(Context *ctx);
+  ~ReferenceAnalysis() = default;
 
   void visit(PackageUnitDecl *decl) override;
   void visit(FunctionDecl *decl) override;
@@ -91,4 +66,4 @@ public:
 
 } // namespace artus
 
-#endif // ARTUS_SEMA_SEMA_H
+#endif // ARTUS_SEMA_REFERENCEANALYSIS_H

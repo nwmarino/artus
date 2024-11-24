@@ -18,6 +18,8 @@ std::unique_ptr<Decl> Parser::ParseDeclaration() {
 
   if (tok.isKeyword("fn"))
     return ParseFunctionDeclaration();
+  else if (tok.isKeyword("struct"))
+    return ParseStructDeclaration();
   else if (tok.isKeyword("fix"))
     return ParseVarDeclaration();
   else if (tok.isKeyword("mut"))
@@ -77,13 +79,10 @@ std::unique_ptr<Decl> Parser::ParseFunctionDeclaration() {
   // Parse the function parameters.
   vector<std::unique_ptr<ParamVarDecl>> params = ParseFunctionParams();
 
-  /* Redo until line 80 when void return type is supported. */
-
-  // Unrecoverable error if the next token is not a '->' symbol. (No void types)
+  // Unrecoverable error if the next token is not a '->' symbol.
   if (!tok.is(TokenKind::Arrow)) {
     fatal("expected '->' symbol after function parameters", lastLoc);
   }
-
   nextToken(); // Consume the '->' token.
 
   const Type *returnType = ParseType();
@@ -93,16 +92,13 @@ std::unique_ptr<Decl> Parser::ParseFunctionDeclaration() {
   for (const auto &param : params)
     paramTypes.push_back(param->getType());
 
-  const FunctionType *T = new FunctionType(returnType, paramTypes);
-  this->parentFunctionType = T;
-
-  /* Cut here. */
+  const FunctionType *FT = new FunctionType(returnType, paramTypes);
+  this->parentFunctionType = FT;
 
   // Parse the function body.
   std::unique_ptr<Stmt> body = ParseStatement();
 
-  // Unrecoverable error if there is no statement after the function prototype.
-  // (No empty function bodies)
+  /// UNRECOVERABLE: No function body.
   if (!body) {
     fatal("expected statement after function declaration", lastLoc);
   }
@@ -114,7 +110,7 @@ std::unique_ptr<Decl> Parser::ParseFunctionDeclaration() {
   exitScope();
 
   std::unique_ptr<FunctionDecl> fnDecl = std::make_unique<FunctionDecl>(
-      functionName, T, std::move(params), std::move(body), 
+      functionName, FT, std::move(params), std::move(body), 
       scope, createSpan(fnToken.loc, lastLoc), isPriv);
 
   // Add the function declaration to parent scope.
@@ -243,6 +239,116 @@ std::unique_ptr<Decl> Parser::ParseVarDeclaration(bool isMut) {
   scope->addDecl(decl.get());
 
   return decl;
+}
+
+/// Parse a list of struct field declarations.
+///
+/// Expects the current token to be a '{' symbol.
+std::vector<std::unique_ptr<FieldDecl>> Parser::ParseFieldDeclarations() {
+  assert(tok.is(TokenKind::OpenBrace) && "expected '{' symbol");
+  nextToken(); // Consume the '{' token.
+
+  // Parse the list of field declarations.
+  vector<std::unique_ptr<FieldDecl>> fields;
+  while (!tok.is(TokenKind::CloseBrace)) {
+    bool isMutable = false;
+    if (tok.isKeyword("mut")) {
+      isMutable = true;
+      nextToken(); // Consume the 'mut' keyword.
+    }
+
+    if (!tok.is(TokenKind::Identifier)) {
+      fatal("expected field identifier", lastLoc);
+    }
+
+    const string fieldName = tok.value;
+    nextToken(); // Consume the identifier token.
+
+    if (!tok.is(TokenKind::Colon)) {
+      fatal("expected ':' symbol after field identifier", lastLoc);
+    }
+
+    nextToken(); // Consume the ':' token.
+    const Type *fieldType = ParseType();
+
+    // Create the field declaration and add it to the current scope.
+    std::unique_ptr<FieldDecl> field = std::make_unique<FieldDecl>(
+        fieldName, fieldType, isMutable, createSpan(tok.loc));
+    scope->addDecl(field.get());
+    fields.push_back(std::move(field));
+
+    if (tok.is(TokenKind::Comma)) {
+      nextToken(); // Consume the ',' token.
+      continue;
+    }
+
+    if (!tok.is(TokenKind::CloseBrace)) {
+      fatal("expected ',' or '}' symbol after struct field declaration: " 
+            + fieldName, lastLoc);
+    }
+  }
+
+  nextToken(); // Consume the '}' token.
+  return fields;
+}
+
+/// Parse a struct declaration.
+///
+/// struct-decl:
+///   'struct' <identifier> '{' [fields] '}'
+std::unique_ptr<Decl> Parser::ParseStructDeclaration() {
+  assert(tok.isKeyword("struct") && "expected 'struct' keyword");
+
+  Token structToken = tok; // Save the 'struct' token.
+  nextToken(); // Consume the 'struct' token.
+
+  if (!tok.is(TokenKind::Identifier)) {
+    trace("expected identifier after 'struct' keyword", lastLoc);
+    return nullptr;
+  }
+
+  const string structName = tok.value;
+  nextToken(); // Consume the identifier token.
+
+  bool isPrivate = false;
+  if (this->makePriv) {
+    isPrivate = true;
+    this->makePriv = false;
+  }
+
+  if (!tok.is(TokenKind::OpenBrace)) {
+    trace("expected '{' symbol after struct identifier", lastLoc);
+    return nullptr;
+  }
+
+  // Enter into a new struct scope.
+  enterScope({ .isStructScope = 1 });
+
+  // Parse the struct fields.
+  vector<std::unique_ptr<FieldDecl>> fields = ParseFieldDeclarations();
+
+  // Exit from the struct scope.
+  Scope *scope = this->scope;
+  exitScope();
+
+  // Get the type for each field in the struct.
+  vector<const Type *> fieldTypes;
+  for (std::unique_ptr<FieldDecl> const &field : fields) {
+    fieldTypes.push_back(field->getType());
+  }
+
+  // Create a type for this struct definition.
+  const StructType *ST = new StructType(structName, fieldTypes);
+  this->ctx->addDefinedType(structName, ST);
+
+  // Create the struct declaration.
+  std::unique_ptr<StructDecl> structDecl = std::make_unique<StructDecl>(
+      structName, std::move(fields), scope, createSpan(structToken.loc),
+      isPrivate);
+
+  // Add the struct declaration to parent scope.
+  this->scope->addDecl(structDecl.get());
+  return structDecl;
 }
 
 /// Parse a package unit.

@@ -162,13 +162,13 @@ const Type *Parser::ParseType() {
     fatal("expected constant integer to define array size", lastLoc);
   }
 
-  const size_t arraySize = std::stoul(tok.value);
+  const string size = tok.value;
   nextToken(); // Consume the integer token.
 
   if (!tok.is(TokenKind::CloseBracket)) {
     fatal("expected ']' after array type", lastLoc);
   }
-
   nextToken(); // Consume the ']' token.
-  return new ArrayType(ctx->getType(identToken.value), arraySize);
+
+  return ctx->getType(typeIdentifier + "[" + size + "]");
 }

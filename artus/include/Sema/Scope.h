@@ -21,6 +21,9 @@ struct ScopeContext {
 
   /// If this scope is a compound statement scope.  
   unsigned int isCompoundScope : 1;
+
+  /// If this scope is a struct scope.
+  unsigned int isStructScope : 1;
 };
 
 /// Represents a scope in the source code. This tree data structure is transient
@@ -79,6 +82,9 @@ public:
 
   /// Returns true if this is a compound statement scope, and false otherwise.
   bool isCompoundScope() const { return ctx.isCompoundScope; }
+
+  /// Returns true if this is a struct scope, and false otherwise.
+  bool isStructScope() const { return ctx.isStructScope; }
 };
 
 } // namespace artus

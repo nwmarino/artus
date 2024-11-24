@@ -27,18 +27,18 @@ inline vector<string> __RESERVED = {
   "true",
   "false",
 
-  // Statements and control flow.
+  // Keywords.
   "else",
   "fix",
   "fn",
   "if",
-  "jmp",
+  "match",
   "mut",
   "priv",
   "ret",
+  "struct",
   "while",
   "until",
-  "match",
 };
 
 namespace artus {
