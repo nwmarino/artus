@@ -59,6 +59,8 @@ void Sema::visit(PackageUnitDecl *decl) {
   globalScope = nullptr;
 }
 
+void Sema::visit(ImportDecl *decl) { /* no work to be done */ }
+
 /// Semantic Analysis over a FunctionDecl.
 ///
 /// FunctionDecls are valid if and only if they have valid parameters, a valid

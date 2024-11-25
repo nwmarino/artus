@@ -16,7 +16,9 @@ std::unique_ptr<Decl> Parser::ParseDeclaration() {
     nextToken(); // Consume the 'priv' keyword.
   }
 
-  if (tok.isKeyword("fn"))
+  if (tok.isKeyword("import"))
+    return ParseImportDeclaration();
+  else if (tok.isKeyword("fn"))
     return ParseFunctionDeclaration();
   else if (tok.isKeyword("struct"))
     return ParseStructDeclaration();
@@ -24,6 +26,47 @@ std::unique_ptr<Decl> Parser::ParseDeclaration() {
     return ParseEnumDeclaration();
 
   return nullptr;
+}
+
+/// Parse an import declaration.
+///
+/// import-decl:
+///   'import' <SourcePath>
+///
+/// Expects the current token to be an 'import' keyword.
+std::unique_ptr<Decl> Parser::ParseImportDeclaration() {
+  assert(tok.isKeyword("import") && "expected 'import' keyword");
+
+  Token importToken = tok; // Save the 'import' token.
+  nextToken(); // Consume the 'import' token.
+
+  if (!tok.is(TokenKind::Identifier)) {
+    trace("expected source path after 'import' keyword", lastLoc);
+    return nullptr;
+  }
+
+  bool isLocal = true;
+  SourcePath base = SourcePath(tok.value, nullptr);
+  SourcePath *prev = &base;
+
+  nextToken(); // Consume the source path identifier.
+  while (tok.is(TokenKind::Path)) {
+    nextToken(); // Consume the path token.
+    isLocal = false;
+
+    if (!tok.is(TokenKind::Identifier)) {
+      trace("expected identifier after '::' separator", lastLoc);
+      return nullptr;
+    }
+
+    prev->next = new SourcePath(tok.value, nullptr);
+    prev = prev->next;
+
+    nextToken(); // Consume the identifier token.
+  }
+
+  return std::make_unique<ImportDecl>(base, createSpan(importToken.loc),
+      isLocal);
 }
 
 /// Parse a function declaration.

@@ -101,6 +101,17 @@ bool Context::nextFile() {
 void Context::addPackage(std::unique_ptr<PackageUnitDecl> pkg) 
 { cache->addUnit(std::move(pkg)); }
 
+PackageUnitDecl *Context::resolvePackage(const string &id, 
+                                         const SourceLocation &loc) const {
+  vector<PackageUnitDecl *> units = cache->getUnits();
+  for (PackageUnitDecl *unit : units) {
+    if (unit->getIdentifier() == id)
+      return unit;
+  }
+
+  fatal("unresolved package: " + id, loc);
+}
+
 const Type *Context::getType(const string &name) {
   // Check if the type already exists.
   if (types.find(name) != types.end())

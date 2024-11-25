@@ -93,6 +93,7 @@ class ASTPrinter final : public ASTVisitor {
 
 public:
   void visit(PackageUnitDecl *decl) override;
+  void visit(ImportDecl *decl) override;
   void visit(FunctionDecl *decl) override;
   void visit(ParamVarDecl *decl) override;
   void visit(VarDecl *decl) override;

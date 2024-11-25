@@ -35,6 +35,7 @@ inline vector<string> __RESERVED = {
   "fix",
   "fn",
   "if",
+  "import",
   "match",
   "mut",
   "priv",

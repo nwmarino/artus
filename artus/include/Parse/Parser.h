@@ -111,6 +111,7 @@ class Parser final {
   std::unique_ptr<Stmt> ParseRetStatement();
 
   std::unique_ptr<Decl> ParseDeclaration();
+  std::unique_ptr<Decl> ParseImportDeclaration();
   std::unique_ptr<Decl> ParseFunctionDeclaration();
   std::unique_ptr<Decl> ParseVarDeclaration(bool isMut = 0);
   std::unique_ptr<Decl> ParseStructDeclaration();

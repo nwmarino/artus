@@ -63,6 +63,11 @@ public:
   /// Adds a package unit to the lifetime of this context.
   void addPackage(std::unique_ptr<PackageUnitDecl> pkg);
 
+  /// Resolves a package unit by its identifier. This function will raise an
+  /// exception if the package is unresolved.
+  PackageUnitDecl *resolvePackage(const string &id, 
+                                  const SourceLocation &loc) const;
+
   /// Returns the type most similar to `name`. If no type is found, returns
   /// a type refernce to a possibly qualified type.
   const Type *getType(const string &name);

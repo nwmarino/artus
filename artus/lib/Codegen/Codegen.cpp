@@ -81,6 +81,8 @@ void Codegen::visit(PackageUnitDecl *decl) {
   }
 }
 
+void Codegen::visit(ImportDecl *decl) { /* no work to be done */ }
+
 void Codegen::visit(FunctionDecl *decl) {
   llvm::Function *FN = functions[decl->name];
   if (!FN) {

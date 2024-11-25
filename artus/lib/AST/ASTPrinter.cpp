@@ -176,6 +176,11 @@ void ASTPrinter::visit(PackageUnitDecl *decl) {
   resetLastChild();
 }
 
+void ASTPrinter::visit(ImportDecl *decl) {
+  printPiping();
+  printDecl(decl->span, "ImportDecl", decl->path.curr);
+}
+
 void ASTPrinter::visit(FunctionDecl *decl) {
   printPiping();
   printDecl(decl->span, "FunctionDecl", decl->name, 

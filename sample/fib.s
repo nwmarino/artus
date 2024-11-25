@@ -1,3 +1,5 @@
+import std
+
 struct A {
   mut val: i64,
 }

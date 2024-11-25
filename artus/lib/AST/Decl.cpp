@@ -1,4 +1,3 @@
-#include "Decl.h"
 #include "../../include/AST/Expr.h"
 
 using std::string;
@@ -33,6 +32,17 @@ ScopedDecl::ScopedDecl(const string &name, Scope *scope, const Span &span,
     : NamedDecl(name, span, priv), scope(scope) {}
 
 Scope *ScopedDecl::getScope() const { return scope; }
+
+/* ImportDecl Implementation ----------------------------------------------===*/
+
+ImportDecl::ImportDecl(const SourcePath &path, const Span &span, bool local) 
+    : Decl(span), path(path), local(local) {}
+
+void ImportDecl::pass(ASTVisitor *visitor) { visitor->visit(this); }
+
+const SourcePath &ImportDecl::getPath() const { return path; }
+
+bool ImportDecl::isLocal() const { return local; }
 
 /* PackageUnitDecl Implementation -----------------------------------------===*/
 

@@ -2,11 +2,10 @@
 #define ARTUS_AST_DECLBASE_H
 
 #include <memory>
-#include <string>
-#include <utility>
 #include <vector>
 
 #include "ASTPrinter.h"
+#include "../Core/SourcePath.h"
 #include "../Core/Span.h"
 
 using std::string;
@@ -38,6 +37,30 @@ public:
 
   /// Returns the span of this declaration.
   const Span &getSpan() const;
+};
+
+/// Represents an import declaration. An import may be used to import a local
+/// source file or ones from the standard library.
+class ImportDecl final : public Decl {
+  friend class ASTPrinter;
+  friend class ReferenceAnalysis;
+
+  /// The name of the package to import.
+  const SourcePath path;
+
+  /// If the package is from the local source tree.
+  const bool local;
+
+public:
+  ImportDecl(const SourcePath &path, const Span &span, bool local = true);
+
+  void pass(ASTVisitor *visitor) override;
+
+  /// Returns the path of the package to import.
+  const SourcePath &getPath() const;
+
+  /// Returns if the package is from the local source tree.
+  bool isLocal() const;
 };
 
 /// Represents a package declaration. A package represents a singular source

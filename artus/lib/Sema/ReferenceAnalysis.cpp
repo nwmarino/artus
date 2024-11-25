@@ -14,6 +14,7 @@
 #include "../../include/Sema/ReferenceAnalysis.h"
 #include "../../include/Sema/Scope.h"
 #include "../../include/Sema/Type.h"
+#include "../../include/Core/SourcePath.h"
 
 using namespace artus;
 
@@ -46,6 +47,8 @@ const Decl *ReferenceAnalysis::resolveReference(const string &ident,
 void ReferenceAnalysis::visit(PackageUnitDecl *decl) {
   this->globalScope = decl->scope;
 
+  vector<ImportDecl> imports = {};
+
   // Reconstruct function types.
   for (const std::unique_ptr<Decl> &d : decl->decls) {
     if (FunctionDecl *FD = dynamic_cast<FunctionDecl *>(d.get())) {
@@ -75,8 +78,36 @@ void ReferenceAnalysis::visit(PackageUnitDecl *decl) {
         delete FD->T;
         FD->T = new FunctionType(RT, PT);
       }
+    } else if (ImportDecl *ID = dynamic_cast<ImportDecl *>(d.get())) {
+      imports.push_back(*ID);
     }
   }
+
+  // Check for duplicate imports.
+  for (size_t i = 0; i < imports.size(); i++) {
+    for (size_t j = i + 1; j < imports.size(); j++) {
+      if (imports.at(i).getPath().compare(imports.at(j).getPath()) == 0) {
+        fatal("duplicate import: " + imports.at(j).getPath().curr,
+            { imports.at(j).getSpan().file, imports.at(j).getSpan().line,
+              imports.at(j).getSpan().col });
+      }
+    }
+  }
+
+  // Resolve each import.
+  for (ImportDecl &ID : imports) {
+    // Skip library imports for now.
+    if (!ID.isLocal()) {
+      continue;
+    }
+
+    PackageUnitDecl *PUD = ctx->resolvePackage(ID.getPath().curr,
+        { ID.getSpan().file, ID.getSpan().line, ID.getSpan().col });
+    for (std::unique_ptr<Decl> &pkgDecl : PUD->decls) {
+      pkgDecl->pass(this);
+    }
+  }
+
 
   // Pass on each declaration.
   for (const std::unique_ptr<Decl> &d : decl->decls) {
@@ -84,6 +115,10 @@ void ReferenceAnalysis::visit(PackageUnitDecl *decl) {
   }
 
   this->globalScope = nullptr;
+}
+
+void ReferenceAnalysis::visit(ImportDecl *decl) {
+  
 }
 
 void ReferenceAnalysis::visit(FunctionDecl *decl) {
