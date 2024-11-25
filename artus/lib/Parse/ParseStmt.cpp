@@ -92,7 +92,7 @@ std::unique_ptr<Stmt> Parser::ParseCompoundStatement() {
   Scope *scope = this->scope;
   exitScope();
 
-  return std::make_unique<CompoundStmt>(std::move(stmts), scope, 
+  return std::make_unique<CompoundStmt>(std::move(stmts), scope,
                                         createSpan(firstLoc, lastLoc));
 }
 

@@ -135,9 +135,8 @@ void Codegen::visit(VarDecl *decl) {
   allocas[decl->name] = alloca;
 }
 
-void Codegen::visit(FieldDecl *decl) {
-  /* no work to be done */
-}
+void Codegen::visit(EnumDecl *decl) { /* no work to be done */ }
+void Codegen::visit(FieldDecl *decl) { /* no work to be done */ }
 
 void Codegen::visit(StructDecl *decl) {
   // Create the struct type and struct in the module.
@@ -179,6 +178,19 @@ void Codegen::visit(ImplicitCastExpr *expr) { genericCastCGN(expr); }
 void Codegen::visit(ExplicitCastExpr *expr) { genericCastCGN(expr); }
 
 void Codegen::visit(DeclRefExpr *expr) {
+  // Handle enum references.
+  if (expr->getSpecifier() != "") {
+    const EnumType *ET = dynamic_cast<const EnumType *>(expr->getType());
+    if (!ET) {
+      fatal("expected enum type for enum reference", 
+          { expr->span.file, expr->span.line, expr->span.col });
+    }
+
+    tmp = llvm::ConstantInt::get(ET->toLLVMType(*context), 
+        ET->getVariant(expr->getSpecifier()));
+    return;
+  }
+
   llvm::AllocaInst *alloca = allocas[expr->ident];
   if (!alloca) {
     fatal("unresolved variable: " + expr->ident, 

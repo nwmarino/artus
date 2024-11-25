@@ -219,6 +219,33 @@ void ASTPrinter::visit(VarDecl *decl) {
   resetLastChild();
 }
 
+void ASTPrinter::visit(EnumDecl *decl) {
+  printPiping();
+  printDecl(decl->span, "EnumDecl", decl->name, "", false);
+
+  if (decl->isPrivate()) {
+    cout << " private\n";
+  } else {
+    cout << '\n';
+  }
+
+  increaseIndent();
+  setPiping(indent);
+  size_t variantsCount = decl->variants.size();
+  for (unsigned idx = 0; idx < variantsCount; idx++) {
+    if (idx + 1 == variantsCount) {
+      clearPiping(indent);
+      setLastChild();
+    }
+
+    printPiping();
+    printDecl("EnumVariant", decl->variants[idx], 
+        decl->getType()->toString(), true);
+  }
+
+  resetLastChild();
+}
+
 void ASTPrinter::visit(FieldDecl *decl) {
   printPiping();
   printDecl(decl->span, "FieldDecl", decl->name, decl->T->toString(), false);
@@ -277,7 +304,12 @@ void ASTPrinter::visit(ExplicitCastExpr *expr)  {
 
 void ASTPrinter::visit(DeclRefExpr *expr) {
   printPiping();
-  printExpr(expr->span, "DeclRefExpr", expr->T->toString(), expr->ident);
+  printExpr(expr->span, "DeclRefExpr", expr->T->toString(), expr->ident, false);
+
+  if (expr->getSpecifier() != "")
+    cout << literalColor << " '" << expr->getSpecifier() << '\'' << clear;
+
+  cout << '\n';
 }
 
 void ASTPrinter::visit(CallExpr *expr) {

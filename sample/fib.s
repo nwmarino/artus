@@ -2,11 +2,14 @@ struct A {
   mut val: i64,
 }
 
-fn @main() -> i64 {
-  mut a: A = A {
-    val: 1,
-  }
+enum MyEnum {
+  a,
+  b,
+  c,
+}
 
-  a.val = 0
-  ret a.val
+fn @main() -> i64 {
+  mut a: MyEnum = MyEnum::b
+  a += 1
+  ret a
 }

@@ -116,6 +116,8 @@ std::unique_ptr<Expr> Parser::ParseIdentifierExpression() {
     return ParseStructInitExpression();
   else if (peek.is(TokenKind::Equals))
     return ParseReferenceExpression();
+  else if (peek.is(TokenKind::Path))
+    return ParseEnumReferenceExpression();
 
   if (Decl *refDecl = scope->getDecl(tok.value))
     return ParseReferenceExpression();
@@ -575,4 +577,32 @@ std::unique_ptr<Expr> Parser::ParseMemberExpression(std::unique_ptr<Expr> base) 
 
   return std::make_unique<MemberExpr>(std::move(base), fieldName,
       nullptr, createSpan(firstLoc, lastLoc));
+}
+
+/// Parse an enum reference expression.
+///
+/// Expects the current token to be an identifier, and the peeked token to be
+/// a path operator.
+std::unique_ptr<Expr> Parser::ParseEnumReferenceExpression() {
+  assert(tok.is(TokenKind::Identifier) && "expected identifier");
+
+  Token enumToken = tok; // Save the identifier token.
+  nextToken();
+
+  if (!tok.is(TokenKind::Path)) {
+    fatal("expected '::' after enum identifier", tok.loc);
+  }
+  nextToken(); // Eat the path token.
+
+  if (!tok.is(TokenKind::Identifier)) {
+    fatal("expected enum variant identifier after '::'", tok.loc);
+  }
+
+  const string variantName = tok.value; // Save the variant name.
+  nextToken(); // Eat the variant identifier token.
+
+  const Type *T = ctx->getType(enumToken.value);
+
+  return std::make_unique<DeclRefExpr>(enumToken.value, nullptr, T,
+      createSpan(enumToken.loc, lastLoc), variantName);
 }

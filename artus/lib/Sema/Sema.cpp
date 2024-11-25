@@ -131,6 +131,7 @@ void Sema::visit(VarDecl *decl) {
   lvalueType = nullptr;
 }
 
+void Sema::visit(EnumDecl *decl) { /* no work to be done */ }
 void Sema::visit(FieldDecl *decl) { /* no work to be done */ }
 
 /// Semantic Analysis over a StructDecl.

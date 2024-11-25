@@ -20,10 +20,8 @@ std::unique_ptr<Decl> Parser::ParseDeclaration() {
     return ParseFunctionDeclaration();
   else if (tok.isKeyword("struct"))
     return ParseStructDeclaration();
-  else if (tok.isKeyword("fix"))
-    return ParseVarDeclaration();
-  else if (tok.isKeyword("mut"))
-    return ParseVarDeclaration(true);
+  else if (tok.isKeyword("enum"))
+    return ParseEnumDeclaration();
 
   return nullptr;
 }
@@ -349,6 +347,84 @@ std::unique_ptr<Decl> Parser::ParseStructDeclaration() {
   // Add the struct declaration to parent scope.
   this->scope->addDecl(structDecl.get());
   return structDecl;
+}
+
+/// Parse an enum declaration.
+///
+/// enum-decl:
+///   'enum' <identifier> '{' [variants] '}'
+///
+/// variants:
+///   <identifier> [',' <identifier>]*
+///
+/// Expects the current token to be an 'enum' keyword.
+std::unique_ptr<Decl> Parser::ParseEnumDeclaration() {
+  assert(tok.isKeyword("enum") && "expected 'enum' keyword");
+
+  Token enumToken = tok; // Save the 'enum' token.
+  nextToken(); // Consume the 'enum' token.
+
+  if (!tok.is(TokenKind::Identifier)) {
+    trace("expected identifier after 'enum' keyword", lastLoc);
+    return nullptr;
+  }
+
+  const string enumName = tok.value;
+  nextToken(); // Consume the identifier token.
+
+  if (!tok.is(TokenKind::OpenBrace)) {
+    trace("expected '{' symbol after enum identifier", lastLoc);
+    return nullptr;
+  }
+  nextToken(); // Consume the '{' token.
+
+  // Parse the list of enum variants.
+  vector<string> variants;
+  while (!tok.is(TokenKind::CloseBrace)) {
+    if (!tok.is(TokenKind::Identifier)) {
+      trace("expected identifier after '{' symbol", lastLoc);
+      return nullptr;
+    }
+
+    // Check if the variant already exists.
+    if (std::find(variants.begin(), variants.end(), tok.value) != variants.end()) {
+      trace("duplicate enum variant: " + tok.value, lastLoc);
+      return nullptr;
+    }
+
+    // Unique variant; add it to the list.
+    variants.push_back(tok.value);
+    nextToken(); // Consume the identifier token.
+
+    if (tok.is(TokenKind::Comma)) {
+      nextToken(); // Consume the ',' token.
+      continue;
+    }
+
+    if (!tok.is(TokenKind::CloseBrace)) {
+      fatal("expected ',' or '}' symbol after enum variant", lastLoc);
+    }
+  }
+
+  nextToken(); // Consume the '}' token.
+
+  // Create the enum type.
+  const EnumType *ET = new EnumType(enumName, variants);
+  this->ctx->addDefinedType(enumName, ET);
+
+  bool isPrivate = false;
+  if (this->makePriv) {
+    isPrivate = true;
+    this->makePriv = false;
+  }
+
+  // Create the enum declaration.
+  std::unique_ptr<EnumDecl> enumDecl = std::make_unique<EnumDecl>(enumName,
+      std::move(variants), ET, createSpan(enumToken.loc), isPrivate);
+
+  // Add the enum declaration to parent scope.
+  this->scope->addDecl(enumDecl.get());
+  return enumDecl;
 }
 
 /// Parse a package unit.

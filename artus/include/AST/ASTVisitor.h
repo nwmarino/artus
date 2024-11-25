@@ -5,9 +5,10 @@ namespace artus {
 
 /// Forward declarations.
 class PackageUnitDecl;
-class FunctionDecl;
-class ParamVarDecl;
 class VarDecl;
+class ParamVarDecl;
+class FunctionDecl;
+class EnumDecl;
 class FieldDecl;
 class StructDecl;
 
@@ -46,9 +47,10 @@ public:
   virtual ~ASTVisitor() = default;
 
   virtual void visit(PackageUnitDecl *decl) = 0;
-  virtual void visit(FunctionDecl *decl) = 0;
-  virtual void visit(ParamVarDecl *decl) = 0;
   virtual void visit(VarDecl *decl) = 0;
+  virtual void visit(ParamVarDecl *decl) = 0;
+  virtual void visit(FunctionDecl *decl) = 0;
+  virtual void visit(EnumDecl *decl) = 0;
   virtual void visit(FieldDecl *decl) = 0;
   virtual void visit(StructDecl *decl) = 0;
 

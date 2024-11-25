@@ -97,6 +97,7 @@ class Parser final {
   std::unique_ptr<Expr> ParseArrayAccessExpression();
   std::unique_ptr<Expr> ParseStructInitExpression();
   std::unique_ptr<Expr> ParseMemberExpression(std::unique_ptr<Expr> base = nullptr);
+  std::unique_ptr<Expr> ParseEnumReferenceExpression();
 
   std::unique_ptr<Stmt> ParseStatement();
   std::unique_ptr<Stmt> ParseBreakStatement();
@@ -113,6 +114,7 @@ class Parser final {
   std::unique_ptr<Decl> ParseFunctionDeclaration();
   std::unique_ptr<Decl> ParseVarDeclaration(bool isMut = 0);
   std::unique_ptr<Decl> ParseStructDeclaration();
+  std::unique_ptr<Decl> ParseEnumDeclaration();
 
   std::unique_ptr<MatchCase> ParseMatchCaseStatement();
   std::vector<std::unique_ptr<FieldDecl>> ParseFieldDeclarations();

@@ -89,9 +89,14 @@ class DeclRefExpr : public Expr {
   /// The declaration being referenced.
   const Decl *decl;
 
+  /// An optional specifier for the reference. This is used to resolve a nested
+  /// name specifier, such as that of an enumeration.
+  const string specifier;
+
 public:
   DeclRefExpr(const string ident, const Decl *decl, const Type *T, 
-              const Span &span) : Expr(T, span), ident(ident), decl(decl) {
+              const Span &span, const string &specifier = "") 
+      : Expr(T, span), ident(ident), decl(decl), specifier(specifier) {
     this->lvalue = true;
   }
 
@@ -99,6 +104,9 @@ public:
 
   /// Returns the identifier of this reference.
   const string &getIdent() const { return ident; }
+
+  /// Returns the name specifier, if it exists.
+  const string &getSpecifier() const { return specifier; }
 };
 
 /// A call expression. For example, `@foo()`.

@@ -210,6 +210,17 @@ entry:
     }
     break;
 
+  // Colon or path operator.
+  case ':':
+    if (peek(1) == ":") {
+      BufferPos++;
+      skp++;
+      next.kind = TokenKind::Path;
+    } else {
+      next.kind = TokenKind::Colon;
+    }
+    break;
+
   // Basic token lexing.
   case '(': next.kind = TokenKind::OpenParen; break;
   case ')': next.kind = TokenKind::CloseParen; break;
@@ -217,7 +228,6 @@ entry:
   case '}': next.kind = TokenKind::CloseBrace; break;
   case '[': next.kind = TokenKind::OpenBracket; break;
   case ']': next.kind = TokenKind::CloseBracket; break;
-  case ':': next.kind = TokenKind::Colon; break;
   case '.': next.kind = TokenKind::Dot; break;
   case ',': next.kind = TokenKind::Comma; break;
   case '@': next.kind = TokenKind::At; break;
@@ -274,40 +284,41 @@ const string Lexer::dump() {
       case TokenKind::LineComment: tmp = "LineComment"; break;
       case TokenKind::Identifier: tmp = "Identifier <" + curr.value + ">"; break;
       case TokenKind::Literal: tmp = "Literal <" + curr.value + ">"; break;
-      case TokenKind::OpenParen: tmp = "OpenParen"; break;
-      case TokenKind::CloseParen: tmp = "CloseParen"; break;
-      case TokenKind::OpenBrace: tmp = "OpenBrace"; break;
-      case TokenKind::CloseBrace: tmp = "CloseBrace"; break;
-      case TokenKind::OpenBracket: tmp = "OpenBracket"; break;
-      case TokenKind::CloseBracket: tmp = "CloseBracket"; break;
-      case TokenKind::Plus: tmp = "Plus"; break;
-      case TokenKind::Minus: tmp = "Minus"; break;
-      case TokenKind::Star: tmp = "Star"; break;
-      case TokenKind::Slash: tmp = "Slash"; break;
-      case TokenKind::Equals: tmp = "Equals"; break;
-      case TokenKind::Bang: tmp = "Bang"; break;
-      case TokenKind::Colon: tmp = "Colon"; break;
-      case TokenKind::Dot: tmp = "Dot"; break;
-      case TokenKind::Comma: tmp = "Comma"; break;
-      case TokenKind::At: tmp = "At"; break;
-      case TokenKind::Hash: tmp = "Hash"; break;
-      case TokenKind::Ampersand: tmp = "Ampersand"; break;
-      case TokenKind::Arrow: tmp = "Arrow"; break;
-      case TokenKind::FatArrow: tmp = "FatArrow"; break;
-      case TokenKind::EqualsEquals: tmp = "EqualsEquals"; break;
+      case TokenKind::OpenParen: tmp = "("; break;
+      case TokenKind::CloseParen: tmp = ")"; break;
+      case TokenKind::OpenBrace: tmp = "{"; break;
+      case TokenKind::CloseBrace: tmp = "}"; break;
+      case TokenKind::OpenBracket: tmp = "["; break;
+      case TokenKind::CloseBracket: tmp = "]"; break;
+      case TokenKind::Plus: tmp = "+"; break;
+      case TokenKind::Minus: tmp = "-"; break;
+      case TokenKind::Star: tmp = "*"; break;
+      case TokenKind::Slash: tmp = "/"; break;
+      case TokenKind::Equals: tmp = "="; break;
+      case TokenKind::Bang: tmp = "!"; break;
+      case TokenKind::Colon: tmp = ":"; break;
+      case TokenKind::Dot: tmp = "."; break;
+      case TokenKind::Comma: tmp = ","; break;
+      case TokenKind::At: tmp = "@"; break;
+      case TokenKind::Hash: tmp = "#"; break;
+      case TokenKind::Ampersand: tmp = "&"; break;
+      case TokenKind::Arrow: tmp = "->"; break;
+      case TokenKind::FatArrow: tmp = "=>"; break;
+      case TokenKind::EqualsEquals: tmp = "=="; break;
       case TokenKind::Eof: tmp = "Eof"; break;
-      case TokenKind::Less: tmp = "Less"; break;
-      case TokenKind::Greater: tmp = "Greater"; break;
-      case TokenKind::BangEquals: tmp = "BangEquals"; break;
-      case TokenKind::PlusEquals: tmp = "PlusEquals"; break;
-      case TokenKind::MinusEquals: tmp = "MinusEquals"; break;
-      case TokenKind::StarEquals: tmp = "StarEquals"; break;
-      case TokenKind::SlashEquals: tmp = "SlashEquals"; break;
-      case TokenKind::LessEquals: tmp = "LessEquals"; break;
-      case TokenKind::GreaterEquals: tmp = "GreaterEquals"; break;
-      case TokenKind::AndAnd: tmp = "AndAnd"; break;
-      case TokenKind::OrOr: tmp = "OrOr"; break;
-      case TokenKind::XorXor: tmp = "XorXor"; break;
+      case TokenKind::Less: tmp = "<"; break;
+      case TokenKind::Greater: tmp = ">"; break;
+      case TokenKind::BangEquals: tmp = "!="; break;
+      case TokenKind::PlusEquals: tmp = "+="; break;
+      case TokenKind::MinusEquals: tmp = "-="; break;
+      case TokenKind::StarEquals: tmp = "*="; break;
+      case TokenKind::SlashEquals: tmp = "/="; break;
+      case TokenKind::LessEquals: tmp = "<="; break;
+      case TokenKind::GreaterEquals: tmp = ">="; break;
+      case TokenKind::AndAnd: tmp = "&&"; break;
+      case TokenKind::OrOr: tmp = "||"; break;
+      case TokenKind::XorXor: tmp = "^^"; break;
+      case TokenKind::Path: tmp = "::"; break;
     }
 
     result += std::format("{:15}{}\n", loc, tmp);

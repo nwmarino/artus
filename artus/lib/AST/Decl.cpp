@@ -97,6 +97,28 @@ const ParamVarDecl *FunctionDecl::getParam(size_t i) const
 
 bool FunctionDecl::canImport() const { return true; }
 
+/* EnumDecl Implementation ------------------------------------------------===*/
+
+EnumDecl::EnumDecl(const string &name, vector<string> variants, const Type *T,
+                   const Span &span, bool priv)
+    : NamedDecl(name, span, priv), variants(std::move(variants)), T(T) {}
+
+void EnumDecl::pass(ASTVisitor *visitor) { visitor->visit(this); }
+
+const Type *EnumDecl::getType() const { return T; }
+
+size_t EnumDecl::getNumVariants() const { return variants.size(); }
+
+int EnumDecl::getVariantIndex(const string &variant) const {
+  for (size_t i = 0; i < variants.size(); ++i) {
+    if (variants[i] == variant) 
+      return i;
+  }
+  return -1;
+}
+
+bool EnumDecl::canImport() const { return true; }
+
 /* FieldDecl Implementation -----------------------------------------------===*/
 
 FieldDecl::FieldDecl(const string &name, const Type *T, const bool mut,

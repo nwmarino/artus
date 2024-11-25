@@ -68,6 +68,7 @@ public:
   void visit(FunctionDecl *decl) override;
   void visit(ParamVarDecl *decl) override;
   void visit(VarDecl *decl) override;
+  void visit(EnumDecl *decl) override;
   void visit(FieldDecl *decl) override;
   void visit(StructDecl *decl) override;
 

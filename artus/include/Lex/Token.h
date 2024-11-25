@@ -31,6 +31,7 @@ inline vector<string> __RESERVED = {
   "break",
   "continue",
   "else",
+  "enum",
   "fix",
   "fn",
   "if",
@@ -131,6 +132,8 @@ enum class TokenKind {
   OrOr,
   /// ^^
   XorXor,
+  /// ::
+  Path,
 
   /// End of file
   Eof,

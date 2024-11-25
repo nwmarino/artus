@@ -124,6 +124,8 @@ void ReferenceAnalysis::visit(VarDecl *decl) {
       ("invalid variable type: " + decl->T->toString()).c_str());
 }
 
+void ReferenceAnalysis::visit(EnumDecl *decl) { /* no work to be done */ }
+
 void ReferenceAnalysis::visit(FieldDecl *decl) {
   // Resolve the absolute type.
   if (!decl->T->isAbsolute()) {
@@ -170,15 +172,37 @@ void ReferenceAnalysis::visit(ExplicitCastExpr *expr) {
 }
 
 void ReferenceAnalysis::visit(DeclRefExpr *expr) {
-  const Decl *decl = resolveReference(expr->ident,
+  // Handle possible enum reference, which already have type references.
+  if (expr->getSpecifier() != "") {
+    const EnumType *ET = dynamic_cast<const EnumType *>(ctx->getType(
+        expr->getType()->toString()));
+    if (!ET) {
+      fatal("expected enum variant reference: " + expr->getIdent(),
+          { expr->span.file, expr->span.line, expr->span.col });
+    }
+
+    if (ET->getVariant(expr->getSpecifier()) < 0) {
+      fatal("unresolved enum variant: " + expr->getIdent(),
+          { expr->span.file, expr->span.line, expr->span.col });
+    }
+
+    // Propogate the type of the expression.
+    expr->T = ET;
+
+    // Resolve the enum declaration.
+    const Decl *decl = resolveReference(expr->getType()->toString(),
+        { expr->span.file, expr->span.line, expr->span.col });
+    expr->decl = decl;
+  } else {
+    const Decl *decl = resolveReference(expr->ident,
       { expr->span.file, expr->span.line, expr->span.col });
 
-  // Propagate the type of the expression.
-  if (const VarDecl *VarDecl = dynamic_cast<const class VarDecl *>(decl)) {
-    expr->T = VarDecl->T;
-  } else {
-    fatal("expected variable reference: " + expr->ident,
-        { expr->span.file, expr->span.line, expr->span.col });
+    if (const VarDecl *VarDecl = dynamic_cast<const class VarDecl *>(decl))
+      expr->T = VarDecl->T; // Propogate the type.
+    else {
+      fatal("expected variable reference: " + expr->ident,
+          { expr->span.file, expr->span.line, expr->span.col });
+    }
   }
 
   assert(expr->T->isAbsolute() && 

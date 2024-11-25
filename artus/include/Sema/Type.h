@@ -15,6 +15,9 @@ using std::vector;
 
 namespace artus {
 
+/// Forward declarations.
+class EnumType;
+
 /// Base class for all Types and their derivatives. Often nested in an 
 /// expression node or typed declaration.
 class Type {
@@ -204,8 +207,9 @@ public:
         return 1;
 
       return 2;
-    }
-    // TODO: support enums
+    } else if (this->isIntegerType() && other->isIntegerType())
+      return this->getBitWidth() == other->getBitWidth() ? 1 : 2;
+  
     return 0;
   }
 
@@ -604,6 +608,60 @@ public:
 
     return llvm::StructType::create(ctx, fieldTypes, name);
   }
+};
+
+/// Represents a defined enum type.
+class EnumType final : public DefinedType {
+  /// The values of the enum type.
+  const vector<string> variants;
+
+public:
+  EnumType(const string &name, vector<string> variants)
+      : DefinedType(name), variants(variants) {}
+
+  bool isAbsolute() const override { return true; }
+  bool isIntegerType() const override { return true; }
+  unsigned getBitWidth() const override { return 64; }
+
+  /// Returns the value of a variant in the enumeration.
+  int getVariant(const string &variant) const {
+    for (size_t i = 0; i < variants.size(); i++) {
+      if (variants[i] == variant)
+        return i;
+    }
+    
+    return -1;
+  }
+
+  /// Compare an enum type with another type. Enum types match if and only if
+  /// the names and values match. The return value of this function is never 2
+  /// due to explicitness of enum types.
+  int compare(const Type *other) const override {
+    if (const EnumType *otherType = dynamic_cast<const EnumType *>(other))
+      return name == otherType->name;
+    else if (this->isIntegerType() && other->isIntegerType())
+      return this->getBitWidth() == other->getBitWidth() ? 1 : 2;
+
+    return false;
+  }
+
+  /// Returns true if this enum type can be casted into the given type, and
+  /// false otherwise. Optionally, a `strict` flag can be passed to indicate
+  /// that the cast must be exact.
+  bool canCastTo(const Type *other, bool strict = false) const override {
+    if (other->isIntegerType()) {
+      switch (strict ? 1 : 2) {
+        case 1: return this->getBitWidth() == other->getBitWidth();
+        case 2: return this->getBitWidth() <= other->getBitWidth();
+      }
+    }
+
+    return false;
+  }
+
+  /// Returns a LLVM IntegerType equivelant of this enum type.
+  llvm::Type *toLLVMType(llvm::LLVMContext &ctx) const override {
+  { return llvm::Type::getInt64Ty(ctx); }}
 };
 
 } // namespace artus

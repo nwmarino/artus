@@ -145,6 +145,37 @@ public:
   bool canImport() const override;
 };
 
+/// Represents an enumeration declaration.
+class EnumDecl final : public NamedDecl {
+  friend class ASTPrinter;
+  friend class Codegen;
+  friend class ReferenceAnalysis;
+  friend class Sema;
+
+  /// The enumerators of this enumeration declaration.
+  vector<string> variants;
+
+  /// The associated enumeration type.
+  const Type *T;
+
+public:
+  EnumDecl(const string &name, vector<string> variants, const Type *T,
+           const Span &span, bool priv = false);
+
+  void pass(ASTVisitor *visitor) override;
+
+  /// Returns the type of this declaration.
+  const Type *getType() const;
+
+  /// Returns the number of variants in this declaration.
+  size_t getNumVariants() const;
+
+  /// Get the index of the given variant, and -1 if it does not exist.
+  int getVariantIndex(const string &variant) const;
+
+  bool canImport() const override;
+};
+
 /// Represents a field declaration of a struct.
 class FieldDecl final : public NamedDecl {
   friend class ASTPrinter;
