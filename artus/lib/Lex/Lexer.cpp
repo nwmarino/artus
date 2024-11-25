@@ -136,9 +136,11 @@ entry:
   // Division operators or line comments.
   case '/':
     if (peek(1) == "/") {
-      BufferPos++;
-      skp++;
-      next.kind = TokenKind::LineComment;
+      while (*BufferPos != '\n') {
+        BufferPos++;
+        skp++;
+      }
+      goto entry;
     } else if (peek(1) == "=") {
       BufferPos++;
       skp++;
