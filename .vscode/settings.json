@@ -84,6 +84,7 @@
     "cmake.debugConfig": {
         "args": [
             "../sample/fib.s",
+            "../sample/foo.s",
         ]
     }
 }

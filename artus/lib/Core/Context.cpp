@@ -22,13 +22,14 @@
 //>==----------------------------------------------------------------------==<//
 
 #include "../../include/AST/Stmt.h"
+#include <algorithm>
 #include "../../include/Core/Context.h"
 
 using std::string;
 
 using namespace artus;
 
-Context::Context(vector<SourceFile> files) : files(std::move(files)), eof(0) {
+Context::Context(vector<SourceFile> files) : files(std::move(files)) {
   this->cache = std::make_unique<UnitCache>();
   this->resetTypes();
 }
@@ -94,7 +95,7 @@ bool Context::nextFile() {
   active.BufferStart = next_file.BufferStart;
   active.name = next_file.name;
   active.path = next_file.path;
-  resetTypes();
+  //resetTypes();
   return true;
 }
 
@@ -105,7 +106,9 @@ PackageUnitDecl *Context::resolvePackage(const string &id,
                                          const SourceLocation &loc) const {
   vector<PackageUnitDecl *> units = cache->getUnits();
   for (PackageUnitDecl *unit : units) {
-    if (unit->getIdentifier() == id)
+    // Remove extension.
+    const string cutId = id.substr(0, id.find_last_of('.'));
+    if (cutId == id)
       return unit;
   }
 

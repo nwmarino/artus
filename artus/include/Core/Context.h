@@ -47,6 +47,9 @@ class Context final {
   /// If the lexer has reached the end of the current source stream.
   unsigned int eof : 1;
 
+  /// If the AST passes have found a main function.
+  unsigned int foundEntry : 1;
+
   /// Resets the type table for a new package.
   void resetTypes();
 

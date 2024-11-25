@@ -132,7 +132,7 @@ public:
   /// Creates an AST from the token stream and embeds the package units into
   /// the context attached to this parser interface.
   void buildAST() { 
-    while (ctx->nextFile()) 
+    while (ctx->nextFile())
       ctx->addPackage(ParsePackageUnit()); 
   }
 };

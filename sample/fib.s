@@ -1,17 +1,5 @@
-import std
-
-struct A {
-  mut val: i64,
-}
-
-enum MyEnum {
-  a,
-  b,
-  c,
-}
+import foo
 
 fn @main() -> i64 {
-  mut a: MyEnum = MyEnum::b
-  a += 1
-  ret a
+  ret @foo
 }

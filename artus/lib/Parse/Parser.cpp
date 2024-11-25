@@ -18,7 +18,7 @@ bool Parser::nextToken() {
     return false;
   }
 
-  return ctx->nextFile();
+  return true;
 }
 
 bool Parser::peekToken() 

@@ -29,9 +29,6 @@ class Sema final : public ASTVisitor {
     UNTIL,
   };
 
-  /// Flag to indicate if the main function has been found.
-  unsigned hasMain : 1;
-
   /// Flag to indicate if the visitor is currently traversing a function.
   unsigned inFunction : 1;
 

@@ -8,6 +8,7 @@
 #include "../../include/AST/Expr.h"
 #include "../../include/Codegen/Codegen.h"
 #include "../../include/Core/Logger.h"
+#include "../../include/Sema/Scope.h"
 
 using std::size_t;
 using std::string;
@@ -53,8 +54,8 @@ llvm::AllocaInst *Codegen::createAlloca(llvm::Function *fn,
 
 void Codegen::visit(PackageUnitDecl *decl) {
   // Create the function table for this package.
-  for (std::unique_ptr<Decl> &d : decl->decls) {
-    if (FunctionDecl *functionDecl = dynamic_cast<FunctionDecl *>(d.get())) {
+  for (Decl *d : decl->scope->getDecls()) {
+    if (FunctionDecl *functionDecl = dynamic_cast<FunctionDecl *>(d)) {
       // Create the function type and function in the module.
       llvm::Type *FT = functionDecl->T->toLLVMType(*context);
       llvm::Function *FN = llvm::Function::Create(
@@ -76,7 +77,7 @@ void Codegen::visit(PackageUnitDecl *decl) {
   }
 
   // Iterate over all declarations and generate code for them.
-  for (std::unique_ptr<Decl> &d : decl->decls) {
+  for (Decl *d : decl->scope->getDecls()) {
     d->pass(this);
   }
 }

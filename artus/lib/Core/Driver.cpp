@@ -139,6 +139,12 @@ Driver::Driver(const InputContainer &input) : flags(input.flags) {
   
   Sema sema = Sema(this->ctx);
 
+  if (ctx->foundEntry < 1) {
+    fatal("no entry point found");
+  } else if (ctx->foundEntry != 1) {
+    fatal("multiple entry points found");
+  }
+
   if (flags.printAST) {
     ctx->printAST();
   }

@@ -53,9 +53,6 @@ void Sema::visit(PackageUnitDecl *decl) {
     d->pass(this); // Sema on each declaration.
   }
 
-  if (!hasMain)
-    fatal("'main' function not found: " + decl->identifier);
-
   globalScope = nullptr;
 }
 
@@ -85,7 +82,7 @@ void Sema::visit(FunctionDecl *decl) {
 
   // Check if the function is the main function.
   if (decl->name == "main") {
-    hasMain = 1;
+    ctx->foundEntry++;
 
     // Check if main function returns 'i64'.
     if (parentFunctionType->getReturnType()->compare(ctx->getType("i64")) != 1) {
