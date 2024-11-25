@@ -118,7 +118,7 @@ void ReferenceAnalysis::visit(ImportDecl *decl) {
       if (!ND)
         continue;
 
-      if (ND->canImport()) {
+      if (ND->canImport() && !ND->isPrivate()) {
         this->globalScope->addDecl(ND);
       }
     }

@@ -2,8 +2,8 @@
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Verifier.h"
-#include <llvm/IR/DerivedTypes.h>
-#include <llvm/Support/Alignment.h>
+#include "llvm/IR/DerivedTypes.h"
+#include "llvm/Support/Alignment.h"
 
 #include "../../include/AST/Expr.h"
 #include "../../include/Codegen/Codegen.h"
