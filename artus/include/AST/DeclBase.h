@@ -1,7 +1,12 @@
+//>==- DeclBase.h ---------------------------------------------------------==<//
+//
+// This header file defines important declaration classes.
+//
+//>==----------------------------------------------------------------------==<//
+
 #ifndef ARTUS_AST_DECLBASE_H
 #define ARTUS_AST_DECLBASE_H
 
-#include <memory>
 #include <vector>
 
 #include "ASTPrinter.h"
@@ -15,28 +20,38 @@ namespace artus {
 
 /// Forward declarations.
 class Decl;
+class NamespaceDecl;
 class Scope;
 
-/// Base class for all Declaration nodes. Primarily used to distinguish inline
-/// declarations and that of packages and the like.
+/// Base class for all formal declaration nodes. 
+///
+/// The existence of this class as opposed to the sole `Decl` class is to
+/// further distinguish inline declarations and that of package declarations
+/// and the like.
 class DeclBase {
 public:
   virtual ~DeclBase() = default;
-
   virtual void pass(ASTVisitor *visitor) = 0;
 };
 
-/// Base class for all in-line declaration nodes.
+/// Base class for all inline, explicit declaration nodes.
 class Decl : public DeclBase {
 protected:
   /// Positional information about this node.
   const Span span;
 
 public:
-  Decl(const Span &span);
+  Decl(const Span &span) : span(span) {}
 
-  /// Returns the span of this declaration.
-  const Span &getSpan() const;
+  const Span &getSpan() const { return span; }
+
+  /// Returns a SourceLocation of the start of this declaration's span.
+  const SourceLocation getBeginLoc() const
+  { return { .file=span.file, .line=span.line, .col=span.col }; }
+
+  /// Returns a SourceLocation of the end of this declaration's span.
+  const SourceLocation getEndLoc() const
+  { return { .file=span.file, .line=span.line_nd, .col=span.col_nd }; }
 };
 
 /// Represents an import declaration. An import may be used to import a local
@@ -75,17 +90,17 @@ class PackageUnitDecl final : public DeclBase {
   const string identifier;
 
   /// The names or identifiers of imported packages.
-  vector<string> imports;
+  vector<ImportDecl *> imports;
 
   /// The declarations of this package.
-  vector<std::unique_ptr<Decl>> decls;
+  vector<Decl *> decls;
 
   /// The scope of this package.
   Scope *scope;
 
 public:
-  PackageUnitDecl(const string &id, vector<string> imports, Scope *scope,
-                  vector<std::unique_ptr<Decl>> decls);
+  PackageUnitDecl(const string &id, vector<ImportDecl *> imports, Scope *scope,
+                  vector<Decl *> decls);
 
   void pass(ASTVisitor *visitor) override;
 
@@ -96,12 +111,15 @@ public:
   const vector<string> &getImports() const;
 
   /// Adds a declaration to this package unit.
-  void addDecl(std::unique_ptr<Decl> decl);
+  void addDecl(Decl *decl);
+
+  /// Deletes a declaration from this package unit.
+  void delDecl(Decl *decl);
 
   /// Adds an imported package unit to this package unit.
-  void addImport(const string &import);
+  void addImport(ImportDecl *import);
 };
 
-} // namespace artus
+} // end namespace artus
 
 #endif // ARTUS_AST_DECLBASE_H
