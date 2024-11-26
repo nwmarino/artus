@@ -1,11 +1,17 @@
+//>==- Lexer.h ------------------------------------------------------------==<//
+//
+// This header file declares an interface to lex a source stream into tokens
+// recognized by the parser.
+//
+//>==--------------------------------------------------------------------==<//
+
 #ifndef ARTUS_LEX_LEXER_H
 #define ARTUS_LEX_LEXER_H
 
-#include "../Core/SourceLocation.h"
-#include "Token.h"
+#include <string>
 
-using std::size_t;
-using std::string;
+#include "Token.h"
+#include "../Core/SourceLocation.h"
 
 namespace artus {
 
@@ -23,46 +29,44 @@ class Lexer {
   /// Most recent token in the source stream.
   Token previousToken;
 
-  /// Peeks at the proceeding n characters in the source stream. Does not modify
-  /// the current state of the lexer.
-  inline string peek(size_t n) const;
+  /// Peeks at the proceeding \p n characters in the source stream.
+  /// \returns The result of the peek.
+  inline std::string peek(std::size_t n) const;
 
-  /// Returns true if the lexer has reached the end of the source stream, and
-  /// false otherwise.
+  /// \returns `true` if the lexer has reached the end of the source stream.
   inline bool isEof() const { return *BufferPos == '\0'; }
 
-  /// Returns true if the next character is whitespace, and false otherwise.
+  /// \returns `true` if the next character is whitespace.
   inline bool isWhitespace() const { return *BufferPos == ' '; }
 
-  /// Returns true if the next character is a newline character, and false
-  /// otherwise.
+  /// \returns `true` if the next character is a newline character.
   inline bool isNewline() const { return *BufferPos == '\n'; }
 
 public:
   /// Constructs a new lexer instance with the given source stream, starting
   /// at the origin of the stream.
-  Lexer(const string &file, const char *BufferStart);
+  Lexer(const std::string &file, const char *BufferStart);
 
   /// Constructs a new lexer instance with the given source stream, starting
   /// at the provided location.
   Lexer(SourceLocation loc, const char *BufferPos);
 
-  /// Advances the lexer and assigns the next token in the source stream.
-  /// Returns if the lexer has reached the end of the stream.
+  /// Advances the lexer and assigns the \p next token in the source stream.
+  /// \returns If the lexer has reached the end of the stream.
   bool Lex(Token &next);
 
-  /// Returns the most recent token in the source stream. Does not advance the
-  /// lexer, nor does it consume the most recent token.
+  /// \returns The most recent token in the source stream.
   Token lastToken() const { return previousToken; }
 
-  /// Clears current data on a token and assigns it the current positional data.
+  /// Clears current data on \p next and assigns it the latest positional data.
   void initToken(Token &next);
 
   /// Dumps and stringifies the remaining source in this lexer instance.
   /// Once dumped, the lexer state cannot be restored.
-  const string dump();
+  /// \returns The readable source dump.
+  const std::string dump();
 };
 
-} // namespace artus
+} // end namespace artus
 
 #endif // ARTUS_LEX_LEXER_H

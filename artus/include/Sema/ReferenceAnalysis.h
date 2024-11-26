@@ -1,31 +1,38 @@
+//>==- ReferenceAnalysis.h -----------------------------------------------<//
+//
+// This header file declares an AST pass that resolves name and type
+// references throughout a parsed AST. The provided AST is not assumed
+// semantically valid.
+//
+//>==--------------------------------------------------------------------==<//
+
 #ifndef ARTUS_SEMA_REFERENCEANALYSIS_H
 #define ARTUS_SEMA_REFERENCEANALYSIS_H
 
 #include "../AST/ASTVisitor.h"
 #include "../Core/Context.h"
 
-using std::string;
-
 namespace artus {
 
-/// This class implements a reference analysis pass over an AST. The checks
-/// involved include name and type resolution.
+/// This class implements a reference analysis pass over an AST.
 class ReferenceAnalysis final : public ASTVisitor {
-  /// The context associated with the reference analysis pass.
+  /// Non-owning context associated with the reference analysis pass.
   Context *ctx;
 
   /// Relevant scope quantifiers.
   Scope *globalScope;
   Scope *localScope;
 
-  /// Resolves a name reference given its identifier. Raises a fatal error if an
-  /// indentifier is unresolved. Otherwise, returns the declaration.
-  const Decl *resolveReference(const string &ident, 
+  /// Resolves a declaration most similar to \p ident. If the declaration is
+  /// unresolved, then a fatal error is raised at the location \p loc.
+  /// \returns The declaration most similar to \p ident.
+  const Decl *resolveReference(const std::string &ident, 
                                const SourceLocation &loc) const;
-
-  /// Resolves a type given its identifier. Raises a fatal error if a type is
-  /// unresolved, that is, the returned type would have been a `nullptr`.
-  const Type *resolveType(const string &ident, const SourceLocation &loc) const;
+  
+  /// Resolves a type most similar to \p ident. If the type is unresolved, then 
+  /// a fatal error is raised at the location \p loc. 
+  /// \returns The type most similar to \p ident.
+  const Type *resolveType(const std::string &ident, const SourceLocation &loc) const;
 
 public:
   ReferenceAnalysis(Context *ctx);
@@ -70,6 +77,6 @@ public:
   void visit(RetStmt *stmt) override;
 };
 
-} // namespace artus
+} // end namespace artus
 
 #endif // ARTUS_SEMA_REFERENCEANALYSIS_H

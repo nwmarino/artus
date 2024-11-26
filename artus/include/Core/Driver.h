@@ -1,6 +1,14 @@
+//>==- Driver.h -----------------------------------------------------------==<//
+//
+// This header file declares the driver class responsible for managing the
+// compilation process and its related contexts.
+//
+//>==----------------------------------------------------------------------==<//
+
 #ifndef ARTUS_CORE_DRIVER_H
 #define ARTUS_CORE_DRIVER_H
 
+#include <string>
 #include <vector>
 
 #include "llvm/IR/Module.h"
@@ -8,8 +16,6 @@
 
 #include "Context.h"
 #include "Input.h"
-
-using std::vector;
 
 namespace artus {
 
@@ -22,7 +28,7 @@ class Driver {
   llvm::TargetMachine *TM;
 
   /// A list of object files to be linked.
-  vector<string> objectFiles;
+  std::vector<std::string> objectFiles;
 
   /// Context for the compiler process.
   Context *ctx;
@@ -35,16 +41,15 @@ class Driver {
 
 public:
   Driver(const InputContainer &input);
-
   ~Driver();
 
-  /// Returns the compiler flags being used by this driver.
+  /// \returns The compiler flags being used by this driver.
   const CompilerFlags getFlags() { return flags; }
 
-  /// Returns the target machine being used by this driver.
+  /// \returns The target machine being used by this driver.
   llvm::TargetMachine *getTM() { return TM; }
 };
 
-} // namespace artus
+} // end namespace artus
 
 #endif // ARTUS_CORE_DRIVER_H

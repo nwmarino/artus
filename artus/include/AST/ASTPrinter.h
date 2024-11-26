@@ -1,3 +1,10 @@
+//>==- ASTPrinter.h -------------------------------------------------------==<//
+//
+// This header file defines a visitor pattern upon an AST to dump its contents
+// in a readable format.
+//
+//>==----------------------------------------------------------------------==<//
+
 #ifndef ARTUS_AST_ASTPRINTER_H
 #define ARTUS_AST_ASTPRINTER_H
 
@@ -5,11 +12,7 @@
 #include <string>
 
 #include "ASTVisitor.h"
-#include "../Core/Span.h"
-#include "../Sema/Type.h"
-
-using std::map;
-using std::string;
+#include "../Core/SourceLocation.h"
 
 namespace artus {
 
@@ -17,33 +20,33 @@ namespace artus {
 /// prints it to standard output.
 class ASTPrinter final : public ASTVisitor {
   /// Colour constants.
-  const string clear = "\033[0m";
-  const string clr_bold = "\033[1m";
-  const string clr_italic = "\033[3m";
-  const string clr_green = "\033[32m";
-  const string clr_yellow = "\033[33m";
-  const string clr_blue = "\033[34m";
-  const string clr_purple = "\033[35m";
-  const string clr_cyan = "\033[36m";
+  const std::string clear = "\033[0m";
+  const std::string clr_bold = "\033[1m";
+  const std::string clr_italic = "\033[3m";
+  const std::string clr_green = "\033[32m";
+  const std::string clr_yellow = "\033[33m";
+  const std::string clr_blue = "\033[34m";
+  const std::string clr_purple = "\033[35m";
+  const std::string clr_cyan = "\033[36m";
 
-  const string declColor = clr_bold + clr_yellow;
-  const string exprColor = clr_purple;
-  const string stmtColor = clr_bold + clr_purple;
-  const string nameColor = clr_italic + clr_blue;
-  const string pipeColor = clr_blue;
-  const string typeColor = clr_green;
-  const string spanColor = clr_yellow;
-  const string literalColor = clr_bold + clr_cyan;
+  const std::string declColor = clr_bold + clr_yellow;
+  const std::string exprColor = clr_purple;
+  const std::string stmtColor = clr_bold + clr_purple;
+  const std::string nameColor = clr_italic + clr_blue;
+  const std::string pipeColor = clr_blue;
+  const std::string typeColor = clr_green;
+  const std::string spanColor = clr_yellow;
+  const std::string literalColor = clr_bold + clr_cyan;
 
   /// Map used to store the current piping state of the AST. Each key refers to
   /// an indentiation level, and the value corresponds to the state.
-  map<unsigned, bool> pipingState;
+  std::map<unsigned, bool> pipingState;
   
   /// The current indentation level.
-  unsigned indent = 0;
+  unsigned int indent = 0;
 
   /// Flag used to indicate if the AST node is the last child.
-  unsigned isLastChild : 1 = 0;
+  bool isLastChild : 1 = 0;
 
   /// Set the state to place piping at a target indent moving forward.
   inline void setPiping(unsigned indent);
@@ -53,9 +56,6 @@ class ASTPrinter final : public ASTVisitor {
 
   /// Use the current piping state to print the appropriate piping and indent.
   inline void printPiping();
-
-  /// Print the current indentation level.
-  inline void printIndent();
 
   /// Increase the indent by one level.
   inline void increaseIndent();
@@ -73,23 +73,25 @@ class ASTPrinter final : public ASTVisitor {
   inline void resetLastChild();
 
   /// Returns a color-coded string representation of the provided span.
-  inline string spanToString(const Span &span);
+  inline const std::string spanToString(const Span &span);
 
   /// Print a declaration node with the provided data.
-  void printDecl(const string &node, const string &name = "", 
-                 const string &type = "", bool newl = true);
+  void printDecl(const std::string &node, const std::string &name = "",
+                 const std::string &type = "", bool newl = true);
 
   /// Print a declaration node with the provided data.
-  void printDecl(const Span &span, const string &node, const string &name = "", 
-                 const string &type = "", bool newl = true);
+  void printDecl(const Span &span, const std::string &node,
+                 const std::string &name = "", const std::string &type = "",
+                 bool newl = true);
 
   /// Print an expression node with the provided data.
-  void printExpr(const Span &span, const string &node, const string &type, 
-                 const string &ident = "", bool newl = true);
+  void printExpr(const Span &span, const std::string &node,
+                 const std::string &type, const std::string &ident = "",
+                 bool newl = true);
 
   /// Print a statement node with the provided data.
-  void printStmt(const Span &span, const string &node, const string &name = "", 
-                 bool newl = true);
+  void printStmt(const Span &span, const std::string &node,
+                 const std::string &name = "", bool newl = true);
 
 public:
   void visit(PackageUnitDecl *decl) override;
@@ -131,6 +133,6 @@ public:
   void visit(RetStmt *stmt) override;
 };
 
-} // namespace artus
+} // end namespace artus
 
 #endif // ARTUS_AST_ASTPRINTER_H

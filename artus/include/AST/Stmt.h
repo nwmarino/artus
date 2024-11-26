@@ -1,13 +1,19 @@
+//>==- Stmt.h -------------------------------------------------------------==<//
+//
+// This header file declares inline statement AST nodes parsed from source.
+//
+//>==----------------------------------------------------------------------==<//
+
 #ifndef ARTUS_AST_STMT_H
 #define ARTUS_AST_STMT_H
 
+#include <memory>
+#include <vector>
+
 #include "ASTPrinter.h"
 #include "Decl.h"
-#include "../Core/Span.h"
+#include "../Core/SourceLocation.h"
 #include "../Sema/Type.h"
-
-using std::string;
-using std::vector;
 
 namespace artus {
 
@@ -21,13 +27,19 @@ protected:
   const Span span;
 
 public:
-  Stmt(const Span &span);
+  Stmt(const Span &span) : span(span) {}
 
   virtual ~Stmt() = default;
   virtual void pass(ASTVisitor *visitor) = 0;
 
-  /// Returns the span of this statement.
-  const Span &getSpan() const;
+  /// \returns The span of this statement.
+  const Span &getSpan() const { return span; }
+
+  /// \returns The SourceLocation of the start of this statement's span.
+  const SourceLocation getStartLoc() const { return getSpan().begin; }
+
+  /// \returns The SourceLocation of the end of this statement's span.
+  const SourceLocation getEndLoc() const { return getSpan().end; }
 };
 
 /// Base class for expressions, and statements which may possess a value.
@@ -36,14 +48,16 @@ class ValueStmt : public Stmt {
   friend class Sema;
 
 protected:
+
   /// The type of the associated value.
   const Type *T;
 
 public:
   ValueStmt(const Type *T, const Span &span);
+  ~ValueStmt() = default;
 
-  /// Returns the type of the value.
-  const Type *getType() const;
+  /// \returns The type of the value.
+  const Type *getType() const { return T; }
 };
 
 /// Represents a `break` statement in a loop.
@@ -54,12 +68,13 @@ class BreakStmt final : public Stmt {
   friend class Sema;
 
 public:
-  BreakStmt(const Span &span);
+  BreakStmt(const Span &span) : Stmt(span) {}
+  ~BreakStmt() = default;
 
-  void pass(ASTVisitor *visitor) override;
+  void pass(ASTVisitor *visitor) override { visitor->visit(this); }
 };
 
-/// Represents a `cont` statement in a loop.
+/// Represents a `continue` statement in a loop.
 class ContinueStmt final : public Stmt {
   friend class ASTPrinter;
   friend class Codegen;
@@ -67,12 +82,13 @@ class ContinueStmt final : public Stmt {
   friend class Sema;
 
 public:
-  ContinueStmt(const Span &span);
+  ContinueStmt(const Span &span) : Stmt(span) {}
+  ~ContinueStmt() = default;
 
-  void pass(ASTVisitor *visitor) override;
+  void pass(ASTVisitor *visitor) override { visitor->visit(this); }
 };
 
-/// Represents a list of statements, enclosed by braces.
+/// Represents a list of statements, enclosed by a block.
 class CompoundStmt final : public Stmt {
   friend class ASTPrinter;
   friend class Codegen;
@@ -80,26 +96,26 @@ class CompoundStmt final : public Stmt {
   friend class Sema;
 
   /// The list of statements.
-  const vector<std::unique_ptr<Stmt>> stmts;
+  const std::vector<std::unique_ptr<Stmt>> stmts;
 
   /// The scope associated with this compound statement.
   Scope *scope;
 
 public:
-  CompoundStmt(vector<std::unique_ptr<Stmt>> stmts, Scope *scope, 
+  CompoundStmt(std::vector<std::unique_ptr<Stmt>> stmts, Scope *scope, 
                const Span &span);
+  ~CompoundStmt();
 
-  void pass(ASTVisitor *visitor) override;
+  void pass(ASTVisitor *visitor) override { visitor->visit(this); }
 
-  /// Returns the list of statements.
-  const vector<std::unique_ptr<Stmt>> &getStmts() const;
+  /// \returns The statements of this block.
+  const std::vector<Stmt *> getStmts() const;
 
-  /// Returns the scope associated with this compound statement.
-  Scope *getScope() const;
+  /// \returns The scope associated with this compound statement.
+  Scope *getScope() const { return scope; }
 };
 
-/// Represents a declaration statement. For example, `fix x: int = 0`. This
-/// node nests the declaration of a variable, as to not inline it.
+/// Represents a declaration statement. For example, `fix x: int = 0`.
 class DeclStmt final : public Stmt {
   friend class ASTPrinter;
   friend class Codegen;
@@ -111,8 +127,9 @@ class DeclStmt final : public Stmt {
 
 public:
   DeclStmt(std::unique_ptr<Decl> decl, const Span &span);
+  ~DeclStmt() = default;
 
-  void pass(ASTVisitor *visitor) override;
+  void pass(ASTVisitor *visitor) override { visitor->visit(this); }
 };
 
 /// Represents an if statement.
@@ -134,14 +151,15 @@ class IfStmt final : public Stmt {
 public:
   IfStmt(std::unique_ptr<Expr> cond, std::unique_ptr<Stmt> thenStmt, 
          std::unique_ptr<Stmt> elseStmt, const Span &span);
+  ~IfStmt() = default;
 
-  void pass(ASTVisitor *visitor) override;
+  void pass(ASTVisitor *visitor) override { visitor->visit(this); }
 
-  /// Returns true if this if statement has an else statement.
+  /// \returns `true` if this if statement has an else statement.
   bool hasElse() const;
 };
 
-/// Represents a while loop statement: `while <expr> <stmt>`.
+/// Represents a while loop statement.
 class WhileStmt final : public Stmt {
   friend class ASTPrinter;
   friend class Codegen;
@@ -157,11 +175,12 @@ class WhileStmt final : public Stmt {
 public:
   WhileStmt(std::unique_ptr<Expr> cond, std::unique_ptr<Stmt> body, 
             const Span &span);
+  ~WhileStmt() = default;
 
-  void pass(ASTVisitor *visitor) override;
+  void pass(ASTVisitor *visitor) override { visitor->visit(this); }
 };
 
-/// Represents an until loop statement: `until <expr> <stmt>`.
+/// Represents an until loop statement.
 class UntilStmt final : public Stmt {
   friend class ASTPrinter;
   friend class Codegen;
@@ -177,8 +196,9 @@ class UntilStmt final : public Stmt {
 public:
   UntilStmt(std::unique_ptr<Expr> cond, std::unique_ptr<Stmt> body, 
             const Span &span);
+  ~UntilStmt() = default;
 
-  void pass(ASTVisitor *visitor) override;
+  void pass(ASTVisitor *visitor) override { visitor->visit(this); }
 };
 
 /// Represents a generic case in a match statement.
@@ -194,7 +214,9 @@ protected:
 
 public:
   MatchCase(std::unique_ptr<Stmt> body, const Span &span);
+  ~MatchCase() = default;
 
+  /// \returns `true` if this is a default case, and `false` otherwise.
   virtual bool isDefault() const = 0;
 };
 
@@ -212,8 +234,9 @@ class CaseStmt final : public MatchCase {
 public:
   CaseStmt(std::unique_ptr<Expr> expr, std::unique_ptr<Stmt> body, 
            const Span &span);
+  ~CaseStmt() = default;
 
-  void pass(ASTVisitor *visitor) override;
+  void pass(ASTVisitor *visitor) override { visitor->visit(this); }
 
   bool isDefault() const override;
 };
@@ -227,13 +250,14 @@ class DefaultStmt final : public MatchCase {
 
 public:
   DefaultStmt(std::unique_ptr<Stmt> body, const Span &span);
+  ~DefaultStmt() = default;
 
-  void pass(ASTVisitor *visitor) override;
+  void pass(ASTVisitor *visitor) override { visitor->visit(this); }
 
   bool isDefault() const override;
 };
 
-/// Represents a match statement: `match <expr> { <case> ... }`.
+/// Represents a match statement.
 class MatchStmt final : public Stmt {
   friend class ASTPrinter;
   friend class Codegen;
@@ -244,18 +268,19 @@ class MatchStmt final : public Stmt {
   std::unique_ptr<Expr> expr;
 
   /// The list of case statements.
-  vector<std::unique_ptr<MatchCase>> cases;
+  std::vector<std::unique_ptr<MatchCase>> cases;
 
 public:
   MatchStmt(std::unique_ptr<Expr> expr, 
-            vector<std::unique_ptr<MatchCase>> cases, const Span &span);
+            std::vector<std::unique_ptr<MatchCase>> cases, const Span &span);
+  ~MatchStmt() = default;
 
-  void pass(ASTVisitor *visitor) override;
+  void pass(ASTVisitor *visitor) override { visitor->visit(this); }
 
-  /// Returns true if this match statement has a default case.
+  /// \returns `true` if this match statement has a default case.
   bool hasDefault() const;
 
-  /// Returns the default case of this match statement.
+  /// \returns The default case of this match statement.
   DefaultStmt *getDefault() const;
 };
 
@@ -271,13 +296,14 @@ class RetStmt final : public ValueStmt {
 
 public:
   RetStmt(std::unique_ptr<Expr> expr, const Span &span);
+  ~RetStmt() = default;
 
-  void pass(ASTVisitor *visitor) override;
+  void pass(ASTVisitor *visitor) override { visitor->visit(this); }
 
-  /// Returns the expression to return.
-  const Expr *getExpr() const;
+  /// \returns The expression to return.
+  Expr *getExpr() const { return expr.get(); }
 };
 
-} // namespace artus
+} // end namespace artus
 
 #endif // ARTUS_AST_STMT_H

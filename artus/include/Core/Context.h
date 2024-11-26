@@ -1,19 +1,23 @@
+//>==- Context.h ----------------------------------------------------------==<//
+//
+// This header file declares an important context object used to organize
+// information of the abstract syntax tree during compilation.
+//
+//>==----------------------------------------------------------------------==<//
+
 #ifndef ARTUS_CORE_CONTEXT_H
 #define ARTUS_CORE_CONTEXT_H
 
 #include <map>
 #include <memory>
+#include <string>
+#include <vector>
 
 #include "Input.h"
 #include "UnitCache.h"
 #include "../AST/DeclBase.h"
 #include "../Lex/Lexer.h"
-#include "../Lex/Token.h"
 #include "../Sema/Type.h"
-
-using std::map;
-using std::string;
-using std::vector;
 
 namespace artus {
 
@@ -30,7 +34,7 @@ class Context final {
   friend class Sema;
 
   /// The source files to be compiled.
-  vector<SourceFile> files;
+  std::vector<SourceFile> files;
 
   /// The currently active source file.
   SourceFile active;
@@ -42,49 +46,50 @@ class Context final {
   std::unique_ptr<UnitCache> cache;
 
   /// A map of all types in the current context.
-  mutable map<string, const Type *> types;
+  mutable std::map<std::string, const Type *> types;
 
-  /// If the lexer has reached the end of the current source stream.
+  /// If 1, then the lexer has reached the end of the current source stream.
   unsigned int eof : 1;
 
-  /// If the AST passes have found a main function.
+  /// If 1, then AST passes have found a main function.
   unsigned int foundEntry : 1;
 
   /// Resets the type table for a new package.
   void resetTypes();
 
   /// Add a new defined type (struct/enum) to the context.
-  void addDefinedType(const string &name, const Type *T);
+  void addDefinedType(const std::string &name, const Type *T);
 
 public:
-  Context(vector<SourceFile> files);
+  Context(std::vector<SourceFile> files);
   ~Context();
 
-  /// Iterates to the next source file in the context.
+  /// Iterates to the next source file in the context. \returns `true` if
+  /// there is a next file, and `false` otherwise.
   bool nextFile();
 
-  /// Adds a package unit to the lifetime of this context.
+  /// Adds the \p pkg to the lifetime of this context.
   void addPackage(std::unique_ptr<PackageUnitDecl> pkg);
 
-  /// Resolves a package unit by its identifier. This function will raise an
-  /// exception if the package is unresolved.
-  PackageUnitDecl *resolvePackage(const string &id, 
+  /// Resolves a package unit by its \p id. This function will raise an
+  /// exception on location \p loc if the package is unresolved.
+  PackageUnitDecl *resolvePackage(const std::string &id, 
                                   const SourceLocation &loc) const;
 
-  /// Returns the type most similar to `name`. If no type is found, returns
+  /// \returns The type most similar to `name`. If no type is found, returns
   /// a type refernce to a possibly qualified type.
-  const Type *getType(const string &name);
+  const Type *getType(const std::string &name);
 
-  /// Returns the name of the currently active source file.
-  inline const string &getActiveFileName() const { return active.name; }
+  /// \returns The name of the currently active source file.
+  inline const std::string &getActiveFileName() const { return active.name; }
 
-  /// Returns the path of the currently active source file.
-  inline const string &getActiveFilePath() const { return active.path; }
+  /// \returns The path of the currently active source file.
+  inline const std::string &getActiveFilePath() const { return active.path; }
 
   /// Prints the current state of the AST embedded in this context.
   void printAST();
 };
 
-}; // namespace artus
+}; // end namespace artus
 
 #endif // ARTUS_CORE_CONTEXT_H

@@ -1,21 +1,25 @@
+//>==- Input.h ------------------------------------------------------------==<//
+//
+// This header file defines important structs to organize input to the compiler
+// on execution.
+//
+//>==----------------------------------------------------------------------==<//
+
 #ifndef ARTUS_CORE_INPUT_H
 #define ARTUS_CORE_INPUT_H
 
 #include <string>
 #include <vector>
 
-using std::string;
-using std::vector;
-
 namespace artus {
 
 /// Represents an input source file to the compiler.
 struct SourceFile {
   /// Name of the source file.
-  string name;
+  std::string name;
 
   /// Full path to the source file.
-  string path;
+  std::string path;
 
   /// Pointer to the file source code.
   const char *BufferStart;
@@ -51,12 +55,12 @@ struct InputContainer {
   const CompilerFlags flags;
 
   /// Input source files to compile.
-  const vector<SourceFile> files;
+  const std::vector<SourceFile> files;
 
   /// The name of the executable to compile to.
-  const string target;
+  const std::string target;
 };
 
-} // namespace artus
+} // end namespace artus
 
 #endif // ARTUS_CORE_INPUT_H

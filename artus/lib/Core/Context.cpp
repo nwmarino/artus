@@ -21,34 +21,31 @@
 //
 //>==----------------------------------------------------------------------==<//
 
-#include "../../include/AST/Stmt.h"
-#include <algorithm>
-#include "../../include/Core/Context.h"
+#include <utility>
 
-using std::string;
+#include "../../include/Core/Context.h"
+#include "../../include/Core/Logger.h"
 
 using namespace artus;
 
-Context::Context(vector<SourceFile> files) : files(std::move(files)) {
+Context::Context(std::vector<SourceFile> files) : files(std::move(files)) {
   this->cache = std::make_unique<UnitCache>();
   this->resetTypes();
 }
 
 Context::~Context() {
-  for (auto &type : types) {
+  for (auto &type : types)
     delete type.second;
-  }
 
-  for (SourceFile &file : files) {
+  for (SourceFile &file : files)
     delete []file.BufferStart;
-  }
 }
 
 void Context::resetTypes() {
   // Clear the previous state of the type table.
-  for (auto &type : types) {
+  for (auto &type : types)
     delete type.second;
-  }
+
   this->types.clear();
 
   // Add basic types to the context.
@@ -74,7 +71,7 @@ void Context::resetTypes() {
   this->types["#str"] = new PointerType(this->types["str"]);
 }
 
-void Context::addDefinedType(const string &name, const Type *T) {
+void Context::addDefinedType(const std::string &name, const Type *T) {
   if (types.find(name) == types.end() || !types[name]->isAbsolute())
     types[name] = T;
   else
@@ -82,32 +79,32 @@ void Context::addDefinedType(const string &name, const Type *T) {
 }
 
 bool Context::nextFile() {
-  if (files.empty()) {
+  if (files.empty())
     return false;
-  }
 
-  const SourceFile next_file = files.back();
+  // Get the next source file.
+  const SourceFile nextFile = files.back();
   files.pop_back();
 
-  lexer = std::make_unique<Lexer>(next_file.name, 
-      next_file.BufferStart);
+  // Instantiate a new lexer process and assign the new active file data.
+  lexer = std::make_unique<Lexer>(nextFile.name, 
+      nextFile.BufferStart);
   eof = 0;
-  active.BufferStart = next_file.BufferStart;
-  active.name = next_file.name;
-  active.path = next_file.path;
-  //resetTypes();
+  active.BufferStart = nextFile.BufferStart;
+  active.name = nextFile.name;
+  active.path = nextFile.path;
   return true;
 }
 
 void Context::addPackage(std::unique_ptr<PackageUnitDecl> pkg) 
 { cache->addUnit(std::move(pkg)); }
 
-PackageUnitDecl *Context::resolvePackage(const string &id, 
+PackageUnitDecl *Context::resolvePackage(const std::string &id, 
                                          const SourceLocation &loc) const {
-  vector<PackageUnitDecl *> units = cache->getUnits();
+  std::vector<PackageUnitDecl *> units = cache->getUnits();
   for (PackageUnitDecl *unit : units) {
-    // Remove extension.
-    const string cutId = id.substr(0, id.find_last_of('.'));
+    // Remove extension of the package.
+    const std::string cutId = id.substr(0, id.find_last_of('.'));
     if (cutId == id)
       return unit;
   }
@@ -115,17 +112,17 @@ PackageUnitDecl *Context::resolvePackage(const string &id,
   fatal("unresolved package: " + id, loc);
 }
 
-const Type *Context::getType(const string &name) {
+const Type *Context::getType(const std::string &name) {
   // Check if the type already exists.
   if (types.find(name) != types.end())
     return this->types[name];
 
   // Handle array types, i.e. i64[3]
-  if (name.find('[') != string::npos) {
+  if (name.find('[') != std::string::npos) {
     // Extract the element type and size.
-    const size_t idx = name.find('[');
-    const string elemType = name.substr(0, idx);
-    const string size = name.substr(idx + 1, name.size() - idx - 2);
+    const std::size_t idx = name.find('[');
+    const std::string elemType = name.substr(0, idx);
+    const std::string size = name.substr(idx + 1, name.size() - idx - 2);
 
     // Resolve the element type.
     const Type *T = getType(elemType);
@@ -139,7 +136,7 @@ const Type *Context::getType(const string &name) {
 
   // Handle pointers not defined in the type table.
   if (name[0] == '#') {
-    const string nestedType = name.substr(1);
+    const std::string nestedType = name.substr(1);
     this->types[name] = new PointerType(getType(nestedType));
     return this->types[name];
   }
@@ -151,7 +148,6 @@ const Type *Context::getType(const string &name) {
 
 void Context::printAST() {
   ASTPrinter printer;
-  for (PackageUnitDecl *pkg : cache->getUnits()) {
+  for (PackageUnitDecl *pkg : cache->getUnits())
     printer.visit(pkg);
-  }
 }

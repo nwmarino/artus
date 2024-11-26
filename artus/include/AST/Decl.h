@@ -1,14 +1,19 @@
+//>==- Decl.h -------------------------------------------------------------==<//
+//
+// This header file declares inline declaration AST nodes parsed from source.
+//
+//>==----------------------------------------------------------------------==<//
+
 #ifndef ARTUS_AST_DECL_H
 #define ARTUS_AST_DECL_H
+
+#include <string>
+#include <vector>
 
 #include "ASTPrinter.h"
 #include "ASTVisitor.h"
 #include "DeclBase.h"
 #include "../Sema/Type.h"
-
-using std::size_t;
-using std::string;
-using std::vector;
 
 namespace artus {
 
@@ -17,51 +22,62 @@ class Expr;
 class Scope;
 class Stmt;
 
-/// Base class for all declarations. Named declarations are those which exist in
-/// a scope, and sometimes define a symbol.
+/// Base class for declarations with a name.
+///
+/// Named declarations are those which exist in a scope, and potentially define 
+/// a symbol.
 class NamedDecl : public Decl {
 protected:
-  /// The name of the declaration.
-  const string name;
+  /// The name of this declaration.
+  const std::string name;
 
-  /// If this declaration is private.
+  /// If 1, then this declaration is private.
   bool priv : 1;
 
 public:
-  NamedDecl(const string &name, const Span &span, bool priv = false);
+  NamedDecl(const std::string &name, bool priv, const Span &span);
+  virtual ~NamedDecl() = default;
 
-  /// Returns the name of this declaration.
-  const string &getName() const;
+  /// \returns The name of this declaration.
+  const std::string &getName() const { return name; }
 
-  /// Returns true if this declaration is private.
-  bool isPrivate() const;
+  /// \returns `true` if this declaration is private.
+  bool isPrivate() const { return priv; }
 
   /// Sets this declaration to private.
-  void setPrivate();
+  void setPrivate() { priv = true; }
 
   /// Sets this declaration to public.
-  void setPublic();
+  void setPublic() { priv = false; }
 
-  /// Returns true if this declaration can be imported to another package.
+  /// Sets this declaration's visibility to \p visible.
+  void setVisibility(bool visible) { this->priv = !visible; }
+
+  /// \returns True if this declaration can be imported.
   virtual bool canImport() const = 0;
 };
 
-/// Base class for scoped declarations. Scoped declarations are those which
-/// possess a link to a local scope.
+/// Base class for scoped declarations. 
+///
+/// Scoped declarations are those which have a link to a local scope.
 class ScopedDecl : public NamedDecl {
 protected:
-  /// The scope in which this declaration resides.
+  /// The scope this declaration is linked to.
   Scope *scope;
 
 public:
-  ScopedDecl(const string &name, Scope *scope, const Span &span, 
-             bool priv = false);
+  ScopedDecl(const std::string &name, Scope *scope, bool priv, 
+             const Span &span);
+  ~ScopedDecl();
 
-  /// Returns the scope in which this declaration resides.
-  Scope *getScope() const;
+  /// \returns The scope this declaration is linked to.
+  Scope *getScope() const { return scope; }
 };
 
 /// Represents a variable declaration.
+///
+/// Variable declarations are nested declarations that must have some explicit
+/// initializer expression.
 class VarDecl : public NamedDecl {
   friend class ASTPrinter;
   friend class Codegen;
@@ -75,37 +91,48 @@ protected:
   /// The type of this variable.
   const Type *T;
 
-  /// If the variable is mutable.
+  /// If 1, then the variable is mutable.
   const bool mut : 1;
 
 public:
-  VarDecl(const string &name, const Type *T, std::unique_ptr<Expr> init,
-          const bool mut, const Span &span);
+  VarDecl(const std::string &name, const Type *T, std::unique_ptr<Expr> init,
+          bool mut, const Span &span);
+  ~VarDecl() = default;
       
-  void pass(ASTVisitor *visitor) override;
+  void pass(ASTVisitor *visitor) override { visitor->visit(this); }
 
-  /// Returns ther type of this variable.
-  const Type *getType() const;
+  /// \returns The initialization expression of this declaration.
+  const Expr *getInit() const { return init.get(); }
 
-  /// Returns true if this declaration is a parameter.
-  bool isParam() const;
+  /// \returns The type of this variable.
+  const Type *getType() const { return T; }
 
-  /// Returns true if the variable is mutable, and false otherwise.
-  unsigned isMutable() const;
+  /// \returns `true` if this declaration is a parameter.
+  bool isParam() const { return false; }
 
-  bool canImport() const override;
+  /// \returns `true` if the variable is mutable, and `false` otherwise.
+  unsigned isMutable() const { return mut; }
+
+  bool canImport() const override { return false; }
 };
 
 /// Represents a parameter to a function.
+///
+/// Parameter declarations are a subset of variable declarations, without
+/// initializers.
 class ParamVarDecl final : public VarDecl {
   friend class ASTPrinter;
   friend class Sema;
 
 public:
-  ParamVarDecl(const string &name, const Type *T, const bool mut, 
+  ParamVarDecl(const std::string &name, const Type *T, bool mut, 
                const Span &span);
+  ~ParamVarDecl() = default;
 
-  void pass(ASTVisitor *visitor) override;
+  void pass(ASTVisitor *visitor) override { visitor->visit(this); }
+
+  /// \returns `true` if this declaration is a parameter.
+  bool isParam() const { return true; }
 };
 
 /// Represents a function declaration.
@@ -115,34 +142,42 @@ class FunctionDecl final : public ScopedDecl {
   friend class ReferenceAnalysis;
   friend class Sema;
 
-  /// The return type of this function declaration.
+  /// The function type of this declaration.
   const Type *T;
 
-  /// The parameters of this function declaration.
-  const vector<std::unique_ptr<ParamVarDecl>> params;
+  /// The parameters of this declaration.
+  const std::vector<std::unique_ptr<ParamVarDecl>> params;
 
   /// The body of this function declaration.
   const std::unique_ptr<Stmt> body;
 
 public:
-  FunctionDecl(const string &name, const Type *T,
-               vector<std::unique_ptr<ParamVarDecl>> params,
-               std::unique_ptr<Stmt> body, Scope *scope, const Span &span,
-               bool priv = false);
+  FunctionDecl(const std::string &name, const Type *T, Scope *scope,
+               std::vector<std::unique_ptr<ParamVarDecl>> params,
+               bool priv, const Span &span);
 
-  void pass(ASTVisitor *visitor) override;
+  FunctionDecl(const std::string &name, const Type *T, Scope *scope,
+               std::vector<std::unique_ptr<ParamVarDecl>> params,
+               std::unique_ptr<Stmt> body, bool priv, const Span &span);
 
-  /// Returns the function type of this function declaration.
-  const Type *getType() const;
+  void pass(ASTVisitor *visitor) override { visitor->visit(this); }
 
-  /// Returns the number of parameters in this function declaration.
-  size_t getNumParams() const;
+  /// \returns The function type declaration.
+  const Type *getType() const { return T; }
 
-  /// Returns the parameter at the specified index, and `nullptr` if it does
-  /// not exist.
+  /// \returns The number of parameters of this function.
+  std::size_t getNumParams() const { return params.size(); }
+
+  /// \returns The parameter at index \p i, or `nullptr` if it does not exist.
   const ParamVarDecl *getParam(size_t i) const;
 
-  bool canImport() const override;
+  /// \returns The body of this function declaration, if it exists.
+  const Stmt *getBody() const { return body.get(); }
+
+  /// \returns `true` if this function has a body, and `false` otherwise.
+  bool hasBody() const;
+
+  bool canImport() const override { return true; }
 };
 
 /// Represents an enumeration declaration.
@@ -152,28 +187,29 @@ class EnumDecl final : public NamedDecl {
   friend class ReferenceAnalysis;
   friend class Sema;
 
-  /// The enumerators of this enumeration declaration.
-  vector<string> variants;
+  /// The enumerators of this declaration.
+  std::vector<std::string> variants;
 
   /// The associated enumeration type.
   const Type *T;
 
 public:
-  EnumDecl(const string &name, vector<string> variants, const Type *T,
-           const Span &span, bool priv = false);
+  EnumDecl(const std::string &name, std::vector<std::string> variants, 
+           const Type *T, bool priv, const Span &span);
+  ~EnumDecl() = default;
 
-  void pass(ASTVisitor *visitor) override;
+  void pass(ASTVisitor *visitor) override { visitor->visit(this); }
 
-  /// Returns the type of this declaration.
-  const Type *getType() const;
+  /// \returns The type of this declaration.
+  const Type *getType() const { return T; }
 
-  /// Returns the number of variants in this declaration.
-  size_t getNumVariants() const;
+  /// \returns The number of variants of this declaration.
+  std::size_t getNumVariants() const { return variants.size(); }
 
-  /// Get the index of the given variant, and -1 if it does not exist.
-  int getVariantIndex(const string &variant) const;
+  /// \returns The index of \p variant, and -1 if it does not exist.
+  int getVariantIndex(const std::string &variant) const;
 
-  bool canImport() const override;
+  bool canImport() const override { return true; }
 };
 
 /// Represents a field declaration of a struct.
@@ -186,21 +222,23 @@ class FieldDecl final : public NamedDecl {
   /// The type of this field declaration.
   const Type *T;
 
-  /// If the field is mutable.
+  /// If 1, then the field is mutable.
   const bool mut : 1;
 
 public:
-  FieldDecl(const string &name, const Type *T, const bool mut, const Span &span);
+  FieldDecl(const std::string &name, const Type *T, bool mut, bool priv,
+            const Span &span);
+  ~FieldDecl() = default;
 
-  void pass(ASTVisitor *visitor) override;
+  void pass(ASTVisitor *visitor) override { visitor->visit(this); }
 
-  /// Returns the type of this field declaration.
-  const Type *getType() const;
+  /// \returns The type of this field declaration.
+  const Type *getType() const { return T; }
 
-  /// Returns true if this field declaration is mutable.
-  bool isMutable() const;
+  /// \returns `true` if this field is mutable, and `false` otherwise.
+  bool isMutable() const { return mut; }
 
-  bool canImport() const override;
+  bool canImport() const override { return false; }
 };
 
 /// Represents a struct declaration.
@@ -211,46 +249,40 @@ class StructDecl final : public ScopedDecl {
   friend class Sema;
 
   /// The fields of this struct declaration.
-  const vector<std::unique_ptr<FieldDecl>> fields;
-
-  /// The implemented traits of this struct declaration.
-  vector<string> traits;
+  const std::vector<std::unique_ptr<FieldDecl>> fields;
 
   /// The associated struct type.
   const Type *T;
 
 public:
-  StructDecl(const string &name, vector<std::unique_ptr<FieldDecl>> fields,
-             Scope *scope, const Type *T, const Span &span, bool priv = false);
+  StructDecl(const std::string &name, const Type *T, Scope *scope,
+             std::vector<std::unique_ptr<FieldDecl>> fields, bool priv, 
+             const Span &span);
+  ~StructDecl() = default;
 
-  void pass(ASTVisitor *visitor) override;
+  void pass(ASTVisitor *visitor) override { visitor->visit(this); }
 
-  /// Returns the number of fields in this struct declaration.
-  size_t getNumFields() const;
+  /// \returns The number of fields of this declaration.
+  std::size_t getNumFields() const { return fields.size(); }
 
-  /// Returns the field at the specified index, and `nullptr` if it does not
-  /// exist.
-  const FieldDecl *getField(size_t i) const;
+  /// \returns The field at index \p i, and `nullptr` if it does not exist.
+  const FieldDecl *getField(std::size_t i) const;
 
-  /// Returns the index of the given field, and -1 if it does not exist.
-  int getFieldIndex(const string &field) const;
+  /// \returns The index of \p field, and -1 if it does not exist.
+  int getFieldIndex(const std::string &field) const;
 
-  /// Returns the type of the field given its name, and `nullptr` if it does not
-  /// exist.
-  const Type *getFieldType(const string &name) const;
+  /// \returns The type of the field \p name, and `nullptr` if it does not exist.
+  const Type *getFieldType(const std::string &name) const;
 
-  /// Returns true if the given field is mutable.
-  bool isFieldMutable(const string &name) const;
+  /// \returns `true` if the field \p name is mutable, and `false` otherwise.
+  bool isFieldMutable(const std::string &name) const;
 
-  /// Returns the type of this struct.
-  const Type *getType() const;
+  /// \returns The type of this struct.
+  const Type *getType() const { return T; }
 
-  /// Adds a trait to this struct declaration.
-  void addTrait(const string &trait);
-
-  bool canImport() const override;
+  bool canImport() const override { return true; }
 };
 
-} // namespace artus
+} // end namespace artus
 
 #endif // ARTUS_AST_DECL_H

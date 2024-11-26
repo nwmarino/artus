@@ -1,12 +1,21 @@
+//>==- Scope.h ------------------------------------------------------------==<//
+//
+// This header file declares a data structure used to represent scopes in a
+// a syntax tree. The scope is used to store declarations and to resolve
+// references to variables. The scope is transient and is destroyed after
+// semantic analysis.
+//
+//>==----------------------------------------------------------------------==<//
+
 #ifndef ARTUS_SEMA_SCOPE_H
 #define ARTUS_SEMA_SCOPE_H
 
 #include <algorithm>
+#include <string>
+#include <vector>
 
 #include "../AST/Decl.h"
 #include "../Lex/Token.h"
-
-using std::vector;
 
 namespace artus {
 
@@ -33,33 +42,34 @@ class Scope {
   Scope *parent = nullptr;
 
   /// The declarations within this local scope.
-  vector<NamedDecl *> decls;
+  std::vector<NamedDecl *> decls;
 
   /// Context for this scope instance.
   ScopeContext ctx;
 
 public:
-  Scope(Scope *parent, vector<NamedDecl *> decls, ScopeContext ctx) 
+  Scope(Scope *parent, std::vector<NamedDecl *> decls, ScopeContext ctx) 
       : parent(parent), decls(std::move(decls)), ctx(ctx) {}
+  ~Scope() = default;
 
-  /// Returns the parent scope of this scope.
+  /// \returns The parent scope of this scope.
   Scope *getParent() const { return parent; }
 
-  /// Returns the declarations within this local scope.
-  const vector<NamedDecl *> &getDecls() const { return decls; }
+  /// \returns The declarations within this local scope.
+  const std::vector<NamedDecl *> &getDecls() const { return decls; }
 
-  /// Add a declaration to this scope.
+  /// Adds the declaration \p decl to this scope.
   void addDecl(NamedDecl *decl) { decls.push_back(decl); }
 
-  /// Deletes a declaration from this scope.
+  /// Deletes the declaration \p decl from this scope, if it exists.
   void deleteDecl(NamedDecl *decl) {
     auto d = std::find(decls.begin(), decls.end(), decl);
     if (d != decls.end())
       decls.erase(d);
   }
 
-  /// Retrieves a declaration by name, if it exists, and `nullptr` otherwise.
-  NamedDecl *getDecl(const string &name) const {
+  /// \returns The declaration most similar in name to \p name.
+  NamedDecl *getDecl(const std::string &name) const {
     if (isReserved(name))
       return nullptr;
 
@@ -74,19 +84,19 @@ public:
     return nullptr;
   }
 
-  /// Returns true if this is a global scope, and false otherwise.
+  /// \returns `true` if this is a global scope.
   bool isUnitScope() const { return ctx.isUnitScope; }
 
-  /// Returns true if this is a function scope, and false otherwise.
+  /// \returns `true` if this is a function scope.
   bool isFunctionScope() const { return ctx.isFunctionScope; }
 
-  /// Returns true if this is a compound statement scope, and false otherwise.
+  /// \returns `true` if this is a compound statement scope.
   bool isCompoundScope() const { return ctx.isCompoundScope; }
 
-  /// Returns true if this is a struct scope, and false otherwise.
+  /// \returns `true` if this is a struct scope.
   bool isStructScope() const { return ctx.isStructScope; }
 };
 
-} // namespace artus
+} // end namespace artus
 
 #endif // ARTUS_SEMA_SCOPE_H

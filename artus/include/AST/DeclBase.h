@@ -1,26 +1,25 @@
 //>==- DeclBase.h ---------------------------------------------------------==<//
 //
-// This header file defines important declaration classes.
+// This header file declares important semantic declaration classes.
 //
 //>==----------------------------------------------------------------------==<//
 
 #ifndef ARTUS_AST_DECLBASE_H
 #define ARTUS_AST_DECLBASE_H
 
+#include <map>
+#include <memory>
+#include <string>
 #include <vector>
 
 #include "ASTPrinter.h"
+#include "../Core/SourceLocation.h"
 #include "../Core/SourcePath.h"
-#include "../Core/Span.h"
-
-using std::string;
-using std::vector;
 
 namespace artus {
 
 /// Forward declarations.
-class Decl;
-class NamespaceDecl;
+class NamedDecl;
 class Scope;
 
 /// Base class for all formal declaration nodes. 
@@ -42,44 +41,75 @@ protected:
 
 public:
   Decl(const Span &span) : span(span) {}
+  ~Decl() = default;
 
+  /// \returns The source code span of this declaration.
   const Span &getSpan() const { return span; }
 
-  /// Returns a SourceLocation of the start of this declaration's span.
-  const SourceLocation getBeginLoc() const
-  { return { .file=span.file, .line=span.line, .col=span.col }; }
+  /// \returns The SourceLocation of the start of this declaration's span.
+  const SourceLocation getStartLoc() const { return getSpan().begin; }
 
-  /// Returns a SourceLocation of the end of this declaration's span.
-  const SourceLocation getEndLoc() const
-  { return { .file=span.file, .line=span.line_nd, .col=span.col_nd }; }
+  /// \returns The SourceLocation of the end of this declaration's span.
+  const SourceLocation getEndLoc() const { return getSpan().end; }
 };
 
-/// Represents an import declaration. An import may be used to import a local
-/// source file or ones from the standard library.
+/// Defines a context for owned declarations.
+///
+/// This interface provides a way to manage and query owned declarations.
+class DeclContext final {
+  /// The declarations owned by this context.
+  std::vector<std::unique_ptr<Decl>> decls;
+
+  /// A map of non-owning declarations by name.
+  std::map<std::string, NamedDecl *> map;
+
+public:
+  DeclContext() = default;
+  ~DeclContext() = default;
+
+  /// Moves the \p decl to be owned by this context.
+  Decl *addDeclaration(std::unique_ptr<Decl> decl);
+
+  /// Retrives a non-owning reference to a declaration by \p name.
+  NamedDecl *getDeclaration(const std::string &name) const;
+
+  /// \returns Non-owning declarations of this context.
+  std::vector<Decl *> getDeclarations() const;
+};
+
+/// Represents an import declaration. 
+///
+/// An import may be used to import a local source file or one from std library.
 class ImportDecl final : public Decl {
   friend class ASTPrinter;
   friend class ReferenceAnalysis;
 
-  /// The name of the package to import.
+  /// The provided path of the package to import.
   const SourcePath path;
 
-  /// If the package is from the local source tree.
-  const bool local;
+  /// If 1, the package is from the local source tree.
+  const bool local : 1;
 
 public:
-  ImportDecl(const SourcePath &path, const Span &span, bool local = true);
+  ImportDecl(const SourcePath &path, bool local, const Span &span);
+  ~ImportDecl() = default;
 
-  void pass(ASTVisitor *visitor) override;
+  void pass(ASTVisitor *visitor) override { visitor->visit(this); }
 
-  /// Returns the path of the package to import.
-  const SourcePath &getPath() const;
+  /// \returns The SourcePath of the package to import.
+  const SourcePath &getPath() const { return path; }
 
-  /// Returns if the package is from the local source tree.
-  bool isLocal() const;
+  /// \returns The name of the package to import.
+  const std::string &getName() const { return path.curr; }
+
+  /// \returns 1 if the target package is from the local source tree.
+  bool isLocal() const { return local; }
 };
 
-/// Represents a package declaration. A package represents a singular source
-/// file, and may import the declarations of other packages in a source tree.
+/// Represents a source file/package declaration. 
+///
+/// A package represents a singular source file, and may import the declarations 
+/// of other local packages or libraries.
 class PackageUnitDecl final : public DeclBase {
   friend class ASTPrinter;
   friend class Codegen;
@@ -87,37 +117,38 @@ class PackageUnitDecl final : public DeclBase {
   friend class Sema;
 
   /// The unique name or identifier associated with this package.
-  const string identifier;
+  const std::string identifier;
 
-  /// The names or identifiers of imported packages.
-  vector<ImportDecl *> imports;
+  /// Declaration context for this package.
+  DeclContext *ctx;
 
-  /// The declarations of this package.
-  vector<Decl *> decls;
+  /// The owned import declarations of this package.
+  std::vector<std::unique_ptr<ImportDecl>> imports;
+
+  /// Non-owning declarations contained in this package.
+  std::vector<Decl *> decls;
 
   /// The scope of this package.
   Scope *scope;
 
 public:
-  PackageUnitDecl(const string &id, vector<ImportDecl *> imports, Scope *scope,
-                  vector<Decl *> decls);
+  PackageUnitDecl(const std::string &id, DeclContext *ctx, Scope *scope,
+                  std::vector<ImportDecl *> imports);
+  ~PackageUnitDecl();
 
-  void pass(ASTVisitor *visitor) override;
+  void pass(ASTVisitor *visitor) override { visitor->visit(this); }
 
-  /// Returns the identifier of this package unit.
-  const string &getIdentifier() const;
+  /// \returns The identifier of this package unit.
+  const std::string &getIdentifier() const { return identifier; }
 
-  /// Returns the names of imported package units.
-  const vector<string> &getImports() const;
+  /// \returns The non-owning imports of this package.
+  std::vector<ImportDecl *> getImports() const; 
 
-  /// Adds a declaration to this package unit.
+  /// Adds a new, owned \p decl to this package unit.
+  void addDecl(std::unique_ptr<Decl> decl);
+
+  /// Imports a new \p decl to this package unit.
   void addDecl(Decl *decl);
-
-  /// Deletes a declaration from this package unit.
-  void delDecl(Decl *decl);
-
-  /// Adds an imported package unit to this package unit.
-  void addImport(ImportDecl *import);
 };
 
 } // end namespace artus

@@ -1,10 +1,22 @@
+//>==- Parser.h -----------------------------------------------------------==<//
+//
+// This header files declares the interface used to parse token streams into an
+// abstract syntax tree.
+//
+//>==----------------------------------------------------------------------==<//
+
 #ifndef ARTUS_PARSE_PARSER_H
 #define ARTUS_PARSE_PARSER_H
 
+#include <memory>
+
+#include "../AST/DeclBase.h"
+#include "../AST/Decl.h"
 #include "../AST/Expr.h"
+#include "../AST/Stmt.h"
 #include "../Core/Context.h"
 #include "../Sema/Scope.h"
-#include <memory>
+#include "../Sema/Type.h"
 
 namespace artus {
 
@@ -12,7 +24,7 @@ namespace artus {
 class Parser final {
   friend class Context;
 
-  /// Relevant context used during parsing.
+  /// Non-owning context used during parsing.
   Context *ctx;
 
   /// The current token being parsed.
@@ -45,31 +57,30 @@ class Parser final {
   const FunctionType *parentFunctionType;
 
   /// Consumes the current token and moves to the next token in the stream.
-  /// Returns `true` if the parser has begun lexing a new unit, and `false`
+  /// \returns `true` if the parser has begun lexing a new unit, and `false`
   /// otherwise.
   bool nextToken();
 
   /// Peeks at the next token in the stream. Does not consume the current token.
   /// This function is idempotent, in that it will not peek at the next token
-  /// if it has already been peeked at. Returns `true` if there was a token to
+  /// if it has already been peeked at. \returns `true` if there was a token to
   /// peek at, and `false` otherwise.
   bool peekToken();
 
-  /// Generate a span from the provided location to the last location seen by
-  /// the parser.
+  /// \returns A span object from the \p firstLoc to the current location.
   const Span createSpan(const SourceLocation &firstLoc) const;
 
-  /// Generate a span between the two provided locations.
+  /// \returns A span object between \p firstLoc and \p lastLoc.
   const Span createSpan(const SourceLocation &firstLoc, 
                         const SourceLocation &lastLoc) const;
 
   /// Moves up the current scope to its parent, if it exists.
   void exitScope();
 
-  /// Pushes a new scope onto the scope stack.
+  /// Pushes a new scope onto the scope stack with context \p ctx.
   void enterScope(const ScopeContext &ctx);
 
-  /// Returns the precedence for the current token.
+  /// \returns The precedence for the current token.
   int getPrecedence() const;
 
   /// Returns the unary operator equivelant of the current token.
@@ -128,6 +139,7 @@ class Parser final {
 public:
   Parser(Context *ctx) : ctx(ctx), scope(nullptr), parentFunctionType(nullptr),
                          lastLoc({ ctx->getActiveFileName(), 0, 0 }) {}
+  ~Parser() = default;
 
   /// Creates an AST from the token stream and embeds the package units into
   /// the context attached to this parser interface.
@@ -137,6 +149,6 @@ public:
   }
 };
 
-} // namespace artus
+} // end namespace artus
 
 #endif // ARTUS_PARSE_PARSER_H

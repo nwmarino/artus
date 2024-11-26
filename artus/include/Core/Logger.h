@@ -1,33 +1,38 @@
+//>==- Logger.h -----------------------------------------------------------==<//
+//
+// This header files declares important logging functions used during the
+// compilation process to log errors and other information.
+//
+//>------------------------------------------------------------------------<//
+
 #ifndef ARTUS_CORE_LOGGER_H
 #define ARTUS_CORE_LOGGER_H
 
-#include "../Core/SourceLocation.h"
+#include <string>
 
-using std::string;
+#include "../Core/SourceLocation.h"
 
 namespace artus {
 
-/// Crash the compiler with a fatal error message.
-[[noreturn]] void fatal(const string &msg);
+/// Crash the compiler with an error \p msg.
+[[noreturn]] void fatal(const std::string &msg);
 
-/// Crash the compiler with a positional cause.
-[[noreturn]] void fatal(const string &msg, const SourceLocation &loc);
+/// Crash the compiler with an error \p msg and positional cause \p loc.
+[[noreturn]] void fatal(const std::string &msg, const SourceLocation &loc);
 
-/// Warn the user of potentially bad input. This function is not marked
-/// `[[noreturn]]` as it may not signify a fatal error.
-void warn(const string &msg);
+/// Log a non-fatal error \p msg.
+void warn(const std::string &msg);
 
-/// Warn the user of potentially bad input with a positional cause. This 
-/// function is not marked `[[noreturn]]` as it may not signify a fatal error.
-void warn(const string &msg, const SourceLocation &loc);
+/// Log a non-fatal error \p msg with a positional cause \p loc.
+void warn(const std::string &msg, const SourceLocation &loc);
 
-/// Begin a possible error trace with a positional cause. This function is not
-/// marked `[[noreturn]]` as certain phases of compilation may recover.
-void trace(const string &msg, const SourceLocation &loc);
+/// Begin a possible error trace with message \p msg and a positional cause 
+/// \p loc.
+void trace(const std::string &msg, const SourceLocation &loc);
 
-/// Display a neutral info message.
-void info(const string &msg);
+/// Displays \p msg in a neutral manner.
+void info(const std::string &msg);
 
-} // namespace artus
+} // end namespace artus
 
 #endif // ARTUS_CORE_LOGGER_H

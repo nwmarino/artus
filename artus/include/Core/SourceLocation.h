@@ -1,21 +1,33 @@
+//>==- SourceLocation.h ---------------------------------------------------==<//
+//
+// This header file defines two important structs for representing locations
+// in the source code: SourceLocation and Span.
+//
+//==>----------------------------------------------------------------------==<//
+
 #ifndef ARTUS_CORE_SOURCELOCATION_H
 #define ARTUS_CORE_SOURCELOCATION_H
 
 #include <string>
 
-using std::size_t;
-using std::string;
-
 namespace artus {
 
 /// Represents a singular location in the source code.
-/// Used for error reporting and span maintenance.
 struct SourceLocation {
-  string file;
-  size_t line;
-  size_t col;
+  std::string file;
+  std::size_t line;
+  std::size_t col;
 };
 
-} // namespace artus
+/// Represents a span of text in the source code.
+struct Span {
+  /// The beginning point of the span.
+  SourceLocation begin;
+
+  /// The ending point of the span.
+  SourceLocation end;
+};
+
+} // end namespace artus
 
 #endif // ARTUS_CORE_SOURCELOCATION_H

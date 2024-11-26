@@ -1,18 +1,22 @@
+//>==- Token.h ------------------------------------------------------------==<//
+//
+// This header file defines the different kinds of tokens that the lexer can
+// produce, as well as the different kinds of literal values recognized by the
+// lexer.
+//
+//>==----------------------------------------------------------------------==<//
+
 #ifndef ARTUS_LEX_TOKEN_H
 #define ARTUS_LEX_TOKEN_H
 
 #include <algorithm>
-#include <cstddef>
+#include <string>
 #include <vector>
 
 #include "../Core/SourceLocation.h"
 
-using std::size_t;
-using std::string;
-using std::vector;
-
 /// Reference for reserved identifiers in the language.
-inline vector<string> __RESERVED = {
+inline std::vector<std::string> __RESERVED = {
   // Type-related literals and identifiers.
   "bool",
   "char",
@@ -48,8 +52,8 @@ inline vector<string> __RESERVED = {
 namespace artus {
 
 /// Returns 1 if the provided identifier is a reserved keyword, and 0 otherwise.
-inline int isReserved(const string &kw) {
-  return std::find(__RESERVED.begin(), __RESERVED.end(), kw) \
+inline int isReserved(const std::string &kw) {
+  return std::find(__RESERVED.begin(), __RESERVED.end(), kw)
     != __RESERVED.end();
 }
 
@@ -166,25 +170,23 @@ struct Token {
   SourceLocation loc;
 
   /// The optional, embedded value in this token.
-  string value;
+  std::string value;
 
   /// The optional, literal kind represented by this token.
   LiteralKind literalKind;
 
-  /// Returns true if the token is of the provided kind, and false otherwise.
+  /// \returns `true` if the token is of the provided kind.
   inline bool is(TokenKind k) const { return kind == k; }
 
-  /// Returns true if the token is a literal of the provided kind, and false 
-  /// otherwise.
-  inline bool is(LiteralKind lk) const { return kind == TokenKind::Literal && \
-    literalKind == lk; }
+  /// \returns `true` if the token is a literal of the provided kind.
+  inline bool is(LiteralKind lk) const 
+  { return kind == TokenKind::Literal && literalKind == lk; }
 
-  /// Returns true if the token is a reserved keyword, and false otherwise.
-  inline bool isKeyword(const string &kw) const { 
-    return kind == TokenKind::Identifier && value == kw && isReserved(kw); 
-  }
+  /// \returns `true` if the token is a reserved keyword.
+  inline bool isKeyword(const std::string &kw) const 
+  { return kind == TokenKind::Identifier && value == kw && isReserved(kw); }
 };
 
-} // namespace artus
+} // end namespace artus
 
 #endif // ARTUS_LEX_TOKEN_H

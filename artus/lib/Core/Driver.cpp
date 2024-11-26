@@ -1,3 +1,10 @@
+//>==- Driver.cpp ---------------------------------------------------------==<//
+//
+// The following source implements a driver that takes over control flow for
+// the compilation process from command line input.
+//
+//>==----------------------------------------------------------------------==<//
+
 #include <cassert>
 #include <string>
 #include <system_error>
@@ -27,18 +34,17 @@
 #include "../../include/Sema/ReferenceAnalysis.h"
 #include "../../include/Sema/Sema.h"
 
-using std::error_code;
-using std::string;
-
 using namespace artus;
 
 void Driver::createTM() {
   llvm::Triple triple = llvm::Triple(llvm::sys::getDefaultTargetTriple());
 
+  // Make basic options for the target machine.
   llvm::TargetOptions options;
-  const string cpu = "generic";
-  const string features = "";
+  const std::string cpu = "generic";
+  const std::string features = "";
 
+  // Generate the target.
   std::string errata;
   const llvm::Target *target = llvm::TargetRegistry::lookupTarget(
     llvm::sys::getDefaultTargetTriple(), errata);
@@ -51,9 +57,8 @@ void Driver::createTM() {
 }
 
 int Driver::emitFile(llvm::Module *module) {
-  /// Instantiate all passes over the IR.
+  /// Instantiate all LLVM passes over the IR.
   llvm::PassBuilder passBuilder = llvm::PassBuilder(this->TM);
-
   llvm::LoopAnalysisManager LAM;
   llvm::FunctionAnalysisManager FAM;
   llvm::CGSCCAnalysisManager CAM;
@@ -76,17 +81,19 @@ int Driver::emitFile(llvm::Module *module) {
   llvm::CodeGenFileType fileType = flags.emitLLVM || flags.emitASM ? \
       llvm::CodeGenFileType::AssemblyFile : llvm::CodeGenFileType::ObjectFile;
 
+  // Get the package name without any extension.
   const std::string pkgName = module->getSourceFileName().substr(0, \
       module->getSourceFileName().find_last_of('.'));
-  string outputFile = pkgName + ".o";
-  if (flags.emitLLVM) {
+
+  // Create the output file name for this package dependent on emit flags.
+  std::string outputFile = pkgName + ".o";
+  if (flags.emitLLVM)
     outputFile = pkgName + ".ll";
-  } else if (flags.emitASM) {
+  else if (flags.emitASM)
     outputFile = pkgName + ".s";
-  }
 
   /// Configure the output file.
-  error_code errorCode;
+  std::error_code errorCode;
   llvm::sys::fs::OpenFlags openFlags = llvm::sys::fs::OF_None;
   if (fileType == llvm::CodeGenFileType::AssemblyFile)
     openFlags |= llvm::sys::fs::OF_Text;
@@ -100,9 +107,9 @@ int Driver::emitFile(llvm::Module *module) {
 
   /// Configure the pass manager and add a print pass for emitting IR.
   llvm::legacy::PassManager CPM;
-  if (fileType == llvm::CodeGenFileType::AssemblyFile && flags.emitLLVM) {
+  if (fileType == llvm::CodeGenFileType::AssemblyFile && flags.emitLLVM)
     CPM.add(llvm::createPrintModulePass(output->os()));
-  } else {
+  else {
     if (TM->addPassesToEmitFile(CPM, output->os(), nullptr, fileType))
       fatal("no support for file type");
   }
@@ -118,9 +125,8 @@ int Driver::emitFile(llvm::Module *module) {
   CPM.run(*module);
   output->keep();
 
-  if (flags.compile) {
+  if (flags.compile)
     objectFiles.push_back(outputFile);
-  }
 
   return 1;
 }
@@ -130,28 +136,31 @@ Driver::Driver(const InputContainer &input) : flags(input.flags) {
 
   // Create the target machine.
   createTM();
-  assert(this->TM && "Target machine does not exist.");
+  if (!this->TM)
+    fatal("could not resolve a target machine");
 
+  // Parse the source program.
   Parser parser = Parser(this->ctx);
   parser.buildAST();
 
+  // Run reference analysis on each AST.
   ReferenceAnalysis refAnalysis = ReferenceAnalysis(this->ctx);
-  
+
+  // Run semantic analysis on each AST.
   Sema sema = Sema(this->ctx);
 
-  if (ctx->foundEntry < 1) {
+  // Check that a single entry point exists.
+  if (ctx->foundEntry < 1)
     fatal("no entry point found");
-  } else if (ctx->foundEntry != 1) {
+  else if (ctx->foundEntry != 1)
     fatal("multiple entry points found");
-  }
 
-  if (flags.printAST) {
+  if (flags.printAST)
     ctx->printAST();
-  }
 
-  if (flags.skipCGN) {
+  // Stop here if not lowering any further.
+  if (flags.skipCGN)
     return;
-  }
   
   // Run code generation passes and emit output.
   while (ctx->cache->nextUnit()) {
@@ -164,20 +173,19 @@ Driver::Driver(const InputContainer &input) : flags(input.flags) {
 
   // Link the object files.
   if (flags.compile) {
-    string cmd = "clang -o " + input.target + ' ';
-    for (const string &obj : objectFiles) {
+    // Setup a shellout command to link the object files.
+    std::string cmd = "clang -o " + input.target + ' ';
+    for (const std::string &obj : objectFiles)
       cmd += obj + ' ';
-    }
 
-    if (system(cmd.c_str())) {
+    // Run the command.
+    if (system(cmd.c_str()))
       fatal("failed to link object files");
-    }
     
     // Remove the object files.
-    for (const string &obj : objectFiles) {
-      if (remove(obj.c_str())) {
+    for (const std::string &obj : objectFiles) {
+      if (remove(obj.c_str()))
         warn("failed to remove object file: " + obj);
-      }
     }
   }
 }

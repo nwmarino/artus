@@ -1,3 +1,9 @@
+//>==- ASTVisitor.h -------------------------------------------------------==<//
+//
+// This header file declares a visitor pattern upon an abstract syntax tree.
+//
+//>==----------------------------------------------------------------------==<//
+
 #ifndef ARTUS_AST_ASTVISITOR_H
 #define ARTUS_AST_ASTVISITOR_H
 
@@ -86,6 +92,6 @@ public:
   virtual void visit(RetStmt *stmt) = 0;
 };
 
-} // namespace artus
+} // end namespace artus
 
 #endif // ARTUS_AST_ASTVISITOR_H

@@ -1,16 +1,19 @@
+//>==- Lexer.cpp ----------------------------------------------------------==<//
+//
+// The following source implements a lexer interface to tokenize source code.
+//
+//>==----------------------------------------------------------------------==<//
+
 #include <format>
 #include <cctype>
 
 #include "../../include/Core/Logger.h"
-#include "../../include/Core/Span.h"
+#include "../../include/Core/SourceLocation.h"
 #include "../../include/Lex/Lexer.h"
-
-using std::size_t;
-using std::string;
 
 using namespace artus;
 
-Lexer::Lexer(const string &file, const char *BufferStart) 
+Lexer::Lexer(const std::string &file, const char *BufferStart) 
     : BufferPos(BufferStart), loc({ .file = file, .line = 1, .col = 1}), 
     previousToken({ .kind = TokenKind::Eof }), previousChar('\0') {}
 
@@ -18,7 +21,8 @@ Lexer::Lexer(SourceLocation loc, const char *BufferPos)
     : BufferPos(BufferPos), loc(loc), previousToken({ .kind = TokenKind::Eof }),
     previousChar(*BufferPos != '\0' ? BufferPos[-1] : '\0') {}
 
-string Lexer::peek(size_t n) const { return string(BufferPos + 1, n); }
+std::string Lexer::peek(size_t n) const 
+{ return std::string(BufferPos + 1, n); }
 
 void Lexer::initToken(Token &next) {
   next.kind = TokenKind::Eof;
@@ -51,20 +55,22 @@ entry:
     goto entry;
   }
 
-  string tmp;
-  size_t skp = 1;
+  std::string tmp;
+  std::size_t skp = 1;
   switch (*BufferPos) {
-
   // Character literals.
   case '\'':
     next.kind = TokenKind::Literal;
     next.literalKind = LiteralKind::Character;
+
     BufferPos++;
     tmp = *BufferPos;
+
     BufferPos++;
-    if (*BufferPos != '\'') {
+    if (*BufferPos != '\'')
       fatal("expected closing single quote after character: " + tmp, loc);
-    }
+
+    skp += 2;
     break;
 
   // String literals.
@@ -72,10 +78,12 @@ entry:
     next.kind = TokenKind::Literal;
     next.literalKind = LiteralKind::String;
     BufferPos++;
+
+    // Lex the entire string literal.
     while (*BufferPos != '"') {
-      if (isEof()) {
+      if (isEof())
         fatal("expected closing double quote after string", loc);
-      }
+
       tmp += *BufferPos++;
       skp++;
     }
@@ -91,9 +99,9 @@ entry:
       BufferPos++;
       skp++;
       next.kind = TokenKind::FatArrow;
-    } else {
+    } else
       next.kind = TokenKind::Equals;
-    }
+
     break;
 
   // Addition operators.
@@ -102,9 +110,9 @@ entry:
       BufferPos++;
       skp++;
       next.kind = TokenKind::PlusEquals;
-    } else {
+    } else
       next.kind = TokenKind::Plus;
-    }
+
     break;
 
   // Subtraction operators or arrow tokens.
@@ -117,9 +125,9 @@ entry:
       BufferPos++;
       skp++;
       next.kind = TokenKind::MinusEquals;
-    } else {
+    } else
       next.kind = TokenKind::Minus;
-    }
+
     break;
 
   // Multiplication operators.
@@ -128,9 +136,9 @@ entry:
       BufferPos++;
       skp++;
       next.kind = TokenKind::StarEquals;
-    } else {
+    } else
       next.kind = TokenKind::Star;
-    }
+
     break;
 
   // Division operators or line comments.
@@ -145,9 +153,9 @@ entry:
       BufferPos++;
       skp++;
       next.kind = TokenKind::SlashEquals;
-    } else {
+    } else
       next.kind = TokenKind::Slash;
-    }
+
     break;
 
   // Bang or not equals.
@@ -156,9 +164,9 @@ entry:
       BufferPos++;
       skp++;
       next.kind = TokenKind::BangEquals;
-    } else {
+    } else
       next.kind = TokenKind::Bang;
-    }
+
     break;
 
   // Less than inequalities.
@@ -167,9 +175,9 @@ entry:
       BufferPos++;
       skp++;
       next.kind = TokenKind::LessEquals;
-    } else {
+    } else
       next.kind = TokenKind::Less;
-    }
+
     break;
 
   // Greater than inequalities.
@@ -178,9 +186,9 @@ entry:
       BufferPos++;
       skp++;
       next.kind = TokenKind::GreaterEquals;
-    } else {
+    } else
       next.kind = TokenKind::Greater;
-    }
+
     break;
 
   // Or operators.
@@ -198,9 +206,9 @@ entry:
       BufferPos++;
       skp++;
       next.kind = TokenKind::AndAnd;
-    } else {
+    } else
       next.kind = TokenKind::Ampersand;
-    }
+
     break;
 
   // Xor operators.
@@ -218,9 +226,9 @@ entry:
       BufferPos++;
       skp++;
       next.kind = TokenKind::Path;
-    } else {
+    } else 
       next.kind = TokenKind::Colon;
-    }
+
     break;
 
   // Basic token lexing.
@@ -253,7 +261,6 @@ entry:
         if (*BufferPos == '.' && next.literalKind == LiteralKind::Integer) {
           next.literalKind = LiteralKind::Float;
         }
-
         tmp += *BufferPos++;
         skp++;
       }
@@ -272,55 +279,131 @@ entry:
   return 1;
 }
 
-const string Lexer::dump() {
+const std::string Lexer::dump() {
   Token curr;
-  string result;
+  std::string result;
 
-  string tmp;
-  string loc;
+  std::string tmp;
+  std::string loc;
   while (Lex(curr)) {
     loc = curr.loc.file + ":" + std::to_string(curr.loc.line) + ":" 
           + std::to_string(curr.loc.col);
 
     switch (curr.kind) {
-      case TokenKind::LineComment: tmp = "LineComment"; break;
-      case TokenKind::Identifier: tmp = "Identifier <" + curr.value + ">"; break;
-      case TokenKind::Literal: tmp = "Literal <" + curr.value + ">"; break;
-      case TokenKind::OpenParen: tmp = "("; break;
-      case TokenKind::CloseParen: tmp = ")"; break;
-      case TokenKind::OpenBrace: tmp = "{"; break;
-      case TokenKind::CloseBrace: tmp = "}"; break;
-      case TokenKind::OpenBracket: tmp = "["; break;
-      case TokenKind::CloseBracket: tmp = "]"; break;
-      case TokenKind::Plus: tmp = "+"; break;
-      case TokenKind::Minus: tmp = "-"; break;
-      case TokenKind::Star: tmp = "*"; break;
-      case TokenKind::Slash: tmp = "/"; break;
-      case TokenKind::Equals: tmp = "="; break;
-      case TokenKind::Bang: tmp = "!"; break;
-      case TokenKind::Colon: tmp = ":"; break;
-      case TokenKind::Dot: tmp = "."; break;
-      case TokenKind::Comma: tmp = ","; break;
-      case TokenKind::At: tmp = "@"; break;
-      case TokenKind::Hash: tmp = "#"; break;
-      case TokenKind::Ampersand: tmp = "&"; break;
-      case TokenKind::Arrow: tmp = "->"; break;
-      case TokenKind::FatArrow: tmp = "=>"; break;
-      case TokenKind::EqualsEquals: tmp = "=="; break;
-      case TokenKind::Eof: tmp = "Eof"; break;
-      case TokenKind::Less: tmp = "<"; break;
-      case TokenKind::Greater: tmp = ">"; break;
-      case TokenKind::BangEquals: tmp = "!="; break;
-      case TokenKind::PlusEquals: tmp = "+="; break;
-      case TokenKind::MinusEquals: tmp = "-="; break;
-      case TokenKind::StarEquals: tmp = "*="; break;
-      case TokenKind::SlashEquals: tmp = "/="; break;
-      case TokenKind::LessEquals: tmp = "<="; break;
-      case TokenKind::GreaterEquals: tmp = ">="; break;
-      case TokenKind::AndAnd: tmp = "&&"; break;
-      case TokenKind::OrOr: tmp = "||"; break;
-      case TokenKind::XorXor: tmp = "^^"; break;
-      case TokenKind::Path: tmp = "::"; break;
+    case TokenKind::LineComment: 
+      tmp = "LineComment"; 
+      break;
+    case TokenKind::Identifier: 
+      tmp = "Identifier <" + curr.value + ">"; 
+      break;
+    case TokenKind::Literal: 
+      tmp = "Literal <" + curr.value + ">"; 
+      break;
+    case TokenKind::OpenParen: 
+      tmp = "("; 
+      break;
+    case TokenKind::CloseParen: 
+      tmp = ")"; 
+      break;
+    case TokenKind::OpenBrace: 
+      tmp = "{"; 
+      break;
+    case TokenKind::CloseBrace: 
+      tmp = "}"; 
+      break;
+    case TokenKind::OpenBracket: 
+      tmp = "["; 
+      break;
+    case TokenKind::CloseBracket: 
+      tmp = "]"; 
+      break;
+    case TokenKind::Plus: 
+      tmp = "+"; 
+      break;
+    case TokenKind::Minus: 
+      tmp = "-"; 
+      break;
+    case TokenKind::Star: 
+      tmp = "*"; 
+      break;
+    case TokenKind::Slash: 
+      tmp = "/"; 
+      break;
+    case TokenKind::Equals: 
+      tmp = "="; 
+      break;
+    case TokenKind::Bang: 
+      tmp = "!"; 
+      break;
+    case TokenKind::Colon: 
+      tmp = ":"; 
+      break;
+    case TokenKind::Dot: 
+      tmp = "."; 
+      break;
+    case TokenKind::Comma: 
+      tmp = ","; 
+      break;
+    case TokenKind::At: 
+      tmp = "@"; 
+      break;
+    case TokenKind::Hash: 
+      tmp = "#"; 
+      break;
+    case TokenKind::Ampersand: 
+      tmp = "&"; 
+      break;
+    case TokenKind::Arrow: 
+      tmp = "->"; 
+      break;
+    case TokenKind::FatArrow: 
+      tmp = "=>"; 
+      break;
+    case TokenKind::EqualsEquals: 
+      tmp = "=="; 
+      break;
+    case TokenKind::Less: 
+      tmp = "<"; 
+      break;
+    case TokenKind::Greater: 
+      tmp = ">"; 
+      break;
+    case TokenKind::BangEquals: 
+      tmp = "!="; 
+      break;
+    case TokenKind::PlusEquals: 
+      tmp = "+="; 
+      break;
+    case TokenKind::MinusEquals: 
+      tmp = "-="; 
+      break;
+    case TokenKind::StarEquals: 
+      tmp = "*="; 
+      break;
+    case TokenKind::SlashEquals: 
+      tmp = "/="; 
+      break;
+    case TokenKind::LessEquals: 
+      tmp = "<="; 
+      break;
+    case TokenKind::GreaterEquals: 
+      tmp = ">="; 
+      break;
+    case TokenKind::AndAnd: 
+      tmp = "&&"; 
+      break;
+    case TokenKind::OrOr: 
+      tmp = "||"; 
+      break;
+    case TokenKind::XorXor: 
+      tmp = "^^"; 
+      break;
+    case TokenKind::Path: 
+      tmp = "::"; 
+      break;
+    case TokenKind::Eof: 
+      tmp = "Eof"; 
+      break;
     }
 
     result += std::format("{:15}{}\n", loc, tmp);

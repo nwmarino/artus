@@ -1,189 +1,183 @@
-#include "../../include/AST/Expr.h"
+//>==- Decl.cpp -----------------------------------------------------------<==//
+//
+// The following source contains implementations for classes defined in Decl.h
+//
+//>==----------------------------------------------------------------------==<//
 
-using std::string;
-using std::unique_ptr;
-using std::vector;
+#include "../../include/AST/Decl.h"
+#include "../../include/AST/Expr.h"
+#include "../../include/AST/Stmt.h"
+#include "../../include/Sema/Scope.h"
 
 using namespace artus;
 
-/* Decl Implementation ----------------------------------------------------===*/
+//>==- NamedDecl Implementation -------------------------------------------==<//
+//
+// Named declarations are inline declarations that may define a symbol and
+// thereby inhabit a scope.
+//
+//>==----------------------------------------------------------------------==<//
 
-Decl::Decl(const Span &span) : span(span) {}
-
-const Span &Decl::getSpan() const { return span; }
-
-/* NamedDecl Implementation -----------------------------------------------===*/
-
-NamedDecl::NamedDecl(const string &name, const Span &span, bool priv) 
+NamedDecl::NamedDecl(const std::string &name, bool priv, const Span &span)
     : Decl(span), name(name), priv(priv) {}
 
-const string &NamedDecl::getName() const { return name; }
+//>==- ScopedDecl Implementation ------------------------------------------==<//
+//
+// Scoped declarations contain a link to some local scope quantifier. That link
+// may be used to resolve symbols during reference analysis passes.
+//
+//>==----------------------------------------------------------------------==<//
 
-bool NamedDecl::isPrivate() const { return priv; }
+ScopedDecl::ScopedDecl(const std::string &name, Scope *scope, bool priv, 
+                       const Span &span)
+    : NamedDecl(name, priv, span), scope(scope) {}
 
-void NamedDecl::setPrivate() { priv = true; }
+ScopedDecl::~ScopedDecl() { delete scope; }
 
-void NamedDecl::setPublic() { priv = false; }
+//>==- VarDecl Implementation ---------------------------------------------==<//
+//
+// Variable declarations are inline declarations that define a variable symbol.
+// They may also contain an initializer expression that is either explicitly
+// stated in the source or is derived by the parser.
+//
+// Variables are named declarations in-scope that may not be imported.
+//
+// Variable declarations may appear as follows:
+//
+// var-decl:
+//      | 'fix' <identifier> ':' <type> '=' <expr>
+//      | 'mut' <identifier> ':' <type>
+//      | 'mut' <identifier> ':' <type> '=' <expr>
+//
+//>==-----------------------------------------------------------------------==<//
 
-/* ScopedDecl Implementation ----------------------------------------------===*/
+VarDecl::VarDecl(const std::string &name, const Type *T, std::unique_ptr<Expr> init,
+                 bool mut, const Span &span)
+    : NamedDecl(name, false, span), T(T), init(std::move(init)), mut(mut){}
 
-ScopedDecl::ScopedDecl(const string &name, Scope *scope, const Span &span,
-                       bool priv)
-    : NamedDecl(name, span, priv), scope(scope) {}
+//>==- ParamVarDecl Implementation ----------------------------------------==<//
+//
+// Parameter variables are special variables that may not possess an initializer
+// and are instead special variable references for function signatures. They
+// receive similar treatment to regular variables during code generation.
+//
+// Parameter declarations may appear as follows:
+//
+// param-decl: 
+//      | <identifier> ':' <type>
+//      | 'mut' <identifier> ':' <type>
+//
+//>==----------------------------------------------------------------------==<//
 
-Scope *ScopedDecl::getScope() const { return scope; }
-
-/* ImportDecl Implementation ----------------------------------------------===*/
-
-ImportDecl::ImportDecl(const SourcePath &path, const Span &span, bool local) 
-    : Decl(span), path(path), local(local) {}
-
-void ImportDecl::pass(ASTVisitor *visitor) { visitor->visit(this); }
-
-const SourcePath &ImportDecl::getPath() const { return path; }
-
-bool ImportDecl::isLocal() const { return local; }
-
-/* PackageUnitDecl Implementation -----------------------------------------===*/
-
-PackageUnitDecl::PackageUnitDecl(const string &id, vector<string> imports, 
-                                 Scope *scope, vector<unique_ptr<Decl>> decls)
-    : identifier(id), imports(std::move(imports)), decls(std::move(decls)),
-      scope(scope) {}
-
-void PackageUnitDecl::pass(ASTVisitor *visitor) { visitor->visit(this); }
-
-const string &PackageUnitDecl::getIdentifier() const { return identifier; }
-
-const vector<string> &PackageUnitDecl::getImports() const { return imports; }
-
-void PackageUnitDecl::addDecl(unique_ptr<Decl> decl) 
-{ decls.push_back(std::move(decl)); }
-
-void PackageUnitDecl::addImport(const string &import)
-{ imports.push_back(import); }
-
-/* VarDecl Implementation -------------------------------------------------===*/
-
-VarDecl::VarDecl(const string &name, const Type *T, unique_ptr<Expr> init, 
-                 const bool mut, const Span &span) 
-    : NamedDecl(name, span), T(T), init(std::move(init)), mut(mut) {}
-      
-void VarDecl::pass(ASTVisitor *visitor) { visitor->visit(this); }
-
-const Type *VarDecl::getType() const { return T; }
-
-bool VarDecl::isParam() const { return !init; }
-
-unsigned VarDecl::isMutable() const { return mut; }
-
-bool VarDecl::canImport() const { return false; }
-
-/* ParamVarDecl Implementation --------------------------------------------===*/
-
-ParamVarDecl::ParamVarDecl(const string &name, const Type *T, const bool mut,
+ParamVarDecl::ParamVarDecl(const std::string &name, const Type *T, bool mut,
                            const Span &span)
     : VarDecl(name, T, nullptr, mut, span) {}
 
-void ParamVarDecl::pass(ASTVisitor *visitor) { visitor->visit(this); }
+//>==- FunctionDecl Implementation ----------------------------------------==<//
+//
+// Function declarations may appear as follows:
+//
+// function-decl:
+//      | fn '@' <identifier> '(' [param-list] ')' '->' <type> <stmt>
+//
+// param-list:
+//      | <param-decl> (',' <param-decl>)*
+//
+//>==----------------------------------------------------------------------==<//
 
-/* FunctionDecl Implementation --------------------------------------------===*/
+FunctionDecl::FunctionDecl(const std::string &name, const Type *T, Scope *scope,
+                           std::vector<std::unique_ptr<ParamVarDecl>> params,
+                           bool priv, const Span &span)
+    : ScopedDecl(name, scope, priv, span), T(T), params(std::move(params)),
+      body(nullptr) {}
 
-FunctionDecl::FunctionDecl(const string &name, const Type *T,
-                           vector<unique_ptr<ParamVarDecl>> params,
-                           unique_ptr<Stmt> body, Scope *scope, 
-                           const Span &span, bool priv)
-    : ScopedDecl(name, scope, span, priv), T(T), params(std::move(params)),
+FunctionDecl::FunctionDecl(const std::string &name, const Type *T, Scope *scope,
+                           std::vector<std::unique_ptr<ParamVarDecl>> params,
+                           std::unique_ptr<Stmt> body, bool priv, const Span &span)
+    : ScopedDecl(name, scope, priv, span), T(T), params(std::move(params)),
       body(std::move(body)) {}
-
-void FunctionDecl::pass(ASTVisitor *visitor) { visitor->visit(this); }
-
-const Type *FunctionDecl::getType() const { return T; }
-
-size_t FunctionDecl::getNumParams() const { return params.size(); }
-
+  
 const ParamVarDecl *FunctionDecl::getParam(size_t i) const 
 { return i < params.size() ? params[i].get() : nullptr; }
 
-bool FunctionDecl::canImport() const { return true; }
+bool FunctionDecl::hasBody() const { return body != nullptr; }
 
-/* EnumDecl Implementation ------------------------------------------------===*/
+//>==- EnumDecl Implementation --------------------------------------------==<//
+//
+// Enum declarations may appear as follows:
+//
+// enum-decl:
+//      | 'enum' <identifier> '{' <variant-list> '}'
+//
+// variant-list:
+//      | <identifier> (',' <identifier>)*
+//
+//>==----------------------------------------------------------------------==<//
 
-EnumDecl::EnumDecl(const string &name, vector<string> variants, const Type *T,
-                   const Span &span, bool priv)
-    : NamedDecl(name, span, priv), variants(std::move(variants)), T(T) {}
+EnumDecl::EnumDecl(const std::string &name, std::vector<std::string> variants,
+                   const Type *T, bool priv, const Span &span)
+    : NamedDecl(name, priv, span), variants(std::move(variants)), T(T) {}
 
-void EnumDecl::pass(ASTVisitor *visitor) { visitor->visit(this); }
-
-const Type *EnumDecl::getType() const { return T; }
-
-size_t EnumDecl::getNumVariants() const { return variants.size(); }
-
-int EnumDecl::getVariantIndex(const string &variant) const {
-  for (size_t i = 0; i < variants.size(); ++i) {
-    if (variants[i] == variant) 
+int EnumDecl::getVariantIndex(const std::string &variant) const {
+  for (std::size_t i = 0; i < variants.size(); ++i) {
+    if (variants[i] == variant)
       return i;
   }
+
   return -1;
 }
 
-bool EnumDecl::canImport() const { return true; }
+//>==- FieldDecl Implementation -------------------------------------------==<//
+//
+// Field declarations may appear as follows:
+//
+// field-decl:
+//      | <identifier> ':' <type>
+//      | 'mut' <identifier> ':' <type>
+//      | 'priv' <identifier> ':' <type>
+//      | 'priv' 'mut' <identifier> ':' <type>
+//
+//>==----------------------------------------------------------------------==<//
 
-/* FieldDecl Implementation -----------------------------------------------===*/
-
-FieldDecl::FieldDecl(const string &name, const Type *T, const bool mut,
+FieldDecl::FieldDecl(const std::string &name, const Type *T, bool mut, bool priv,
                      const Span &span)
-    : NamedDecl(name, span), T(T), mut(mut) {}
+    : NamedDecl(name, priv, span), T(T), mut(mut) {}
 
-void FieldDecl::pass(ASTVisitor *visitor) { visitor->visit(this); }
+//>==- StructDecl Implementation ------------------------------------------==<//
+//
+// Struct declarations are inline declarations that define a struct type.
+//
+// struct-decl:
+//      | 'struct' <identifier> '{' <field-list> '}'
+//
+// field-list:
+//      | <field-decl> (',' <field-decl>)*
+//
+//>==----------------------------------------------------------------------==<//
 
-const Type *FieldDecl::getType() const { return T; }
+StructDecl::StructDecl(const std::string &name, const Type *T, Scope *scope,
+                       std::vector<std::unique_ptr<FieldDecl>> fields, bool priv,
+                       const Span &span)
+    : ScopedDecl(name, scope, priv, span), fields(std::move(fields)), T(T) {}
 
-bool FieldDecl::isMutable() const { return mut; }
-
-bool FieldDecl::canImport() const { return false; }
-
-/* StructDecl Implementation ----------------------------------------------===*/
-
-StructDecl::StructDecl(const string &name, vector<unique_ptr<FieldDecl>> fields,
-                       Scope *scope, const Type *T, const Span &span, bool priv)
-    : ScopedDecl(name, scope, span, priv), fields(std::move(fields)), traits(),
-    T(T) {}
-
-void StructDecl::pass(ASTVisitor *visitor) { visitor->visit(this); }
-
-size_t StructDecl::getNumFields() const { return fields.size(); }
-
-const FieldDecl *StructDecl::getField(size_t i) const 
+const FieldDecl *StructDecl::getField(std::size_t i) const 
 { return i < fields.size() ? fields[i].get() : nullptr; }
 
-int StructDecl::getFieldIndex(const string &field) const {
-  for (size_t i = 0; i < fields.size(); ++i) {
+int StructDecl::getFieldIndex(const std::string &field) const {
+  for (std::size_t i = 0; i < fields.size(); ++i) {
     if (fields[i]->getName() == field) 
       return i;
   }
+
   return -1;
 }
 
-const Type *StructDecl::getFieldType(const string &name) const {
-  for (const unique_ptr<FieldDecl> &field : this->fields) {
-    if (field->getName() == name) 
-      return field->getType();
-  }
-  return nullptr;
-}
-
-bool StructDecl::isFieldMutable(const string &name) const {
-  for (const unique_ptr<FieldDecl> &field : this->fields) {
+bool StructDecl::isFieldMutable(const std::string &name) const {
+  for (const std::unique_ptr<FieldDecl> &field : this->fields) {
     if (field->getName() == name) {
       return field->isMutable();
     }
   }
+
   return false;
 }
-
-const Type *StructDecl::getType() const { return T; }
-
-void StructDecl::addTrait(const string &trait) { traits.push_back(trait); }
-
-bool StructDecl::canImport() const { return true; }
