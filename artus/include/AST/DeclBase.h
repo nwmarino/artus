@@ -119,6 +119,9 @@ class PackageUnitDecl final : public DeclBase {
   /// The unique name or identifier associated with this package.
   const std::string identifier;
 
+  /// The source path for this package.
+  SourcePath path;
+
   /// Declaration context for this package.
   DeclContext *ctx;
 
@@ -140,6 +143,9 @@ public:
 
   /// \returns The identifier of this package unit.
   const std::string &getIdentifier() const { return identifier; }
+
+  /// \returns The source path for this package unit.
+  const SourcePath &getPath() const { return path; }
 
   /// \returns The non-owning imports of this package.
   std::vector<ImportDecl *> getImports() const; 
