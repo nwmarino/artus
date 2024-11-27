@@ -133,7 +133,7 @@ class PackageUnitDecl final : public DeclBase {
 
 public:
   PackageUnitDecl(const std::string &id, DeclContext *ctx, Scope *scope,
-                  std::vector<ImportDecl *> imports);
+                  std::vector<std::unique_ptr<ImportDecl>> imports);
   ~PackageUnitDecl();
 
   void pass(ASTVisitor *visitor) override { visitor->visit(this); }

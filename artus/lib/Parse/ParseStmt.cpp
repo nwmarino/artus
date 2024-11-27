@@ -1,6 +1,16 @@
+//>==- ParseStmt.cpp ------------------------------------------------------==<//
+//
+// The following source implements statement-based parsing functions of the
+// Parser class.
+//
+//>==----------------------------------------------------------------------==<//
+
 #include <cassert>
 
+#include "../../include/AST/Stmt.h"
 #include "../../include/Core/Logger.h"
+#include "../../include/Core/SourceLocation.h"
+#include "../../include/Lex/Token.h"
 #include "../../include/Parse/Parser.h"
 
 using namespace artus;
@@ -62,7 +72,7 @@ std::unique_ptr<Stmt> Parser::ParseContinueStatement() {
 
 /// Parse a compound statement.
 ///
-/// compound:
+/// compound-stmt:
 ///  '{' <statement>* '}'
 ///
 /// Expects the current token to be an open brace.
@@ -74,7 +84,7 @@ std::unique_ptr<Stmt> Parser::ParseCompoundStatement() {
   enterScope({ .isCompoundScope = 1 });
 
   // Parse the compound statement body.
-  vector<std::unique_ptr<Stmt>> stmts;
+  std::vector<std::unique_ptr<Stmt>> stmts = {};
   while (!tok.is(TokenKind::CloseBrace)) {
     std::unique_ptr<Stmt> stmt = ParseStatement();
     if (!stmt) {
@@ -156,8 +166,8 @@ std::unique_ptr<Stmt> Parser::ParseIfStatement() {
     }
   }
 
-  return std::make_unique<IfStmt>(std::move(cond), std::move(thenStmt), 
-                                  std::move(elseStmt), createSpan(firstLoc));
+  return std::make_unique<IfStmt>(std::move(cond), std::move(thenStmt),
+      std::move(elseStmt), createSpan(firstLoc));
 }
 
 /// Parse a while statement.
@@ -232,9 +242,8 @@ std::unique_ptr<MatchCase> Parser::ParseMatchCaseStatement() {
   std::unique_ptr<Expr> expr = nullptr;
   if (!isDefault) {
     expr = ParseExpression();
-    if (!expr) {
+    if (!expr)
       fatal("expected expression in match case statement", lastLoc);
-    }
   }
 
   if (!tok.is(TokenKind::FatArrow)) {
@@ -249,12 +258,11 @@ std::unique_ptr<MatchCase> Parser::ParseMatchCaseStatement() {
     return nullptr;
   }
 
-  if (isDefault) {
+  if (isDefault)
     return std::make_unique<DefaultStmt>(std::move(body), body->getSpan());
-  }
 
-  return std::make_unique<CaseStmt>(std::move(expr), std::move(body), 
-                                    body->getSpan());
+  return std::make_unique<CaseStmt>(std::move(expr), std::move(body),
+      body->getSpan());
 }
 
 /// Parse a match statement.
@@ -281,7 +289,7 @@ std::unique_ptr<Stmt> Parser::ParseMatchStatement() {
   }
   nextToken(); // Consume the '{' token.
 
-  vector<std::unique_ptr<MatchCase>> cases;
+  std::vector<std::unique_ptr<MatchCase>> cases = {};
   while (!tok.is(TokenKind::CloseBrace)) {
     std::unique_ptr<MatchCase> stmt = ParseMatchCaseStatement();
     if (!stmt) {
@@ -296,9 +304,8 @@ std::unique_ptr<Stmt> Parser::ParseMatchStatement() {
       continue;
     }
 
-    if (tok.is(TokenKind::CloseBrace)) {
+    if (tok.is(TokenKind::CloseBrace))
       break;
-    }
 
     fatal("expected ',' or '}' after match case statement", lastLoc);
   }
@@ -307,7 +314,7 @@ std::unique_ptr<Stmt> Parser::ParseMatchStatement() {
   nextToken(); // Consume the '}' token.
 
   return std::make_unique<MatchStmt>(std::move(expr), std::move(cases),
-                                     createSpan(firstLoc, lastLoc));
+      createSpan(firstLoc, lastLoc));
 }
 
 /// Parse a ret statement.
@@ -328,6 +335,6 @@ std::unique_ptr<Stmt> Parser::ParseRetStatement() {
   if (!expr)
     fatal("expected value after 'ret' statement", lastLoc);
 
-  return std::make_unique<RetStmt>(std::move(expr), 
-                                   createSpan(firstLoc, lastLoc));
+  return std::make_unique<RetStmt>(std::move(expr),
+      createSpan(firstLoc, lastLoc));
 }

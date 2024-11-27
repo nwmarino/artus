@@ -1,14 +1,18 @@
+//>==- ParseExpr.cpp ------------------------------------------------------==<//
+//
+// The following source implements expression-based parsing functions of the
+// Parser class.
+//
+//>==----------------------------------------------------------------------==<//
+
 #include <cassert>
-#include <memory>
 
-#include "../../include/Core/Logger.h"
-#include "../../include/Parse/Parser.h"
-#include "../../include/Lex/Token.h"
+#include "../../include/AST/Expr.h"
 #include "../../include/Core/SourceLocation.h"
-
-using std::pair;
-using std::size_t;
-using std::string;
+#include "../../include/Core/Logger.h"
+#include "../../include/Lex/Token.h"
+#include "../../include/Parse/Parser.h"
+#include "../../include/Sema/Type.h"
 
 using namespace artus;
 
@@ -24,33 +28,30 @@ std::unique_ptr<Expr> Parser::ParseDefaultInitExpression(const Type *T) {
   // Handle basic types.
   if (const BasicType *BT = dynamic_cast<const BasicType *>(T)) {
     switch (BT->getKind()) {
-      case BasicType::INT1:
-        return std::make_unique<BooleanLiteral>(0, T, createSpan(lastLoc));
-      case BasicType::INT8:
-        return std::make_unique<CharLiteral>(0, T, createSpan(lastLoc));
-      case BasicType::INT32:
-      case BasicType::INT64:
-        return std::make_unique<IntegerLiteral>(0, T, true,
-            createSpan(lastLoc));
-      case BasicType::UINT8:
-      case BasicType::UINT32:
-      case BasicType::UINT64:
-        return std::make_unique<IntegerLiteral>(0, T, false,
-            createSpan(lastLoc));
-      case BasicType::FP64:
-        return std::make_unique<FPLiteral>(0.0, T, createSpan(lastLoc));
-      case BasicType::STR:
-        return std::make_unique<StringLiteral>("", T, createSpan(lastLoc));
+    case BasicType::INT1:
+      return std::make_unique<BooleanLiteral>(0, T, createSpan(lastLoc));
+    case BasicType::INT8:
+      return std::make_unique<CharLiteral>(0, T, createSpan(lastLoc));
+    case BasicType::INT32:
+    case BasicType::INT64:
+      return std::make_unique<IntegerLiteral>(0, T, createSpan(lastLoc));
+    case BasicType::UINT8:
+    case BasicType::UINT32:
+    case BasicType::UINT64:
+      return std::make_unique<IntegerLiteral>(0, T, createSpan(lastLoc));
+    case BasicType::FP64:
+      return std::make_unique<FPLiteral>(0.0, T, createSpan(lastLoc));
+    case BasicType::STR:
+      return std::make_unique<StringLiteral>("", T, createSpan(lastLoc));
     }
   }
 
   if (const ArrayType *AT = dynamic_cast<const ArrayType *>(T)) {
-    vector<std::unique_ptr<Expr>> exprs = {};
-    for (unsigned idx = 0; idx < AT->getSize(); ++idx) {
+    std::vector<std::unique_ptr<Expr>> exprs = {};
+    for (unsigned idx = 0; idx < AT->getSize(); ++idx)
       exprs.push_back(ParseDefaultInitExpression(AT->getElementType()));
-    }
 
-    return std::make_unique<ArrayExpr>(std::move(exprs), T, 
+    return std::make_unique<ArrayExpr>(std::move(exprs), T,
         createSpan(lastLoc));
   }
 
@@ -65,9 +66,8 @@ std::unique_ptr<Expr> Parser::ParseDefaultInitExpression(const Type *T) {
 ///   unary-op <expr>
 std::unique_ptr<Expr> Parser::ParseExpression() {
   std::unique_ptr<Expr> base = ParsePrimaryExpression();
-  if (!base) {
+  if (!base)
     return nullptr;
-  }
 
   return ParseBinaryExpression(std::move(base));
 }
@@ -93,11 +93,16 @@ std::unique_ptr<Expr> Parser::ParsePrimaryExpression() {
 
   // Literal expression parsing.
   switch(tok.literalKind) {
-    case LiteralKind::None: break;
-    case LiteralKind::Integer: return ParseIntegerExpression();
-    case LiteralKind::Float: return ParseFPExpression();
-    case LiteralKind::Character: return ParseCharacterExpression();
-    case LiteralKind::String: return ParseStringExpression();
+  case LiteralKind::None: 
+    break;
+  case LiteralKind::Integer: 
+    return ParseIntegerExpression();
+  case LiteralKind::Float: 
+    return ParseFPExpression();
+  case LiteralKind::Character: 
+    return ParseCharacterExpression();
+  case LiteralKind::String: 
+    return ParseStringExpression();
   }
   
   return ParseUnaryExpression();
@@ -139,15 +144,14 @@ std::unique_ptr<Expr> Parser::ParseCallExpression() {
     fatal("expected identifier after '@'", tok.loc);
   }
 
-  const string callee = tok.value; // Save the callee.
+  const std::string callee = tok.value; // Save the callee.
   nextToken(); // Eat the identifier token.
 
-  vector<std::unique_ptr<Expr>> args = {};
+  std::vector<std::unique_ptr<Expr>> args = {};
   bool emptyCall = false;
   // Empty call case: `@foo`; no arguments.
-  if (!tok.is(TokenKind::OpenParen)) {
+  if (!tok.is(TokenKind::OpenParen))
     emptyCall = true;
-  }
 
   if (!emptyCall)
     nextToken(); // Eat the '(' token.
@@ -155,17 +159,17 @@ std::unique_ptr<Expr> Parser::ParseCallExpression() {
   while (!tok.is(TokenKind::CloseParen) && !emptyCall) {
     std::unique_ptr<Expr> arg = ParseExpression();
     if (!arg) {
-      fatal("expected expression in argument list at call: " + callee, tok.loc);
+      fatal("expected expression in argument list at call: " + callee, 
+          tok.loc);
     }
 
     args.push_back(std::move(arg));
 
     // Expect a terminator or another argument.
-    if (tok.is(TokenKind::Comma)) {
+    if (tok.is(TokenKind::Comma))
       nextToken(); // Eat the ',' token.
-    } else if (!tok.is(TokenKind::CloseParen)) {
+    else if (!tok.is(TokenKind::CloseParen))
       fatal("expected ')' after argument list", tok.loc);
-    }
   }
 
   if (!emptyCall)
@@ -182,9 +186,8 @@ std::unique_ptr<Expr> Parser::ParseReferenceExpression() {
 
   // Resolve the identifier reference.
   Decl *refDecl = scope->getDecl(identToken.value);
-  if (!refDecl) {
+  if (!refDecl)
     fatal("unresolved symbol: " + identToken.value, identToken.loc);
-  }
 
   // Resolve the declaration type, if it exists.
   const Type *refType = nullptr;
@@ -193,18 +196,17 @@ std::unique_ptr<Expr> Parser::ParseReferenceExpression() {
   else if (ParamVarDecl *paramDecl = dynamic_cast<ParamVarDecl *>(refDecl))
     refType = paramDecl->getType();
 
-  return std::make_unique<DeclRefExpr>(identToken.value, refDecl, 
+  return std::make_unique<DeclRefExpr>(identToken.value, refDecl,
       refType, createSpan(identToken.loc));
 }
 
 /// Parse a cast expression.
 std::unique_ptr<Expr> Parser::ParseCastExpression() {
-  /// UNRECOVERABLE: Cannot cast an expression that is already under a cast.
-  if (isUnderCast) {
-    fatal("cannot cast an expression already under a cast", tok.loc);
-  }
-
   assert(tok.is(TokenKind::Identifier) && "expected identifier");
+
+  // Cannot cast an expression that is already under a cast.
+  if (isUnderCast)
+    fatal("cannot cast an expression already under a cast", tok.loc);  
 
   const SourceLocation idLoc = tok.loc;
 
@@ -231,19 +233,17 @@ std::unique_ptr<Expr> Parser::ParseCastExpression() {
 ///   '!' <expr>
 std::unique_ptr<Expr> Parser::ParseUnaryExpression() {
   UnaryExpr::UnaryOp op = getUnaryOp();
-  if (op == UnaryExpr::UnaryOp::Unknown) {
+  if (op == UnaryExpr::UnaryOp::Unknown)
     fatal("unresolved unary operator", tok.loc);
-  }
+
   nextToken(); // Eat the operator token.
 
   std::unique_ptr<Expr> expr = ParsePrimaryExpression();
-  if (!expr) {
+  if (!expr)
     fatal("expected expression after unary operator", tok.loc);
-  }
 
-  return std::make_unique<UnaryExpr>(std::move(expr), op, 
-      createSpan({ expr->getSpan().file, expr->getSpan().line,
-      expr->getSpan().col }, lastLoc));
+  return std::make_unique<UnaryExpr>(std::move(expr), op,
+      createSpan(expr->getStartLoc(), lastLoc));
 }
 
 /// Parse a binary expression.
@@ -258,28 +258,24 @@ std::unique_ptr<Expr> Parser::ParseBinaryExpression(std::unique_ptr<Expr> base,
       return base;
 
     BinaryExpr::BinaryOp op = getBinaryOp();
-    if (op == BinaryExpr::BinaryOp::Unknown) {
+    if (op == BinaryExpr::BinaryOp::Unknown)
       fatal("unresolved binary operator", tok.loc);
-    }
 
     nextToken(); // Eat the operator token.
 
     std::unique_ptr<Expr> rhs = ParsePrimaryExpression();
-    if (!rhs) {
+    if (!rhs)
       fatal("expected expression after binary operator", tok.loc);
-    }
 
     int nextPrecedence = getPrecedence();
     if (tokenPrecedence < nextPrecedence) {
       rhs = ParseBinaryExpression(std::move(rhs), tokenPrecedence + 1);
-      if (!rhs) {
+      if (!rhs)
         fatal("expected expression after binary operator", tok.loc);
-      }
     }
     
     base = std::make_unique<BinaryExpr>(std::move(base), std::move(rhs), 
-        op, createSpan({ base->getSpan().file, base->getSpan().line,
-        base->getSpan().col }, lastLoc));
+        op, createSpan(base->getStartLoc(), lastLoc));
   }
 }
 
@@ -322,9 +318,8 @@ std::unique_ptr<Expr> Parser::ParseIntegerExpression() {
   if (!T)
     T = ctx->getType("i32");
 
-  return std::make_unique<IntegerLiteral>(
-    std::stoi(intToken.value, 0, 10), T, false,
-    createSpan(intToken.loc, intToken.loc));
+  return std::make_unique<IntegerLiteral>(std::stoi(intToken.value, 0, 10), 
+      T, createSpan(intToken.loc));
 }
 
 /// Parse a floating point literal expression.
@@ -385,9 +380,8 @@ std::unique_ptr<Expr> Parser::ParseNullExpression() {
   nextToken();
 
   const Type *T = nullptr;
-  if (parentFunctionType) {
+  if (parentFunctionType)
     T = parentFunctionType->getReturnType();
-  }
 
   return std::make_unique<NullExpr>(T, createSpan(nullToken.loc));
 }
@@ -401,28 +395,25 @@ std::unique_ptr<Expr> Parser::ParseArrayExpression(const ArrayType *T) {
   SourceLocation firstLoc = tok.loc;
   nextToken(); // Eat the '[' token.
 
-  vector<std::unique_ptr<Expr>> exprs = {};
+  std::vector<std::unique_ptr<Expr>> exprs = {};
   while (!tok.is(TokenKind::CloseBracket)) {
     std::unique_ptr<Expr> expr = ParseExpression();
-    if (!expr) {
+    if (!expr)
       fatal("expected expression in array initializer", tok.loc);
-    }
 
     exprs.push_back(std::move(expr));
 
     // Expect a terminator or another expression.
-    if (tok.is(TokenKind::Comma)) {
+    if (tok.is(TokenKind::Comma))
       nextToken(); // Eat the ',' token.
-    } else if (!tok.is(TokenKind::CloseBracket)) {
+    else if (!tok.is(TokenKind::CloseBracket))
       fatal("expected ']' after array initializer", tok.loc);
-    }
   }
 
   nextToken(); // Eat the ']' token.
 
-  if (exprs.size() < 1) {
+  if (exprs.size() < 1)
     fatal("expected at least one expression in array initializer", lastLoc);
-  }
 
   // Check that the number of expressions matches the array size.
   if (T && exprs.size() != T->getSize()) {
@@ -456,18 +447,16 @@ std::unique_ptr<Expr> Parser::ParseArrayAccessExpression() {
 
   // Attempt to resolve the base declaration.
   Decl *decl = scope->getDecl(tok.value);
-  if (!decl) {
+  if (!decl)
     fatal("unresolved reference: " + tok.value, tok.loc);
-  }
 
   const Type *T = nullptr;
-  if (VarDecl *varDecl = dynamic_cast<VarDecl *>(decl)) {
+  if (VarDecl *varDecl = dynamic_cast<VarDecl *>(decl))
     T = varDecl->getType();
-  } else if (ParamVarDecl *paramDecl = dynamic_cast<ParamVarDecl *>(decl)) {
+  else if (ParamVarDecl *paramDecl = dynamic_cast<ParamVarDecl *>(decl))
     T = paramDecl->getType();
-  } else {
+  else
     fatal("expected variable reference: " + tok.value, tok.loc);
-  }
 
   std::unique_ptr<Expr> base = std::make_unique<DeclRefExpr>(tok.value, 
       decl, T, createSpan(tok.loc));
@@ -475,19 +464,18 @@ std::unique_ptr<Expr> Parser::ParseArrayAccessExpression() {
   const Token baseToken = tok; // Save the whole base token.
   nextToken();
 
-  if (!tok.is(TokenKind::OpenBracket)) {
+  if (!tok.is(TokenKind::OpenBracket))
     fatal("expected '[' after array identifier", tok.loc);
-  }
+
   nextToken(); // Eat the '[' token.
 
   std::unique_ptr<Expr> index = ParseExpression();
-  if (!index) {
+  if (!index) 
     fatal("expected expression after '['", tok.loc);
-  }
 
-  if (!tok.is(TokenKind::CloseBracket)) {
+  if (!tok.is(TokenKind::CloseBracket)) 
     fatal("expected ']' after array index", tok.loc);
-  }
+
   nextToken(); // Eat the ']' token.
 
   return std::make_unique<ArraySubscriptExpr>(baseToken.value, std::move(base),
@@ -504,43 +492,40 @@ std::unique_ptr<Expr> Parser::ParseStructInitExpression() {
   Token structToken = tok; // Save the identifier token.
   nextToken();
 
-  if (!tok.is(TokenKind::OpenBrace)) {
+  if (!tok.is(TokenKind::OpenBrace))
     fatal("expected '{' after struct identifier", tok.loc);
-  }
+
   nextToken(); // Eat the identifier token.
 
-  vector<pair<string, std::unique_ptr<Expr>>> exprs = {};
+  std::vector<std::pair<std::string, std::unique_ptr<Expr>>> exprs = {};
   while (!tok.is(TokenKind::CloseBrace)) {
-    if (!tok.is(TokenKind::Identifier)) {
+    if (!tok.is(TokenKind::Identifier))
       fatal("expected field identifier in struct initializer", tok.loc);
-    }
 
-    const string fieldName = tok.value; // Save the field name.
+    const std::string fieldName = tok.value; // Save the field name.
     nextToken();
 
-    if (!tok.is(TokenKind::Colon)) {
+    if (!tok.is(TokenKind::Colon))
       fatal("expected ':' after field identifier", tok.loc);
-    }
+
     nextToken(); // Eat the ':' token.
 
     std::unique_ptr<Expr> expr = ParseExpression();
-    if (!expr) {
+    if (!expr)
       fatal("expected expression in struct initializer", tok.loc);
-    }
 
     exprs.push_back(std::make_pair(fieldName, std::move(expr)));
 
     // Expect a terminator or another expression.
-    if (tok.is(TokenKind::Comma)) {
+    if (tok.is(TokenKind::Comma))
       nextToken(); // Eat the ',' token.
-    } else if (!tok.is(TokenKind::CloseBrace)) {
+    else if (!tok.is(TokenKind::CloseBrace))
       fatal("expected '}' after struct initializer", tok.loc);
-    }
   }
   nextToken(); // Eat the '}' token.
 
-  return std::make_unique<StructInitExpr>(structToken.value, std::move(exprs),
-      nullptr, createSpan(structToken.loc, lastLoc));
+  return std::make_unique<StructInitExpr>(structToken.value, nullptr,
+      std::move(exprs), createSpan(structToken.loc, lastLoc));
 }
 
 /// Parse a member access expression.
@@ -551,22 +536,20 @@ std::unique_ptr<Expr> Parser::ParseMemberExpression(std::unique_ptr<Expr> base) 
   assert(tok.is(TokenKind::Identifier) && "expected identifier");
 
   // Get a reference expression to the base.
-  if (!base) {
+  if (!base)
     base = ParseReferenceExpression();
-  }
-  const SourceLocation firstLoc = { base->getSpan().file, base->getSpan().line,
-      base->getSpan().col };
 
-  if (!tok.is(TokenKind::Dot)) {
+  const SourceLocation firstLoc = base->getStartLoc();
+
+  if (!tok.is(TokenKind::Dot))
     fatal("expected '.' after base identifier", tok.loc);
-  }
+
   nextToken(); // Eat the '.' token.
-
-  if (!tok.is(TokenKind::Identifier)) {
+  if (!tok.is(TokenKind::Identifier))
     fatal("expected member identifier after '.'", tok.loc);
-  }
 
-  const string fieldName = tok.value; // Save the field name.
+
+  const std::string fieldName = tok.value; // Save the field name.
   nextToken(); // Eat the field identifier token.
 
   // Handle recursive member access (depths greater than 1).
@@ -589,16 +572,15 @@ std::unique_ptr<Expr> Parser::ParseEnumReferenceExpression() {
   Token enumToken = tok; // Save the identifier token.
   nextToken();
 
-  if (!tok.is(TokenKind::Path)) {
+  if (!tok.is(TokenKind::Path))
     fatal("expected '::' after enum identifier", tok.loc);
-  }
+
   nextToken(); // Eat the path token.
 
-  if (!tok.is(TokenKind::Identifier)) {
+  if (!tok.is(TokenKind::Identifier))
     fatal("expected enum variant identifier after '::'", tok.loc);
-  }
 
-  const string variantName = tok.value; // Save the variant name.
+  const std::string variantName = tok.value; // Save the variant name.
   nextToken(); // Eat the variant identifier token.
 
   const Type *T = ctx->getType(enumToken.value);

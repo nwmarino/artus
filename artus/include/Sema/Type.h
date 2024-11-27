@@ -40,6 +40,10 @@ public:
   /// evaluted to otherwise.
   virtual bool isFloatingPointType() const = 0;
 
+  /// \returns `true` if this type is definitively a numerical type, or can be
+  /// evaluated to otherwise.
+  virtual bool isNumericalType() const = 0;
+
   /// \returns `true` if this type is definitively a string type, and false
   /// otherwise.
   virtual bool isStringType() const = 0;
@@ -92,6 +96,8 @@ public:
   bool isIntegerType() const override { return false; }
 
   bool isFloatingPointType() const override { return false; }
+
+  bool isNumericalType() const override { return false; }
 
   bool isStringType() const override { return false; }
 
@@ -154,6 +160,9 @@ public:
 
   /// \returns `true` if the basic type kind is a floating point.
   bool isFloatingPointType() const override { return kind == FP64; }
+
+  /// \returns `true` if the basic type is a non-str string.
+  bool isNumericalType() const override { return kind <= FP64; }
 
   /// \returns `true` if the basic type kind is a string.
   bool isStringType() const override { return kind == STR; }
@@ -324,6 +333,10 @@ public:
   bool isFloatingPointType() const override 
   { return returnType->isFloatingPointType(); }
 
+  /// \returns `true` if the function type returns a numerical type.
+  bool isNumericalType() const override 
+  { return returnType->isNumericalType(); }
+
   /// \returns `true` if the function type returns a string type.
   bool isStringType() const override { return returnType->isStringType(); }
 
@@ -407,6 +420,10 @@ public:
   bool isFloatingPointType() const override
   { return pointeeType->isFloatingPointType(); }
 
+  /// \returns `true` if the pointee type is a numerical type.
+  bool isNumericalType() const override 
+  { return pointeeType->isNumericalType(); }
+
   /// \returns `true` if the pointee type is a string type.
   bool isStringType() const override { return pointeeType->isStringType(); }
 
@@ -474,6 +491,10 @@ public:
   bool isFloatingPointType() const override 
   { return elementType->isFloatingPointType(); }
 
+  /// \returns `true` if the array element type is a numerical type.
+  bool isNumericalType() const override 
+  { return elementType->isNumericalType(); }
+
   /// \returns `true` if the array element type is a string type.
   bool isStringType() const override { return elementType->isStringType(); }
 
@@ -531,6 +552,8 @@ public:
   bool isIntegerType() const override { return false; }
 
   bool isFloatingPointType() const override { return false; }
+
+  bool isNumericalType() const override { return false; }
 
   bool isStringType() const override { return false; }
 
@@ -609,6 +632,8 @@ public:
   bool isAbsolute() const override { return true; }
 
   bool isIntegerType() const override { return true; }
+
+  bool isNumericalType() const override { return true; }
 
   unsigned getBitWidth() const override { return 64; }
 

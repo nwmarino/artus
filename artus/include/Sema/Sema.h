@@ -1,23 +1,27 @@
+//>==- Sema.h -------------------------------------------------------------==<//
+//
+// This header file declares an AST pass that semantically validates a typed
+// AST. This pass assumes that all references are valid.
+//
+//>==--------------------------------------------------------------------==<//
+
 #ifndef ARTUS_SEMA_SEMA_H
 #define ARTUS_SEMA_SEMA_H
 
+#include "Scope.h"
 #include "../AST/ASTVisitor.h"
 #include "../AST/Decl.h"
 #include "../AST/Expr.h"
 #include "../Core/Context.h"
-#include "Scope.h"
-
-using std::size_t;
 
 namespace artus {
 
-/// This class implements a Semantic Analysis pass over an AST. The checks
-/// involved include name resolution, type checking, and control flow analysis.
+/// This class implements a Semantic Analysis pass over an AST.
 class Sema final : public ASTVisitor {
-  /// The context associated with the semantic analysis pass.
+  /// Non-owning context associated with the semantic analysis pass.
   Context *ctx;
 
-  /// The possible kinds of loop that the visitor can be traversing.
+  /// The possible kinds of loop that the pass can be traversing.
   enum class LoopKind {
     /// No loop.
     NOL = -1,
@@ -98,6 +102,6 @@ public:
   void visit(RetStmt *stmt) override;
 };
 
-} // namespace artus
+} // end namespace artus
 
 #endif // ARTUS_SEMA_SEMA_H

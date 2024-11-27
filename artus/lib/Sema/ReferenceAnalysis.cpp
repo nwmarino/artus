@@ -9,37 +9,39 @@
 //
 //>==----------------------------------------------------------------------==<//
 
+#include <cassert>
+
+#include "../../include/AST/Decl.h"
+#include "../../include/AST/DeclBase.h"
 #include "../../include/AST/Expr.h"
+#include "../../include/AST/Stmt.h"
 #include "../../include/Core/Logger.h"
+#include "../../include/Core/SourcePath.h"
 #include "../../include/Sema/ReferenceAnalysis.h"
 #include "../../include/Sema/Scope.h"
 #include "../../include/Sema/Type.h"
-#include "../../include/Core/SourcePath.h"
 
 using namespace artus;
 
 ReferenceAnalysis::ReferenceAnalysis(Context *ctx)
     : ctx(ctx), globalScope(nullptr), localScope(nullptr) {
-  for (PackageUnitDecl *pkg : ctx->cache->getUnits()) {
-    pkg->pass(this); // Pass on each package unit.
-  }
+  for (PackageUnitDecl *pkg : ctx->cache->getUnits())
+    pkg->pass(this);
 }
 
-const Type *ReferenceAnalysis::resolveType(const string &ident, 
+const Type *ReferenceAnalysis::resolveType(const std::string &ident, 
                                            const SourceLocation &loc) const {
   const Type *resolvedType = ctx->getType(ident);
-  if (!resolvedType || !resolvedType->isAbsolute()) {
+  if (!resolvedType || !resolvedType->isAbsolute())
     fatal("unresolved type: " + ident, loc);
-  }
 
   return resolvedType;
 }
 
-const Decl *ReferenceAnalysis::resolveReference(const string &ident, 
+const Decl *ReferenceAnalysis::resolveReference(const std::string &ident, 
                                                 const SourceLocation &loc) const {
-  if (const Decl *decl = this->localScope->getDecl(ident)) {
+  if (const Decl *decl = this->localScope->getDecl(ident))
     return decl;
-  }
 
   fatal("unresolved reference: " + ident, loc);
 }
@@ -47,82 +49,75 @@ const Decl *ReferenceAnalysis::resolveReference(const string &ident,
 void ReferenceAnalysis::visit(PackageUnitDecl *decl) {
   this->globalScope = decl->scope;
 
-  vector<ImportDecl *> imports = {};
+  std::vector<ImportDecl *> imports = {};
 
   // Reconstruct function types.
-  for (const std::unique_ptr<Decl> &d : decl->decls) {
-    if (FunctionDecl *FD = dynamic_cast<FunctionDecl *>(d.get())) {
+  for (Decl *d : decl->decls) {
+    if (FunctionDecl *FD = dynamic_cast<FunctionDecl *>(d)) {
       if (!FD->T->isAbsolute()) {
         const FunctionType *FT = dynamic_cast<const FunctionType *>(FD->T);
         assert(FT && "expected function type");
 
         const Type *RT = FT->getReturnType();
-        vector<const Type *> PT = FT->getParamTypes();
+        std::vector<const Type *> PT = FT->getParamTypes();
 
         // Resolve the absolute return type.
-        if (!RT->isAbsolute()) {
-          RT = resolveType(RT->toString(),
-              { FD->getSpan().file, FD->getSpan().line, FD->getSpan().col });
-        }
+        if (!RT->isAbsolute())
+          RT = resolveType(RT->toString(), FD->getStartLoc());
 
         // Check that each parameter type is absolute.
         for (const Type *T : PT) {
           // Resolve the absolute parameter type.
-          if (!T->isAbsolute()) {
-            T = resolveType(T->toString(),
-                { FD->getSpan().file, FD->getSpan().line, FD->getSpan().col });
-          }
+          if (!T->isAbsolute())
+            T = resolveType(T->toString(), FD->getStartLoc());
         }
 
         // Reconstruct the function type.
         delete FD->T;
         FD->T = new FunctionType(RT, PT);
       }
-    } else if (ImportDecl *ID = dynamic_cast<ImportDecl *>(d.get())) {
-      imports.push_back(ID);
     }
   }
 
   // Check for duplicate imports.
-  for (size_t i = 0; i < imports.size(); i++) {
-    for (size_t j = i + 1; j < imports.size(); j++) {
+  for (std::size_t i = 0; i < imports.size(); i++) {
+    for (std::size_t j = i + 1; j < imports.size(); j++) {
       if (imports[i]->getPath().curr == imports[j]->getPath().curr) {
         fatal("duplicate import: " + imports[i]->getPath().curr,
-            { imports[j]->getSpan().file, imports[j]->getSpan().line,
-              imports[j]->getSpan().col });
+            imports.at(j)->getStartLoc());
       }
     }
   }
 
   // Resolve each import.
-  for (ImportDecl *ID : imports) {
-    ID->pass(this);
+  for (const std::unique_ptr<ImportDecl> &ID: decl->imports) {
+    // Skip library imports for now.
+    if (!ID->isLocal())
+      return;
+
+    // Resolve the package by the source path identifier.
+    PackageUnitDecl *pkg = ctx->resolvePackage(ID->getPath().curr,
+        ID->getStartLoc());
+
+    // Import all public, named declarations from the resolved package.
+    for (Decl *toImp : pkg->decls) {
+      NamedDecl *ND = dynamic_cast<NamedDecl *>(toImp);
+
+      // If the declaration is importable and public, import it.
+      if (ND->canImport() && !ND->isPrivate())
+        decl->addDecl(ND);
+    }
   }
 
   // Pass on each declaration.
-  for (const std::unique_ptr<Decl> &d : decl->decls) {
+  for (Decl *d : decl->decls)
     d->pass(this);
-  }
 
+  // Nullify the package scope.
   this->globalScope = nullptr;
 }
 
-void ReferenceAnalysis::visit(ImportDecl *decl) { 
-  if (!decl->isLocal())
-    return;
-
-  PackageUnitDecl *PUD = ctx->resolvePackage(decl->getPath().curr,
-      { decl->getSpan().file, decl->getSpan().line, decl->getSpan().col });
-  for (std::unique_ptr<Decl> &pkgDecl : PUD->decls) {
-      NamedDecl *ND = dynamic_cast<NamedDecl *>(pkgDecl.get());
-      if (!ND)
-        continue;
-
-      if (ND->canImport() && !ND->isPrivate()) {
-        this->globalScope->addDecl(ND);
-      }
-    }
-}
+void ReferenceAnalysis::visit(ImportDecl *decl) { /* no work to be done */ }
 
 void ReferenceAnalysis::visit(FunctionDecl *decl) {
   assert(decl->T->isAbsolute() && 
@@ -137,26 +132,21 @@ void ReferenceAnalysis::visit(FunctionDecl *decl) {
 
 void ReferenceAnalysis::visit(ParamVarDecl *decl) {
   // Resolve the absolute type.
-  if (!decl->T->isAbsolute()) {
-    decl->T = resolveType(decl->T->toString(),
-        { decl->span.file, decl->span.line, decl->span.col });
-  }
+  if (!decl->T->isAbsolute())
+    decl->T = resolveType(decl->T->toString(), decl->getStartLoc());
 
-  assert(decl->T->isAbsolute() && 
+  assert(decl->T->isAbsolute() &&
       ("invalid parameter type: " + decl->T->toString()).c_str());
 }
 
 void ReferenceAnalysis::visit(VarDecl *decl) {
   // Resolve the absolute type.
-  if (!decl->T->isAbsolute()) {
-    decl->T = resolveType(decl->T->toString(),
-        { decl->span.file, decl->span.line, decl->span.col });
-  }
+  if (!decl->T->isAbsolute())
+    decl->T = resolveType(decl->T->toString(), decl->getStartLoc());
 
   // Pass after type resolution, as expressions may depend on the type.
-  if (decl->init) {
+  if (decl->init)
     decl->init->pass(this);
-  }
 
   assert(decl->T->isAbsolute() && 
       ("invalid variable type: " + decl->T->toString()).c_str());
@@ -166,20 +156,19 @@ void ReferenceAnalysis::visit(EnumDecl *decl) { /* no work to be done */ }
 
 void ReferenceAnalysis::visit(FieldDecl *decl) {
   // Resolve the absolute type.
-  if (!decl->T->isAbsolute()) {
-    decl->T = resolveType(decl->T->toString(),
-        { decl->span.file, decl->span.line, decl->span.col });
-  }
+  if (!decl->T->isAbsolute())
+    decl->T = resolveType(decl->T->toString(), decl->getStartLoc());
 
-  assert(decl->T->isAbsolute() && 
+  assert(decl->T->isAbsolute() &&
       ("invalid field type: " + decl->T->toString()).c_str());
 }
 
 void ReferenceAnalysis::visit(StructDecl *decl) {
   this->localScope = decl->scope;
-  for (const std::unique_ptr<FieldDecl> &f : decl->fields) {
+
+  for (const std::unique_ptr<FieldDecl> &f : decl->fields)
     f->pass(this);
-  }
+
   this->localScope = localScope->getParent();
 }
 
@@ -187,12 +176,10 @@ void ReferenceAnalysis::visit(ImplicitCastExpr *expr) {
   expr->expr->pass(this);
 
   // Resolve the absolute type.
-  if (!expr->T->isAbsolute()) {
-    expr->T = resolveType(expr->T->toString(),
-        { expr->span.file, expr->span.line, expr->span.col });
-  }
+  if (!expr->T->isAbsolute())
+    expr->T = resolveType(expr->T->toString(), expr->getStartLoc());
 
-  assert(expr->T->isAbsolute() && 
+  assert(expr->T->isAbsolute() &&
       ("invalid cast type: " + expr->T->toString()).c_str());
 }
 
@@ -200,80 +187,68 @@ void ReferenceAnalysis::visit(ExplicitCastExpr *expr) {
   expr->expr->pass(this);
 
   // Resolve the absolute type.
-  if (!expr->T->isAbsolute()) {
-    expr->T = resolveType(expr->T->toString(),
-        { expr->span.file, expr->span.line, expr->span.col });
-  }
+  if (!expr->T->isAbsolute())
+    expr->T = resolveType(expr->T->toString(), expr->getStartLoc());
 
-  assert(expr->T->isAbsolute() && 
+  assert(expr->T->isAbsolute() &&
       ("invalid cast type: " + expr->T->toString()).c_str());
 }
 
 void ReferenceAnalysis::visit(DeclRefExpr *expr) {
   // Handle possible enum reference, which already have type references.
-  if (expr->getSpecifier() != "") {
+  if (expr->hasSpecifier()) {
     const EnumType *ET = dynamic_cast<const EnumType *>(ctx->getType(
         expr->getType()->toString()));
     if (!ET) {
-      fatal("expected enum variant reference: " + expr->getIdent(),
-          { expr->span.file, expr->span.line, expr->span.col });
+      fatal("expected enum variant reference: " + expr->getIdent(), 
+          expr->getStartLoc());
     }
 
-    if (ET->getVariant(expr->getSpecifier()) < 0) {
-      fatal("unresolved enum variant: " + expr->getIdent(),
-          { expr->span.file, expr->span.line, expr->span.col });
-    }
+    if (ET->getVariant(expr->getSpecifier()) < 0)
+      fatal("unresolved variant: " + expr->getIdent(), expr->getStartLoc());
 
     // Propogate the type of the expression.
     expr->T = ET;
 
     // Resolve the enum declaration.
-    const Decl *decl = resolveReference(expr->getType()->toString(),
-        { expr->span.file, expr->span.line, expr->span.col });
-    expr->decl = decl;
+    expr->decl = resolveReference(expr->getType()->toString(), 
+        expr->getStartLoc());;
   } else {
-    const Decl *decl = resolveReference(expr->ident,
-      { expr->span.file, expr->span.line, expr->span.col });
+    const Decl *decl = resolveReference(expr->ident, expr->getStartLoc());
 
     if (const VarDecl *VarDecl = dynamic_cast<const class VarDecl *>(decl))
       expr->T = VarDecl->T; // Propogate the type.
-    else {
-      fatal("expected variable reference: " + expr->ident,
-          { expr->span.file, expr->span.line, expr->span.col });
-    }
+    else
+      fatal("expected variable: " + expr->ident, expr->getStartLoc());
   }
 
-  assert(expr->T->isAbsolute() && 
+  assert(expr->T->isAbsolute() &&
       ("invalid reference type: " + expr->T->toString()).c_str());
 }
 
 void ReferenceAnalysis::visit(CallExpr *expr) {
   // Resolve the function reference.
-  const Decl *decl = resolveReference(expr->ident,
-      { expr->span.file, expr->span.line, expr->span.col });
+  const Decl *decl = resolveReference(expr->ident, expr->getStartLoc());
 
   // Propagate the type of the expression based on the function return type.
   if (const FunctionDecl *callee = dynamic_cast<const FunctionDecl *>(decl)) {
     const FunctionType *FT = dynamic_cast<const FunctionType *>(callee->T);
     assert(FT && ("expected function type: " + expr->ident).c_str());
+
     expr->T = FT->getReturnType();
-  } else {
-    fatal("expected function: " + expr->ident, 
-        { expr->span.file, expr->span.line, expr->span.col });
-  }
+  } else
+    fatal("expected function: " + expr->ident, expr->getStartLoc());
 
   // Pass on each of the arguments.
-  for (size_t i = 0; i < expr->getNumArgs(); i++) {
+  for (std::size_t i = 0; i < expr->getNumArgs(); i++)
     expr->getArg(i)->pass(this);
-  }
 
-  assert(expr->T->isAbsolute() && 
+  assert(expr->T->isAbsolute() &&
       ("invalid call expression type: " + expr->T->toString()).c_str());
 }
 
-void ReferenceAnalysis::visit(UnaryExpr *expr) { 
-  expr->base->pass(this); 
-}
+void ReferenceAnalysis::visit(UnaryExpr *expr) 
+{ expr->base->pass(this); }
 
 void ReferenceAnalysis::visit(BinaryExpr *expr) { 
   expr->lhs->pass(this); 
@@ -281,73 +256,56 @@ void ReferenceAnalysis::visit(BinaryExpr *expr) {
 }
 
 void ReferenceAnalysis::visit(BooleanLiteral *expr) {
-  // Check that a boolean literal is of type 'bool'.
-  if (expr->T->toString() != "bool") {
-    fatal("expected boolean type", { expr->span.file, 
-        expr->span.line, expr->span.col });
-  }
+  // Check that a boolean literal is of a boolean type.
+  if (!expr->T->isBooleanType())
+    fatal("expected boolean type", expr->getStartLoc());
 }
 
 void ReferenceAnalysis::visit(IntegerLiteral *expr) {
   // Check that an integer literal is of an integer type.
-  if (!expr->T->isIntegerType()) {
-    fatal("expected integer type", { expr->span.file, 
-        expr->span.line, expr->span.col });
-  }
+  if (!expr->T->isIntegerType())
+    fatal("expected integer type", expr->getStartLoc());
 }
 
 void ReferenceAnalysis::visit(FPLiteral *expr) {
   // Check that a floating point literal of a floating point type.
-  if (!expr->T->isFloatingPointType()) {
-    fatal("expected floating point type", { expr->span.file, 
-        expr->span.line, expr->span.col });
-  }
+  if (!expr->T->isFloatingPointType())
+    fatal("expected floating point type", expr->getStartLoc());
 }
 
 void ReferenceAnalysis::visit(CharLiteral *expr) {
   // Check that a character literal is of type 'char'.
-  if (expr->T->toString() != "char") {
-    fatal("expected character type", { expr->span.file, 
-        expr->span.line, expr->span.col });
-  }
+  if (expr->T->toString() != "char")
+    fatal("expected character type", expr->getStartLoc());
 }
 
 void ReferenceAnalysis::visit(StringLiteral *expr) {
   // Check that a string literal is of a string type.
-  if (!expr->T->isStringType()) {
-    fatal("expected string type", { expr->span.file, 
-        expr->span.line, expr->span.col });
-  }
+  if (!expr->T->isStringType())
+    fatal("expected string type", expr->getStartLoc());
 }
 
 void ReferenceAnalysis::visit(NullExpr *expr) {
   // Check that a 'null' type is a pointer.
-  if (!expr->T || !expr->T->isPointerType()) {
-    fatal("'null' type must be a pointer", 
-        { expr->span.file, expr->span.line, expr->span.col });
-  }
+  if (!expr->T || !expr->T->isPointerType())
+    fatal("'null' type must be a pointer", expr->getStartLoc());
 
   // Resolve the absolute type.
-  if (!expr->T->isAbsolute()) {
-    expr->T = resolveType(expr->T->toString(),
-        { expr->span.file, expr->span.line, expr->span.col });
-  }
+  if (!expr->T->isAbsolute())
+    expr->T = resolveType(expr->T->toString(), expr->getStartLoc());
 
-  assert(expr->T->isAbsolute() && 
+  assert(expr->T->isAbsolute() &&
       ("invalid null pointer type: " + expr->T->toString()).c_str());
 }
 
 void ReferenceAnalysis::visit(ArrayExpr *expr) {
   // Pass on each of the expressions.
-  for (std::unique_ptr<Expr> &e : expr->exprs) {
+  for (std::unique_ptr<Expr> &e : expr->exprs)
     e->pass(this);
-  }
 
   // Resolve the absolute type.
-  if (!expr->T->isAbsolute()) {
-    expr->T = resolveType(expr->T->toString(),
-        { expr->span.file, expr->span.line, expr->span.col });
-  }
+  if (!expr->T->isAbsolute())
+    expr->T = resolveType(expr->T->toString(), expr->getStartLoc());
 
   assert(expr->T->isAbsolute() &&
       ("invalid array list type: " + expr->T->toString()).c_str());
@@ -358,59 +316,53 @@ void ReferenceAnalysis::visit(ArraySubscriptExpr *expr) {
   expr->index->pass(this);
 
   // Assign the access expression type.
-  if (expr->base->getType()->isStringType()) {
+  if (expr->base->T->isStringType())
     // Handle string subscripting, i.e. 'str[0]'.
     expr->T = ctx->getType("char");
-  } else if (expr->base->getType()->isPointerType()) {
+  else if (expr->base->T->isPointerType()) {
     // Handle pointer subscripting, i.e. 'ptr[0]'.
-    const PointerType *PT = dynamic_cast<const PointerType *>(expr->base->getType());
+    const PointerType *PT = dynamic_cast<const PointerType *>(expr->base->T);
     assert(PT && "expected pointer type for array access");
+
     expr->T = PT->getPointeeType();
   } else {
     // Handle generic array subscripting, i.e. 'arr[0]'.
-    const ArrayType *AT = dynamic_cast<const ArrayType *>(expr->base->getType());
+    const ArrayType *AT = dynamic_cast<const ArrayType *>(expr->base->T);
     assert(AT && "expected array type");
+
     expr->T = AT->getElementType();
   }
 
   // Resolve the absolute type.
-  if (!expr->T->isAbsolute()) {
-    expr->T = resolveType(expr->T->toString(),
-        { expr->span.file, expr->span.line, expr->span.col });
-  }
+  if (!expr->T->isAbsolute())
+    expr->T = resolveType(expr->T->toString(), expr->getStartLoc());
 
-  assert(expr->T->isAbsolute() && 
+  assert(expr->T->isAbsolute() &&
       ("invalid array access type: " + expr->T->toString()).c_str());
 }
 
 void ReferenceAnalysis::visit(StructInitExpr *expr) {
   // Resolve the struct.
-  const Decl *decl = resolveReference(expr->name,
-      { expr->span.file, expr->span.line, expr->span.col });
+  const Decl *decl = resolveReference(expr->name, expr->getStartLoc());
 
   const StructDecl *SD = dynamic_cast<const StructDecl *>(decl);
-  if (!SD) {
-    fatal("expected struct: " + expr->name, 
-        { expr->span.file, expr->span.line, expr->span.col });
-  }
+  if (!SD)
+    fatal("expected struct: " + expr->name, expr->getStartLoc());
 
   // Check that the struct has the correct number of fields.
   if (expr->fields.size() != SD->fields.size()) {
-    fatal("expected " + std::to_string(SD->fields.size()) + " fields, got " 
-        + std::to_string(expr->fields.size()), { expr->span.file,
-        expr->span.line, expr->span.col });
+    fatal("expected " + std::to_string(SD->fields.size()) + " fields, got "
+        + std::to_string(expr->fields.size()), expr->getStartLoc());
   }
   
   // Pass on each of the field initializers.
-  for (const pair<string, std::unique_ptr<Expr>> &f : expr->fields) {
+  for (const std::pair<std::string, std::unique_ptr<Expr>> &f : expr->fields)
     f.second->pass(this);
-  }
 
   // Type is null by parser, resolve it.
-  expr->T = resolveType(expr->name,
-      { expr->span.file, expr->span.line, expr->span.col });
+  expr->T = resolveType(expr->name, expr->getStartLoc());
 
-  assert(expr->T->isAbsolute() && 
+  assert(expr->T->isAbsolute() &&
       ("invalid struct type: " + expr->T->toString()).c_str());
 }
 
@@ -418,27 +370,24 @@ void ReferenceAnalysis::visit(MemberExpr *expr) {
   expr->base->pass(this);
 
   // Resolve the base as a struct reference.
-  if (!expr->base->getType()->isStructType()) {
-    fatal("expected struct reference", { expr->span.file,
-        expr->span.line, expr->span.col });
-  }
+  if (!expr->base->T->isStructType())
+    fatal("expected struct reference", expr->getStartLoc());
 
   // Get the struct type of the base expression.
-  const Decl *decl = resolveReference(expr->base->getType()->toString(), 
-      { expr->span.file, expr->span.line, expr->span.col });
+  const Decl *decl = resolveReference(expr->base->T->toString(), 
+      expr->getStartLoc());
 
   const StructDecl *SD = dynamic_cast<const StructDecl *>(decl);
   if (!SD) {
     fatal("expected struct reference for member access: " + expr->getMember(),
-        { expr->span.file, expr->span.line, expr->span.col });
+        expr->getStartLoc());
   }
 
   // Set the type of the member expression according to the struct field type.
   const Type *fieldType = SD->getFieldType(expr->getMember());
   if (!fieldType) {
     fatal("field: " + expr->getMember() + " does not exist for struct " 
-        + expr->base->getType()->toString(), { expr->span.file, 
-        expr->span.line, expr->span.col });
+        + expr->base->T->toString(), expr->getStartLoc());
   }
 
   // Propogate the type.
@@ -447,31 +396,30 @@ void ReferenceAnalysis::visit(MemberExpr *expr) {
   // Assign the field index.
   expr->index = SD->getFieldIndex(expr->getMember());
 
-  assert(expr->T->isAbsolute() && 
+  assert(expr->T->isAbsolute() &&
       ("invalid member type: " + expr->T->toString()).c_str());
 }
 
 void ReferenceAnalysis::visit(CompoundStmt *stmt) {
   this->localScope = stmt->scope;
-  for (const std::unique_ptr<Stmt> &s : stmt->stmts) {
+
+  for (const std::unique_ptr<Stmt> &s : stmt->stmts)
     s->pass(this);
-  }
+
   this->localScope = localScope->getParent();
 }
 
 void ReferenceAnalysis::visit(BreakStmt *stmt) { /* no work to be done */ }
 void ReferenceAnalysis::visit(ContinueStmt *stmt) { /* no work to be done */ }
 
-void ReferenceAnalysis::visit(DeclStmt *stmt) { 
-  stmt->decl->pass(this); 
-}
+void ReferenceAnalysis::visit(DeclStmt *stmt) 
+{ stmt->decl->pass(this); }
 
 void ReferenceAnalysis::visit(IfStmt *stmt) {
   stmt->cond->pass(this);
   stmt->thenStmt->pass(this);
-  if (stmt->hasElse()) {
+  if (stmt->hasElse())
     stmt->elseStmt->pass(this);
-  }
 }
 
 void ReferenceAnalysis::visit(WhileStmt *stmt) {
@@ -489,15 +437,13 @@ void ReferenceAnalysis::visit(CaseStmt *stmt) {
   stmt->body->pass(this);
 }
 
-void ReferenceAnalysis::visit(DefaultStmt *stmt) {
-  stmt->body->pass(this);
-}
+void ReferenceAnalysis::visit(DefaultStmt *stmt) 
+{ stmt->body->pass(this); }
 
 void ReferenceAnalysis::visit(MatchStmt *stmt) {
   stmt->expr->pass(this);
-  for (std::unique_ptr<MatchCase> &s : stmt->cases) {
+  for (std::unique_ptr<MatchCase> &s : stmt->cases)
     s->pass(this);
-  }
 }
 
 void ReferenceAnalysis::visit(RetStmt *stmt) { 

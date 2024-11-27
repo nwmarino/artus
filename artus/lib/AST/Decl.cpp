@@ -97,6 +97,11 @@ FunctionDecl::FunctionDecl(const std::string &name, const Type *T, Scope *scope,
     : ScopedDecl(name, scope, priv, span), T(T), params(std::move(params)),
       body(std::move(body)) {}
   
+FunctionDecl::~FunctionDecl() {
+  delete this->scope;
+  delete this->T;
+}
+
 const ParamVarDecl *FunctionDecl::getParam(size_t i) const 
 { return i < params.size() ? params[i].get() : nullptr; }
 
@@ -172,11 +177,19 @@ int StructDecl::getFieldIndex(const std::string &field) const {
   return -1;
 }
 
+const Type *StructDecl::getFieldType(const std::string &name) const {
+  for (const std::unique_ptr<FieldDecl> &field : this->fields) {
+    if (field->getName() == name)
+      return field->getType();
+  }
+
+  return nullptr;
+}
+
 bool StructDecl::isFieldMutable(const std::string &name) const {
   for (const std::unique_ptr<FieldDecl> &field : this->fields) {
-    if (field->getName() == name) {
+    if (field->getName() == name)
       return field->isMutable();
-    }
   }
 
   return false;

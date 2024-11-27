@@ -142,7 +142,7 @@ class FunctionDecl final : public ScopedDecl {
   friend class ReferenceAnalysis;
   friend class Sema;
 
-  /// The function type of this declaration.
+  /// The owned function type of this declaration.
   const Type *T;
 
   /// The parameters of this declaration.
@@ -159,6 +159,8 @@ public:
   FunctionDecl(const std::string &name, const Type *T, Scope *scope,
                std::vector<std::unique_ptr<ParamVarDecl>> params,
                std::unique_ptr<Stmt> body, bool priv, const Span &span);
+
+  ~FunctionDecl();
 
   void pass(ASTVisitor *visitor) override { visitor->visit(this); }
 

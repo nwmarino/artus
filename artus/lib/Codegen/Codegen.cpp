@@ -1,17 +1,23 @@
+//>==- Codegen.cpp --------------------------------------------------------==<//
+//
+// The following source implements a code generation to LLVM IR pass for a
+// semantically valid abstract syntax tree rooted at a package declaration.
+//
+//>==----------------------------------------------------------------------==<//
+
 #include "llvm/ADT/APInt.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Verifier.h"
 #include "llvm/IR/DerivedTypes.h"
-#include "llvm/Support/Alignment.h"
 
+#include "../../include/AST/Decl.h"
+#include "../../include/AST/DeclBase.h"
 #include "../../include/AST/Expr.h"
+#include "../../include/AST/Stmt.h"
 #include "../../include/Codegen/Codegen.h"
 #include "../../include/Core/Logger.h"
 #include "../../include/Sema/Scope.h"
-
-using std::size_t;
-using std::string;
 
 using namespace artus;
 
@@ -67,9 +73,8 @@ void Codegen::visit(PackageUnitDecl *decl) {
 
       // Set the function arguments names.
       unsigned idx = 0;
-      for (llvm::Argument &arg : FN->args()) {
+      for (llvm::Argument &arg : FN->args())
         arg.setName(functionDecl->getParam(idx++)->getName());
-      }
 
       // Add the function to the function table.
       functions[functionDecl->getName()] = FN;
@@ -77,19 +82,16 @@ void Codegen::visit(PackageUnitDecl *decl) {
   }
 
   // Iterate over all declarations and generate code for them.
-  for (Decl *d : decl->scope->getDecls()) {
+  for (Decl *d : decl->scope->getDecls())
     d->pass(this);
-  }
 }
 
 void Codegen::visit(ImportDecl *decl) { /* no work to be done */ }
 
 void Codegen::visit(FunctionDecl *decl) {
   llvm::Function *FN = functions[decl->name];
-  if (!FN) {
-    fatal("Function not found in function table: " + decl->name,
-        { decl->span.file, decl->span.line, decl->span.col });
-  }
+  if (!FN)
+    fatal("function not found in ftable: " + decl->name, decl->getStartLoc());
 
   this->FN = FN;
 
@@ -113,10 +115,10 @@ void Codegen::visit(FunctionDecl *decl) {
 
 void Codegen::visit(ParamVarDecl *decl) {
   // Verify that a parent function exists and the temporary value is an arg.
-  assert(FN && "Function must be set before generating code for parameters.");
+  assert(FN && "function must be set before generating code for parameters.");
   if (!llvm::isa<llvm::Argument>(tmp)) {
-    fatal("Expected an argument value for parameter declaration.",
-        { decl->span.file, decl->span.line, decl->span.col });
+    fatal("expected an argument value for parameter declaration.",
+        decl->getStartLoc());
   }
 
   // Create an alloca for the parameter in the entry block.
@@ -131,7 +133,7 @@ void Codegen::visit(VarDecl *decl) {
 
   llvm::AllocaInst *alloca = createAlloca(
       builder->GetInsertBlock()->getParent(), decl->name,
-       decl->T->toLLVMType(*context)
+      decl->T->toLLVMType(*context)
   );
 
   builder->CreateStore(tmp, alloca);
@@ -145,10 +147,8 @@ void Codegen::visit(StructDecl *decl) {
   // Create the struct type and struct in the module.
   llvm::Type *T = decl->getType()->toLLVMType(*context);
   llvm::StructType *ST = llvm::cast<llvm::StructType>(T);
-  if (!ST) {
-    fatal("invalid struct type: " + decl->name,
-        { decl->span.file, decl->span.line, decl->span.col });
-  }
+  if (!ST)
+    fatal("invalid struct type: " + decl->name, decl->getStartLoc());
 
   // Add the struct to the struct table.
   this->structs[decl->name] = ST;
@@ -182,12 +182,10 @@ void Codegen::visit(ExplicitCastExpr *expr) { genericCastCGN(expr); }
 
 void Codegen::visit(DeclRefExpr *expr) {
   // Handle enum references.
-  if (expr->getSpecifier() != "") {
+  if (expr->hasSpecifier()) {
     const EnumType *ET = dynamic_cast<const EnumType *>(expr->getType());
-    if (!ET) {
-      fatal("expected enum type for enum reference", 
-          { expr->span.file, expr->span.line, expr->span.col });
-    }
+    if (!ET)
+      fatal("expected enum type for enum reference", expr->getStartLoc());
 
     tmp = llvm::ConstantInt::get(ET->toLLVMType(*context), 
         ET->getVariant(expr->getSpecifier()));
@@ -195,10 +193,8 @@ void Codegen::visit(DeclRefExpr *expr) {
   }
 
   llvm::AllocaInst *alloca = allocas[expr->ident];
-  if (!alloca) {
-    fatal("unresolved variable: " + expr->ident, 
-        { expr->span.file, expr->span.line, expr->span.col });
-  }
+  if (!alloca)
+    fatal("unresolved variable: " + expr->ident, expr->getStartLoc());
 
   if (needPtr) {
     tmp = alloca;
@@ -211,12 +207,12 @@ void Codegen::visit(DeclRefExpr *expr) {
 void Codegen::visit(CallExpr *expr) {
   llvm::Function *callee = functions[expr->ident];
   if (!callee) {
-    fatal("function not found in function table: " + expr->ident,
-        { expr->span.file, expr->span.line, expr->span.col });
+    fatal("function not found in function table: " + expr->ident, 
+        expr->getStartLoc());
   }
 
   std::vector<llvm::Value *> args;
-  for (size_t i = 0; i < expr->getNumArgs(); ++i) {
+  for (std::size_t i = 0; i < expr->getNumArgs(); ++i) {
     expr->getArg(i)->pass(this);
     args.push_back(tmp);
   }
@@ -231,22 +227,21 @@ void Codegen::visit(UnaryExpr *expr) {
   llvm::Value *base = tmp;
 
   switch (expr->op) {
-    case UnaryExpr::UnaryOp::Negative:
-      tmp = builder->CreateNeg(base);
-      break;
-    case UnaryExpr::UnaryOp::Not:
-      tmp = builder->CreateNot(base);
-      break;
-    case UnaryExpr::UnaryOp::Ref: // tmp is already the desired pointer.
-      break;
-    case UnaryExpr::UnaryOp::DeRef:
-      if (!needPtr)
-        tmp = builder->CreateLoad(expr->getType()->toLLVMType(*context), 
-            base);
-      break;
-    default: 
-      fatal("unknown unary operator", { expr->span.file,
-        expr->span.line, expr->span.col });
+  case UnaryExpr::UnaryOp::Negative:
+    tmp = builder->CreateNeg(base);
+    break;
+  case UnaryExpr::UnaryOp::Not:
+    tmp = builder->CreateNot(base);
+    break;
+  case UnaryExpr::UnaryOp::Ref: // tmp is already the desired pointer.
+    break;
+  case UnaryExpr::UnaryOp::DeRef:
+    if (!needPtr)
+      tmp = builder->CreateLoad(expr->getType()->toLLVMType(*context), 
+          base);
+    break;
+  default: 
+    fatal("unknown unary operator", expr->getStartLoc());
   }
 }
 
@@ -262,146 +257,132 @@ void Codegen::visit(BinaryExpr *expr) {
   llvm::Value *rhs = tmp;
 
   switch (expr->op) {
-    case BinaryExpr::BinaryOp::Assign: // =
-      tmp = builder->CreateStore(rhs, lhs);
-      break;
-    case BinaryExpr::BinaryOp::AddAssign: {
-      llvm::Value *addVal = nullptr;
-      if (expr->T->isFloatingPointType()) {
-        addVal = builder->CreateFAdd(lhs, rhs);
-      } else {
-        addVal = builder->CreateAdd(lhs, rhs);
-      }
+  case BinaryExpr::BinaryOp::Assign:
+    tmp = builder->CreateStore(rhs, lhs);
+    break;
+  case BinaryExpr::BinaryOp::AddAssign: {
+    llvm::Value *addVal = nullptr;
+    if (expr->T->isFloatingPointType())
+      addVal = builder->CreateFAdd(lhs, rhs);
+    else
+      addVal = builder->CreateAdd(lhs, rhs);
 
-      // Get the pointer for the left hand side.
-      needPtr = true;
-      expr->lhs->pass(this);
-      tmp = builder->CreateStore(addVal, tmp);
-      break;
-    }
-    case BinaryExpr::BinaryOp::SubAssign: {
-      llvm::Value *subVal = nullptr;
-      if (expr->T->isFloatingPointType()) {
-        subVal = builder->CreateFSub(lhs, rhs);
-      } else {
-        subVal = builder->CreateSub(lhs, rhs);
-      }
+    // Get the pointer for the left hand side.
+    needPtr = true;
+    expr->lhs->pass(this);
+    tmp = builder->CreateStore(addVal, tmp);
+    break;
+  }
+  case BinaryExpr::BinaryOp::SubAssign: {
+    llvm::Value *subVal = nullptr;
+    if (expr->T->isFloatingPointType())
+      subVal = builder->CreateFSub(lhs, rhs);
+    else
+      subVal = builder->CreateSub(lhs, rhs);
 
-      // Get the pointer for the left hand side.
-      needPtr = true;
-      expr->lhs->pass(this);
-      tmp = builder->CreateStore(subVal, tmp);
-      break;
-    }
-    case BinaryExpr::BinaryOp::MultAssign: {
-      llvm::Value *multVal = nullptr;
-      if (expr->T->isFloatingPointType()) {
-        multVal = builder->CreateFMul(lhs, rhs);
-      } else {
-        multVal = builder->CreateMul(lhs, rhs);
-      }
+    // Get the pointer for the left hand side.
+    needPtr = true;
+    expr->lhs->pass(this);
+    tmp = builder->CreateStore(subVal, tmp);
+    break;
+  }
+  case BinaryExpr::BinaryOp::MultAssign: {
+    llvm::Value *multVal = nullptr;
+    if (expr->T->isFloatingPointType())
+      multVal = builder->CreateFMul(lhs, rhs);
+    else
+      multVal = builder->CreateMul(lhs, rhs);
 
-      // Get the pointer for the left hand side.
-      needPtr = true;
-      expr->lhs->pass(this);
-      tmp = builder->CreateStore(multVal, tmp);
-      break;
-    }
-    case BinaryExpr::BinaryOp::DivAssign: {
-      llvm::Value *divVal = nullptr;
-      if (expr->T->isFloatingPointType()) {
-        divVal = builder->CreateFDiv(lhs, rhs);
-      } else {
-        divVal = builder->CreateSDiv(lhs, rhs);
-      }
+    // Get the pointer for the left hand side.
+    needPtr = true;
+    expr->lhs->pass(this);
+    tmp = builder->CreateStore(multVal, tmp);
+    break;
+  }
+  case BinaryExpr::BinaryOp::DivAssign: {
+    llvm::Value *divVal = nullptr;
+    if (expr->T->isFloatingPointType())
+      divVal = builder->CreateFDiv(lhs, rhs);
+    else
+      divVal = builder->CreateSDiv(lhs, rhs);
 
-      // Get the pointer for the left hand side.
-      needPtr = true;
-      expr->lhs->pass(this);
-      tmp = builder->CreateStore(divVal, tmp);
-      break;
-    }
-    case BinaryExpr::BinaryOp::Equals:
-      if (expr->T->isFloatingPointType()) {
-        tmp = builder->CreateFCmpOEQ(lhs, rhs);
-        break;
-      }
+    // Get the pointer for the left hand side.
+    needPtr = true;
+    expr->lhs->pass(this);
+    tmp = builder->CreateStore(divVal, tmp);
+    break;
+  }
+  case BinaryExpr::BinaryOp::Equals:
+    if (expr->T->isFloatingPointType())
+      tmp = builder->CreateFCmpOEQ(lhs, rhs);
+    else
       tmp = builder->CreateICmpEQ(lhs, rhs);
-      break;
-    case BinaryExpr::BinaryOp::NotEquals:
-      if (expr->T->isFloatingPointType()) {
-        tmp = builder->CreateFCmpONE(lhs, rhs);
-        break;
-      }
+    break;
+  case BinaryExpr::BinaryOp::NotEquals:
+    if (expr->T->isFloatingPointType())
+      tmp = builder->CreateFCmpONE(lhs, rhs);
+    else
       tmp = builder->CreateICmpNE(lhs, rhs);
-      break;
-    case BinaryExpr::BinaryOp::LessThan:
-      if (expr->T->isFloatingPointType()) {
-        tmp = builder->CreateFCmpOLT(lhs, rhs);
-        break;
-      }
+    break;
+  case BinaryExpr::BinaryOp::LessThan:
+    if (expr->T->isFloatingPointType())
+      tmp = builder->CreateFCmpOLT(lhs, rhs);
+    else
       tmp = builder->CreateICmpSLT(lhs, rhs);
-      break;
-    case BinaryExpr::BinaryOp::GreaterThan:
-      if (expr->T->isFloatingPointType()) {
-        tmp = builder->CreateFCmpOGT(lhs, rhs);
-        break;
-      }
+    break;
+  case BinaryExpr::BinaryOp::GreaterThan:
+    if (expr->T->isFloatingPointType())
+      tmp = builder->CreateFCmpOGT(lhs, rhs);
+    else
       tmp = builder->CreateICmpSGT(lhs, rhs);
-      break;
-    case BinaryExpr::BinaryOp::LessEquals:
-      if (expr->T->isFloatingPointType()) {
-        tmp = builder->CreateFCmpOLE(lhs, rhs);
-        break;
-      }
+    break;
+  case BinaryExpr::BinaryOp::LessEquals:
+    if (expr->T->isFloatingPointType())
+      tmp = builder->CreateFCmpOLE(lhs, rhs);
+    else
       tmp = builder->CreateICmpSLE(lhs, rhs);
-      break;
-    case BinaryExpr::BinaryOp::GreaterEquals:
-      if (expr->T->isFloatingPointType()) {
-        tmp = builder->CreateFCmpOGE(lhs, rhs);
-        break;
-      }
+    break;
+  case BinaryExpr::BinaryOp::GreaterEquals:
+    if (expr->T->isFloatingPointType())
+      tmp = builder->CreateFCmpOGE(lhs, rhs);
+    else
       tmp = builder->CreateICmpSGE(lhs, rhs);
-      break;
-    case BinaryExpr::BinaryOp::LogicalAnd:
-      tmp = builder->CreateAnd(lhs, rhs);
-      break;
-    case BinaryExpr::BinaryOp::LogicalOr:
-      tmp = builder->CreateOr(lhs, rhs);
-      break;
-    case BinaryExpr::BinaryOp::LogicalXor:
-      tmp = builder->CreateXor(lhs, rhs);
-      break;
-    case BinaryExpr::BinaryOp::Add:
-      if (expr->T->isFloatingPointType()) {
-        tmp = builder->CreateFAdd(lhs, rhs);
-        break;
-      }
+    break;
+  case BinaryExpr::BinaryOp::LogicalAnd:
+    tmp = builder->CreateAnd(lhs, rhs);
+    break;
+  case BinaryExpr::BinaryOp::LogicalOr:
+    tmp = builder->CreateOr(lhs, rhs);
+    break;
+  case BinaryExpr::BinaryOp::LogicalXor:
+    tmp = builder->CreateXor(lhs, rhs);
+    break;
+  case BinaryExpr::BinaryOp::Add:
+    if (expr->T->isFloatingPointType())
+      tmp = builder->CreateFAdd(lhs, rhs);
+    else
       tmp = builder->CreateAdd(lhs, rhs);
-      break;
-    case BinaryExpr::BinaryOp::Sub:
-      if (expr->T->isFloatingPointType()) {
-        tmp = builder->CreateFSub(lhs, rhs);
-        break;
-      }
+    break;
+  case BinaryExpr::BinaryOp::Sub:
+    if (expr->T->isFloatingPointType())
+      tmp = builder->CreateFSub(lhs, rhs);
+    else
       tmp = builder->CreateSub(lhs, rhs);
-      break;
-    case BinaryExpr::BinaryOp::Mult:
-      if (expr->T->isFloatingPointType()) {
-        tmp = builder->CreateFMul(lhs, rhs);
-        break;
-      }
+    break;
+  case BinaryExpr::BinaryOp::Mult:
+    if (expr->T->isFloatingPointType())
+      tmp = builder->CreateFMul(lhs, rhs);
+    else
       tmp = builder->CreateMul(lhs, rhs);
-      break;
-    case BinaryExpr::BinaryOp::Div:
-      if (expr->T->isFloatingPointType()) {
-        tmp = builder->CreateFDiv(lhs, rhs);
-        break;
-      }
+    break;
+  case BinaryExpr::BinaryOp::Div:
+    if (expr->T->isFloatingPointType())
+      tmp = builder->CreateFDiv(lhs, rhs);
+    else
       tmp = builder->CreateSDiv(lhs, rhs);
-      break;
-    default: fatal("unknown binary operator", { expr->span.file,
-        expr->span.line, expr->span.col });
+    break;
+  default: 
+    fatal("unknown binary operator", expr->getStartLoc());
   } // end switch
 
   needPtr = false;
@@ -411,6 +392,7 @@ void Codegen::visit(BooleanLiteral *expr)
 { tmp = llvm::ConstantInt::get(*context, llvm::APInt(1, expr->value, true)); }
 
 void Codegen::visit(IntegerLiteral *expr) {
+  /// TODO: Type check for unsigned integers.
   tmp = llvm::ConstantInt::get(*context, llvm::APInt(
       expr->T->getBitWidth(), expr->value, true));
 }
@@ -433,7 +415,7 @@ void Codegen::visit(ArrayExpr *expr) {
   llvm::Type *T = expr->T->toLLVMType(*context);
   llvm::Value *array = llvm::UndefValue::get(T);
 
-  for (size_t i = 0; i < expr->getNumExprs(); ++i) {
+  for (std::size_t i = 0; i < expr->getNumExprs(); ++i) {
     expr->getExpr(i)->pass(this);
     array = builder->CreateInsertValue(array, tmp, i);
   }
@@ -472,7 +454,7 @@ void Codegen::visit(ArraySubscriptExpr *expr) {
 
   // If the base reference is a pointer, load it first.
   if (baseExpr->T->isPointerType()) {
-    vector<llvm::Value *> indices = { index };
+    std::vector<llvm::Value *> indices = { index };
     llvm::LoadInst *ptr = builder->CreateLoad(expr->T->toLLVMType(*context), 
         base);
 
@@ -491,15 +473,14 @@ void Codegen::visit(ArraySubscriptExpr *expr) {
     return;
   }
 
-  fatal("unknown array access expression type", { expr->span.file, 
-      expr->span.line, expr->span.col });
+  fatal("unknown array access expression type", expr->getStartLoc());
 }
 
 void Codegen::visit(StructInitExpr *expr) {
   llvm::Type *T = expr->T->toLLVMType(*context);
   llvm::Value *structVal = llvm::UndefValue::get(T);
 
-  for (size_t i = 0; i < expr->getNumFields(); ++i) {
+  for (std::size_t i = 0; i < expr->getNumFields(); ++i) {
     expr->getField(i)->pass(this);
     structVal = builder->CreateInsertValue(structVal, tmp, i);
   }
@@ -520,7 +501,7 @@ void Codegen::visit(MemberExpr *expr) {
   int idx = expr->index;
   if (idx == -1) {
     fatal("member " + expr->getMember() + " undeclared in base struct",
-        { expr->span.file, expr->span.line, expr->span.col });
+        expr->getStartLoc());
   }
 
   // Create a GEP to access the member by the struct pointer.
@@ -547,25 +528,21 @@ void Codegen::visit(ContinueStmt *stmt) {
 }
 
 void Codegen::visit(CompoundStmt *stmt) {
-  for (const std::unique_ptr<Stmt> &s : stmt->stmts) {
+  for (const std::unique_ptr<Stmt> &s : stmt->stmts)
     s->pass(this);
-  }
 }
 
-void Codegen::visit(DeclStmt *stmt) {
-  stmt->decl->pass(this);
-}
+void Codegen::visit(DeclStmt *stmt) 
+{ stmt->decl->pass(this); }
 
 void Codegen::visit(IfStmt *stmt) {
   // Fetch the value for the if statement condition.
   stmt->cond->pass(this);
   llvm::Value *condVal = tmp;
-  if (!condVal) {
-    fatal("expected expression in if statement condition", 
-        { stmt->span.file, stmt->span.line, stmt->span.col });
-  }
+  if (!condVal)
+    fatal("expected expression in if statement condition", stmt->getStartLoc());
 
-  // Initialize basic blocks for this if control flow.
+  // Initialize basic blocks for this `if` control flow.
   llvm::BasicBlock *thenBlock = llvm::BasicBlock::Create(*context, 
       "then", FN);
   llvm::BasicBlock *elseBlock = llvm::BasicBlock::Create(*context,
@@ -574,11 +551,10 @@ void Codegen::visit(IfStmt *stmt) {
       "merge");
 
   // Create a branch from the the then block to the else block, should it exist.
-  if (stmt->hasElse()) {
+  if (stmt->hasElse())
     builder->CreateCondBr(condVal, thenBlock, elseBlock);
-  } else { // No else block, go straight to merge after the 'then' statement.
+  else // No else block, go straight to merge after the 'then' statement.
     builder->CreateCondBr(condVal, thenBlock, mergeBlock);
-  }
 
   // Codegen pass on the then body, and insert instructions to its basic block.
   builder->SetInsertPoint(thenBlock);
@@ -588,9 +564,8 @@ void Codegen::visit(IfStmt *stmt) {
 
   // If no terminator was made, branch to the merge block.
   thenBlock = builder->GetInsertBlock();
-  if (!thenBlock->getTerminator()) {
+  if (!thenBlock->getTerminator())
     builder->CreateBr(mergeBlock);
-  }
 
   // Codegen pass on the else statement, if it exists.
   builder->SetInsertPoint(elseBlock);
@@ -602,9 +577,8 @@ void Codegen::visit(IfStmt *stmt) {
   }
 
   // If no terminator was made, branch to the merge block.
-  if (!stmt->hasElse() || !elseBlock->getTerminator()) {
+  if (!stmt->hasElse() || !elseBlock->getTerminator())
     builder->CreateBr(mergeBlock);
-  }
 
   // Insert the merge block if it used.
   if (mergeBlock->hasNPredecessorsOrMore(1)) {
@@ -632,10 +606,8 @@ void Codegen::visit(WhileStmt *stmt) {
   // Codegen pass on the loop condition.
   stmt->cond->pass(this);
   llvm::Value *condVal = tmp;
-  if (!condVal) {
-    fatal("expected expression in while statement condition", 
-        { stmt->span.file, stmt->span.line, stmt->span.col });
-  }
+  if (!condVal)
+    fatal("expected expression in while statement condition", stmt->getStartLoc());
 
   // Repeat the loop if the condition is true.
   builder->CreateCondBr(condVal, loopBlock, mergeBlock);
@@ -674,10 +646,9 @@ void Codegen::visit(UntilStmt *stmt) {
   // Codegen pass on the loop condition.
   stmt->cond->pass(this);
   llvm::Value *condVal = tmp;
-  if (!condVal) {
+  if (!condVal)
     fatal("expected expression in while statement condition", 
-        { stmt->span.file, stmt->span.line, stmt->span.col });
-  }
+        stmt->getStartLoc());
 
   // Repeat the loop if the condition is true.
   builder->CreateCondBr(condVal, mergeBlock, loopBlock);
@@ -697,22 +668,18 @@ void Codegen::visit(UntilStmt *stmt) {
   this->hostMergeBlock = prevMergeBlock;
 }
 
-void Codegen::visit(CaseStmt *stmt) {
-  stmt->body->pass(this);
-}
+void Codegen::visit(CaseStmt *stmt) 
+{ stmt->body->pass(this); }
 
-void Codegen::visit(DefaultStmt *stmt) {
-  stmt->body->pass(this);
-}
+void Codegen::visit(DefaultStmt *stmt)
+{ stmt->body->pass(this); }
 
 void Codegen::visit(MatchStmt *stmt) {
   // Fetch the value for the match statement expression.
   stmt->expr->pass(this);
   llvm::Value *matchVal = tmp;
-  if (!matchVal) {
-    fatal("expected expression in match statement", 
-        { stmt->span.file, stmt->span.line, stmt->span.col });
-  }
+  if (!matchVal)
+    fatal("expected expression in match statement", stmt->getStartLoc());
 
   // Initialize basic blocks for the match control flow.
   llvm::BasicBlock *mergeBlock = llvm::BasicBlock::Create(*context, 
@@ -721,38 +688,33 @@ void Codegen::visit(MatchStmt *stmt) {
       "default");
 
   llvm::SwitchInst *swInst = nullptr;
-  if (stmt->hasDefault()) {
+  if (stmt->hasDefault())
     swInst = builder->CreateSwitch(matchVal, defaultBlock, 
         stmt->cases.size() - 1);
-  } else {
+  else
     swInst = builder->CreateSwitch(matchVal, mergeBlock, 
         stmt->cases.size() - 1);
-  }
 
   // Codegen each of the match cases.
   for (std::unique_ptr<MatchCase> &c : stmt->cases) {
     // Only codegen on case statements for now.
     CaseStmt *caseStmt = dynamic_cast<CaseStmt *>(c.get());
-    if (!caseStmt) {
+    if (!caseStmt)
       continue;
-    }
 
     // Initialize the basic block for the case statement body.
     llvm::BasicBlock *caseBlock = llvm::BasicBlock::Create(*context, "case", FN);
 
     // Codegen pass on the case statement expression.
     caseStmt->expr->pass(this);
-    if (!tmp) {
-      fatal("expected expression in case statement", 
-          { stmt->span.file, stmt->span.line, stmt->span.col });
-    }
+    if (!tmp)
+      fatal("expected expression in case statement", stmt->getStartLoc());
 
     // Evaluate the expression as an integer constant.
     llvm::ConstantInt *caseVal = llvm::dyn_cast<llvm::ConstantInt>(tmp);
-    if (!caseVal) {
+    if (!caseVal)
       fatal("expected integer evaluable expression in case statement", 
-          { stmt->span.file, stmt->span.line, stmt->span.col });
-    }
+          stmt->getStartLoc());
 
     // Add the case to the switch instruction, and codegen the body of the case.
     swInst->addCase(caseVal, caseBlock);
@@ -760,9 +722,8 @@ void Codegen::visit(MatchStmt *stmt) {
     caseStmt->pass(this);
 
     // Branch to the merge block if the case body has no terminator.
-    if (!caseBlock->getTerminator()) {
+    if (!caseBlock->getTerminator())
       builder->CreateBr(mergeBlock);
-    }
   }
 
   // If the default block is actually used, codegen for it and insert it.

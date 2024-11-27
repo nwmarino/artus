@@ -1,3 +1,9 @@
+//>==- Expr.h -------------------------------------------------------------==<//
+//
+// This header file declares inline expression AST nodes parsed from source.
+//
+//>==----------------------------------------------------------------------==<//
+
 #ifndef ARTUS_AST_EXPR_H
 #define ARTUS_AST_EXPR_H
 
@@ -265,6 +271,14 @@ public:
   /// \returns `true` if this binary expression is a comparison.
   bool isComparison() const 
   { return op >= BinaryOp::Equals && op <= BinaryOp::LogicalXor; }
+
+  /// \returns `true` if this binary expression is a logical comparison.
+  bool isLogicComparison() const
+  { return op >= BinaryOp::LogicalAnd && op <= BinaryOp::LogicalXor; }
+
+  /// \returns `true` if this binary expression is a numerical comparison.
+  bool isNumericalComparison() const
+  { return op >= BinaryOp::Equals && op <= BinaryOp::GreaterEquals; }
 
   /// \returns The left hand side expression of this binary operator.
   Expr *getLHS() const { return lhs.get(); }

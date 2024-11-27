@@ -1,4 +1,10 @@
-#include "../../include/AST/Stmt.h"
+//>==- Parser.cpp ---------------------------------------------------------==<//
+//
+// The following source implements agnostic parts of the Parser class.
+//
+//>==----------------------------------------------------------------------==<//
+
+#include "../../include/Core/Logger.h"
 #include "../../include/Parse/Parser.h"
 #include "../../include/Sema/Type.h"
 
@@ -13,29 +19,23 @@ bool Parser::nextToken() {
   }
 
   if (ctx->lexer->Lex(tok)) {
-    lastLoc = { ctx->getActiveFileName(), tok.loc.line, 
-                tok.loc.col };
+    lastLoc = { .file=ctx->getActiveFileName(), .line=tok.loc.line,
+                .col=tok.loc.col };
     return false;
   }
 
   return true;
 }
 
-bool Parser::peekToken() 
+bool Parser::peekToken()
 { return !peeking && ctx->lexer->Lex(peek) ? ++peeking : false; }
 
-const Span Parser::createSpan(const SourceLocation &firstLoc) const {
-  return { .file = firstLoc.file, .line =  firstLoc.line, 
-            .col =  firstLoc.col, .line_nd = lastLoc.line, 
-            .col_nd =  lastLoc.col };
-}
+const Span Parser::createSpan(const SourceLocation &firstLoc) const 
+{ return { .begin=firstLoc, .end=lastLoc }; }
 
 const Span Parser::createSpan(const SourceLocation &firstLoc, 
-                              const SourceLocation &lastLoc) const {
-  return { .file = firstLoc.file, .line =  firstLoc.line, 
-            .col =  firstLoc.col, .line_nd = lastLoc.line, 
-            .col_nd =  lastLoc.col };
-}
+                              const SourceLocation &lastLoc) const
+{ return { .begin=firstLoc, .end=lastLoc }; }
 
 void Parser::exitScope() { this->scope = scope->getParent(); }
 
@@ -44,92 +44,90 @@ void Parser::enterScope(const ScopeContext &ctx)
 
 int Parser::getPrecedence() const {
   switch (tok.kind) {
-    case TokenKind::Star:
-    case TokenKind::Slash:
-      return 6;
-    case TokenKind::Plus:
-    case TokenKind::Minus:
-      return 5;
-    case TokenKind::Less:
-    case TokenKind::Greater:
-    case TokenKind::LessEquals:
-    case TokenKind::GreaterEquals:
-      return 4;
-    case TokenKind::EqualsEquals:
-    case TokenKind::BangEquals:
-      return 3;
-    case TokenKind::AndAnd:
-    case TokenKind::OrOr:
-    case TokenKind::XorXor:
-      return 2;
-    case TokenKind::Equals:
-    case TokenKind::PlusEquals:
-    case TokenKind::MinusEquals:
-    case TokenKind::StarEquals:
-    case TokenKind::SlashEquals:
-      return 1;
-    default: 
-      return -1;
+  case TokenKind::Star:
+  case TokenKind::Slash:
+    return 6;
+  case TokenKind::Plus:
+  case TokenKind::Minus:
+    return 5;
+  case TokenKind::Less:
+  case TokenKind::Greater:
+  case TokenKind::LessEquals:
+  case TokenKind::GreaterEquals:
+    return 4;
+  case TokenKind::EqualsEquals:
+  case TokenKind::BangEquals:
+    return 3;
+  case TokenKind::AndAnd:
+  case TokenKind::OrOr:
+  case TokenKind::XorXor:
+    return 2;
+  case TokenKind::Equals:
+  case TokenKind::PlusEquals:
+  case TokenKind::MinusEquals:
+  case TokenKind::StarEquals:
+  case TokenKind::SlashEquals:
+    return 1;
+  default: 
+    return -1;
   }
-
-  return -1;
 }
 
 UnaryExpr::UnaryOp Parser::getUnaryOp() const {
   switch (tok.kind) {
-    case TokenKind::Minus: 
-      return UnaryExpr::UnaryOp::Negative;
-    case TokenKind::Bang: 
-      return UnaryExpr::UnaryOp::Not;
-    case TokenKind::Ampersand:
-      return UnaryExpr::UnaryOp::Ref;
-    case TokenKind::Hash:
-      return UnaryExpr::UnaryOp::DeRef;
-    default: 
-      return UnaryExpr::UnaryOp::Unknown;
+  case TokenKind::Minus: 
+    return UnaryExpr::UnaryOp::Negative;
+  case TokenKind::Bang: 
+    return UnaryExpr::UnaryOp::Not;
+  case TokenKind::Ampersand:
+    return UnaryExpr::UnaryOp::Ref;
+  case TokenKind::Hash:
+    return UnaryExpr::UnaryOp::DeRef;
+  default: 
+    return UnaryExpr::UnaryOp::Unknown;
   }
 }
 
 BinaryExpr::BinaryOp Parser::getBinaryOp() const {
   switch (tok.kind) {
-    case TokenKind::Equals: 
-      return BinaryExpr::BinaryOp::Assign;
-    case TokenKind::PlusEquals:
-      return BinaryExpr::BinaryOp::AddAssign;
-    case TokenKind::MinusEquals:
-      return BinaryExpr::BinaryOp::SubAssign;
-    case TokenKind::StarEquals:
-      return BinaryExpr::BinaryOp::MultAssign;
-    case TokenKind::SlashEquals:
-      return BinaryExpr::BinaryOp::DivAssign;
-    case TokenKind::EqualsEquals:
-      return BinaryExpr::BinaryOp::Equals;
-    case TokenKind::BangEquals:
-      return BinaryExpr::BinaryOp::NotEquals;
-    case TokenKind::Less:
-      return BinaryExpr::BinaryOp::LessThan;
-    case TokenKind::Greater:
-      return BinaryExpr::BinaryOp::GreaterThan;
-    case TokenKind::LessEquals:
-      return BinaryExpr::BinaryOp::LessEquals;
-    case TokenKind::GreaterEquals:
-      return BinaryExpr::BinaryOp::GreaterEquals;
-    case TokenKind::AndAnd:
-      return BinaryExpr::BinaryOp::LogicalAnd;
-    case TokenKind::OrOr:
-      return BinaryExpr::BinaryOp::LogicalOr;
-    case TokenKind::XorXor:
-      return BinaryExpr::BinaryOp::LogicalXor;
-    case TokenKind::Plus:
-      return BinaryExpr::BinaryOp::Add;
-    case TokenKind::Minus:
-      return BinaryExpr::BinaryOp::Sub;
-    case TokenKind::Star:
-      return BinaryExpr::BinaryOp::Mult;
-    case TokenKind::Slash:
-      return BinaryExpr::BinaryOp::Div;
-    default:
-      return BinaryExpr::BinaryOp::Unknown;
+  case TokenKind::Equals: 
+    return BinaryExpr::BinaryOp::Assign;
+  case TokenKind::PlusEquals:
+    return BinaryExpr::BinaryOp::AddAssign;
+  case TokenKind::MinusEquals:
+    return BinaryExpr::BinaryOp::SubAssign;
+  case TokenKind::StarEquals:
+    return BinaryExpr::BinaryOp::MultAssign;
+  case TokenKind::SlashEquals:
+    return BinaryExpr::BinaryOp::DivAssign;
+  case TokenKind::EqualsEquals:
+    return BinaryExpr::BinaryOp::Equals;
+  case TokenKind::BangEquals:
+    return BinaryExpr::BinaryOp::NotEquals;
+  case TokenKind::Less:
+    return BinaryExpr::BinaryOp::LessThan;
+  case TokenKind::Greater:
+    return BinaryExpr::BinaryOp::GreaterThan;
+  case TokenKind::LessEquals:
+    return BinaryExpr::BinaryOp::LessEquals;
+  case TokenKind::GreaterEquals:
+    return BinaryExpr::BinaryOp::GreaterEquals;
+  case TokenKind::AndAnd:
+    return BinaryExpr::BinaryOp::LogicalAnd;
+  case TokenKind::OrOr:
+    return BinaryExpr::BinaryOp::LogicalOr;
+  case TokenKind::XorXor:
+    return BinaryExpr::BinaryOp::LogicalXor;
+  case TokenKind::Plus:
+    return BinaryExpr::BinaryOp::Add;
+  case TokenKind::Minus:
+    return BinaryExpr::BinaryOp::Sub;
+  case TokenKind::Star:
+    return BinaryExpr::BinaryOp::Mult;
+  case TokenKind::Slash:
+    return BinaryExpr::BinaryOp::Div;
+  default:
+    return BinaryExpr::BinaryOp::Unknown;
   }
 }
 
@@ -140,7 +138,7 @@ BinaryExpr::BinaryOp Parser::getBinaryOp() const {
 /// parsed here.
 const Type *Parser::ParseType() {
   // Parse ptr reference levels.
-  string typeIdentifier;
+  std::string typeIdentifier;
   while (tok.is(TokenKind::Hash)) {
     typeIdentifier.append("#");
     nextToken(); // Consume the '*' token.
@@ -162,7 +160,7 @@ const Type *Parser::ParseType() {
     fatal("expected constant integer to define array size", lastLoc);
   }
 
-  const string size = tok.value;
+  const std::string size = tok.value;
   nextToken(); // Consume the integer token.
 
   if (!tok.is(TokenKind::CloseBracket)) {

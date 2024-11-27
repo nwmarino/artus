@@ -1,11 +1,19 @@
+//>==- ParseDecl.cpp ------------------------------------------------------==<//
+//
+// The following source implements declaration-based parsing functions of the
+// Parser class.
+//
+//>==----------------------------------------------------------------------==<//
+
 #include <cassert>
 
+#include "../../include/AST/Decl.h"
+#include "../../include/AST/DeclBase.h"
 #include "../../include/Core/Logger.h"
+#include "../../include/Lex/Token.h"
 #include "../../include/Parse/Parser.h"
+#include "../../include/Sema/Scope.h"
 #include "../../include/Sema/Type.h"
-
-using std::string;
-using std::vector;
 
 using namespace artus;
 
@@ -65,8 +73,8 @@ std::unique_ptr<Decl> Parser::ParseImportDeclaration() {
     nextToken(); // Consume the identifier token.
   }
 
-  return std::make_unique<ImportDecl>(base, createSpan(importToken.loc),
-      isLocal);
+  return std::make_unique<ImportDecl>(base, isLocal, 
+      createSpan(importToken.loc));
 }
 
 /// Parse a function declaration.
@@ -105,31 +113,30 @@ std::unique_ptr<Decl> Parser::ParseFunctionDeclaration() {
     return nullptr;
   }
 
-  const string functionName = tok.value;
+  const std::string functionName = tok.value;
   nextToken(); // Consume the identifier token.
 
   // Unrecoverable error if the next token is not a '(' symbol. (Unsupported)
-  if (!tok.is(TokenKind::OpenParen)) {
+  if (!tok.is(TokenKind::OpenParen))
     fatal("expected '(' symbol after function identifier", lastLoc);
-  }
 
   // Enter into a new function scope.
   this->inFunction = 1;
   enterScope({ .isFunctionScope = 1 });
 
   // Parse the function parameters.
-  vector<std::unique_ptr<ParamVarDecl>> params = ParseFunctionParams();
+  std::vector<std::unique_ptr<ParamVarDecl>> params = ParseFunctionParams();
 
   // Unrecoverable error if the next token is not a '->' symbol.
-  if (!tok.is(TokenKind::Arrow)) {
+  if (!tok.is(TokenKind::Arrow))
     fatal("expected '->' symbol after function parameters", lastLoc);
-  }
+
   nextToken(); // Consume the '->' token.
 
   const Type *returnType = ParseType();
 
   // Create the function type.
-  vector<const Type *> paramTypes;
+  std::vector<const Type *> paramTypes = {};
   for (const auto &param : params)
     paramTypes.push_back(param->getType());
 
@@ -139,10 +146,9 @@ std::unique_ptr<Decl> Parser::ParseFunctionDeclaration() {
   // Parse the function body.
   std::unique_ptr<Stmt> body = ParseStatement();
 
-  /// UNRECOVERABLE: No function body.
-  if (!body) {
+  // No function body.
+  if (!body)
     fatal("expected statement after function declaration", lastLoc);
-  }
 
   // Exit from the function scope.
   Scope *scope = this->scope;
@@ -151,8 +157,8 @@ std::unique_ptr<Decl> Parser::ParseFunctionDeclaration() {
   exitScope();
 
   std::unique_ptr<FunctionDecl> fnDecl = std::make_unique<FunctionDecl>(
-      functionName, FT, std::move(params), std::move(body), 
-      scope, createSpan(fnToken.loc, lastLoc), isPriv);
+      functionName, FT, scope, std::move(params), std::move(body), isPriv,
+      createSpan(fnToken.loc, lastLoc));
 
   // Add the function declaration to parent scope.
   this->scope->addDecl(fnDecl.get());
@@ -167,7 +173,7 @@ std::vector<std::unique_ptr<ParamVarDecl>> Parser::ParseFunctionParams() {
   nextToken(); // Consume the '(' token.
 
   // Parse the list of parameters.
-  vector<std::unique_ptr<ParamVarDecl>> params;
+  std::vector<std::unique_ptr<ParamVarDecl>> params = {};
   while (!tok.is(TokenKind::CloseParen)) {
     if (!tok.is(TokenKind::Identifier)) {
       trace("expected identifier after '(' symbol", lastLoc);
@@ -218,7 +224,7 @@ std::vector<std::unique_ptr<ParamVarDecl>> Parser::ParseFunctionParams() {
 ///   'mut' <identifier> ':' <type> '=' <expr>
 ///   'fix' <identifier> ':' <type> '=' <expr>
 std::unique_ptr<Decl> Parser::ParseVarDeclaration(bool isMut) {
-  assert ((tok.isKeyword("mut") || tok.isKeyword("fix")) && \
+  assert ((tok.isKeyword("mut") || tok.isKeyword("fix")) &&
       "expected 'mut' or 'fix' keyword");
 
   Token varToken = tok; // Save the 'mut' or 'fix' token.
@@ -229,7 +235,7 @@ std::unique_ptr<Decl> Parser::ParseVarDeclaration(bool isMut) {
     return nullptr;
   }
 
-  const string varName = tok.value;
+  const std::string varName = tok.value;
   nextToken(); // Consume the identifier token.
 
   if (this->makePriv) {
@@ -246,7 +252,7 @@ std::unique_ptr<Decl> Parser::ParseVarDeclaration(bool isMut) {
   const Type *varType = ParseType();
   std::unique_ptr<Expr> initExpr = nullptr;
 
-  /// UNRECOVERABLE: Immutable variables must be initialized.
+  // Immutable variables must be initialized.
   if (tok.is(TokenKind::Equals)) {
     nextToken(); // Eat the '=' token.
 
@@ -277,8 +283,8 @@ std::unique_ptr<Decl> Parser::ParseVarDeclaration(bool isMut) {
   // Instantiate the declaration and add it to the current scope.
   std::unique_ptr<VarDecl> decl = std::make_unique<VarDecl>(varName, varType, 
       std::move(initExpr), isMut, createSpan(varToken.loc));  
-  scope->addDecl(decl.get());
 
+  scope->addDecl(decl.get());
   return decl;
 }
 
@@ -290,31 +296,36 @@ std::vector<std::unique_ptr<FieldDecl>> Parser::ParseFieldDeclarations() {
   nextToken(); // Consume the '{' token.
 
   // Parse the list of field declarations.
-  vector<std::unique_ptr<FieldDecl>> fields;
+  std::vector<std::unique_ptr<FieldDecl>> fields;
   while (!tok.is(TokenKind::CloseBrace)) {
+    bool isPrivate = false;
+    if (tok.isKeyword("priv")) {
+      isPrivate = true;
+      nextToken(); // Consume the 'priv' keyword.
+    }
+
     bool isMutable = false;
     if (tok.isKeyword("mut")) {
       isMutable = true;
       nextToken(); // Consume the 'mut' keyword.
     }
 
-    if (!tok.is(TokenKind::Identifier)) {
+    if (!tok.is(TokenKind::Identifier))
       fatal("expected field identifier", lastLoc);
-    }
 
-    const string fieldName = tok.value;
+    const std::string fieldName = tok.value;
     nextToken(); // Consume the identifier token.
 
-    if (!tok.is(TokenKind::Colon)) {
+    if (!tok.is(TokenKind::Colon))
       fatal("expected ':' symbol after field identifier", lastLoc);
-    }
 
     nextToken(); // Consume the ':' token.
     const Type *fieldType = ParseType();
 
     // Create the field declaration and add it to the current scope.
     std::unique_ptr<FieldDecl> field = std::make_unique<FieldDecl>(
-        fieldName, fieldType, isMutable, createSpan(tok.loc));
+        fieldName, fieldType, isMutable, isPrivate, createSpan(tok.loc));
+
     scope->addDecl(field.get());
     fields.push_back(std::move(field));
 
@@ -348,7 +359,7 @@ std::unique_ptr<Decl> Parser::ParseStructDeclaration() {
     return nullptr;
   }
 
-  const string structName = tok.value;
+  const std::string structName = tok.value;
   nextToken(); // Consume the identifier token.
 
   bool isPrivate = false;
@@ -366,17 +377,16 @@ std::unique_ptr<Decl> Parser::ParseStructDeclaration() {
   enterScope({ .isStructScope = 1 });
 
   // Parse the struct fields.
-  vector<std::unique_ptr<FieldDecl>> fields = ParseFieldDeclarations();
+  std::vector<std::unique_ptr<FieldDecl>> fields = ParseFieldDeclarations();
 
   // Exit from the struct scope.
   Scope *scope = this->scope;
   exitScope();
 
   // Get the type for each field in the struct.
-  vector<const Type *> fieldTypes;
-  for (std::unique_ptr<FieldDecl> const &field : fields) {
+  std::vector<const Type *> fieldTypes = {};
+  for (std::unique_ptr<FieldDecl> const &field : fields)
     fieldTypes.push_back(field->getType());
-  }
 
   // Create a type for this struct definition.
   const StructType *ST = new StructType(structName, fieldTypes);
@@ -384,10 +394,9 @@ std::unique_ptr<Decl> Parser::ParseStructDeclaration() {
 
   // Create the struct declaration.
   std::unique_ptr<StructDecl> structDecl = std::make_unique<StructDecl>(
-      structName, std::move(fields), scope, ST, createSpan(structToken.loc),
-      isPrivate);
+      structName, ST, scope, std::move(fields), isPrivate,
+      createSpan(structToken.loc));
 
-  // Add the struct declaration to parent scope.
   this->scope->addDecl(structDecl.get());
   return structDecl;
 }
@@ -412,7 +421,7 @@ std::unique_ptr<Decl> Parser::ParseEnumDeclaration() {
     return nullptr;
   }
 
-  const string enumName = tok.value;
+  const std::string enumName = tok.value;
   nextToken(); // Consume the identifier token.
 
   if (!tok.is(TokenKind::OpenBrace)) {
@@ -422,7 +431,7 @@ std::unique_ptr<Decl> Parser::ParseEnumDeclaration() {
   nextToken(); // Consume the '{' token.
 
   // Parse the list of enum variants.
-  vector<string> variants;
+  std::vector<std::string> variants;
   while (!tok.is(TokenKind::CloseBrace)) {
     if (!tok.is(TokenKind::Identifier)) {
       trace("expected identifier after '{' symbol", lastLoc);
@@ -444,9 +453,8 @@ std::unique_ptr<Decl> Parser::ParseEnumDeclaration() {
       continue;
     }
 
-    if (!tok.is(TokenKind::CloseBrace)) {
+    if (!tok.is(TokenKind::CloseBrace))
       fatal("expected ',' or '}' symbol after enum variant", lastLoc);
-    }
   }
 
   nextToken(); // Consume the '}' token.
@@ -463,38 +471,36 @@ std::unique_ptr<Decl> Parser::ParseEnumDeclaration() {
 
   // Create the enum declaration.
   std::unique_ptr<EnumDecl> enumDecl = std::make_unique<EnumDecl>(enumName,
-      std::move(variants), ET, createSpan(enumToken.loc), isPrivate);
+      std::move(variants), ET, isPrivate, createSpan(enumToken.loc));
 
-  // Add the enum declaration to parent scope.
   this->scope->addDecl(enumDecl.get());
   return enumDecl;
 }
 
 /// Parse a package unit.
 std::unique_ptr<PackageUnitDecl> Parser::ParsePackageUnit() {
-  const string id = ctx->getActiveFileName();
+  const std::string id = ctx->getActiveFileName();
 
   // Declare a new scope for the package.
   enterScope({ .isUnitScope = 1 });
   nextToken(); // Begin lexing tokens of the package unit.
 
-  /// TODO: Parse the imports of the package.
-  vector<string> imports = {};
+  // Create a new DeclContext for the package.
+  DeclContext *DC = new DeclContext();
 
   // Parse the declarations of the package.
-  vector<std::unique_ptr<Decl>> decls;
+  std::vector<std::unique_ptr<ImportDecl>> imports;
   while (!tok.is(TokenKind::Eof)) {
     std::unique_ptr<Decl> decl = ParseDeclaration();
     if (!decl)
       fatal("expected declaration", lastLoc);
 
-    decls.push_back(std::move(decl));
+    DC->addDeclaration(std::move(decl));
   }
 
   // Exit the scope of the package.
   Scope *scope = this->scope;
   exitScope();
 
-  return std::make_unique<PackageUnitDecl>(id, std::move(imports), 
-      scope, std::move(decls));
+  return std::make_unique<PackageUnitDecl>(id, DC, scope, std::move(imports));
 }

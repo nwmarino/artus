@@ -1,3 +1,12 @@
+//>==- Sema.cpp -----------------------------------------------------------==<//
+//
+// The following source implements a semantic analysis pass on a parsed AST.
+// The purpose of the pass is to validate the AST with the rules of the
+// language. Moreover, the pass analyzes basic control flow, ensuring that
+// conditions may evaluate to a boolean type, or that assignments are valid.
+//
+//>==---------------------------------------------------------------------==<//
+
 #include <cassert>
 #include <memory>
 #include <string>
@@ -11,34 +20,28 @@ using namespace artus;
 
 Sema::Sema(Context *ctx) : ctx(ctx), parentFunctionType(nullptr), 
     lvalueType(nullptr) {
-  for (PackageUnitDecl *pkg : ctx->cache->getUnits()) {
-    pkg->pass(this); // Sema on each package unit.
-  }
+  for (PackageUnitDecl *pkg : ctx->cache->getUnits())
+    pkg->pass(this);
 }
 
 const VarDecl *Sema::resolveReference(Expr *lvalue) {
   if (DeclRefExpr *ref = dynamic_cast<DeclRefExpr *>(lvalue)) {
     Decl *decl = localScope->getDecl(ref->ident);
-    if (!decl) {
-      fatal("unresolved reference: " + ref->ident,
-          { ref->span.file, ref->span.line, ref->span.col });
-    }
+    if (!decl)
+      fatal("unresolved reference: " + ref->ident, ref->getStartLoc());
 
     lastReference = ref->ident;
     return dynamic_cast<const VarDecl *>(decl);
   }
 
-  if (ArraySubscriptExpr *arr = dynamic_cast<ArraySubscriptExpr *>(lvalue)) {
+  if (ArraySubscriptExpr *arr = dynamic_cast<ArraySubscriptExpr *>(lvalue))
     return resolveReference(arr->base.get());
-  }
 
-  if (UnaryExpr *unary = dynamic_cast<UnaryExpr *>(lvalue)) {
+  if (UnaryExpr *unary = dynamic_cast<UnaryExpr *>(lvalue))
     return resolveReference(unary->base.get());
-  }
 
-  if (MemberExpr *member = dynamic_cast<MemberExpr *>(lvalue)) {
+  if (MemberExpr *member = dynamic_cast<MemberExpr *>(lvalue))
     return resolveReference(member->base.get());
-  }
 
   return nullptr;
 }
@@ -49,9 +52,8 @@ const VarDecl *Sema::resolveReference(Expr *lvalue) {
 void Sema::visit(PackageUnitDecl *decl) {
   globalScope = decl->scope;
 
-  for (const std::unique_ptr<Decl> &d : decl->decls) {
-    d->pass(this); // Sema on each declaration.
-  }
+  for (Decl *d : decl->decls)
+    d->pass(this);
 
   globalScope = nullptr;
 }
@@ -68,10 +70,8 @@ void Sema::visit(FunctionDecl *decl) {
 
   // Resolve the function type for later type checking.
   parentFunctionType = dynamic_cast<const FunctionType *>(decl->T);
-  if (!parentFunctionType) {
-    fatal("expected function type: " + decl->name, 
-    { decl->span.file, decl->span.line, decl->span.col });
-  }
+  if (!parentFunctionType)
+    fatal("expected function type: " + decl->name, decl->getStartLoc());
 
   // Sema on each parameter.
   for (const std::unique_ptr<ParamVarDecl> &param : decl->params) {
@@ -85,13 +85,11 @@ void Sema::visit(FunctionDecl *decl) {
     ctx->foundEntry++;
 
     // Check if main function returns 'i64'.
-    if (parentFunctionType->getReturnType()->compare(ctx->getType("i64")) != 1) {
-      fatal("main function must return 'i64'", { decl->span.file, 
-          decl->span.line, decl->span.col });
-    }
+    if (parentFunctionType->getReturnType()->compare(ctx->getType("i64")) != 1)
+      fatal("main function must return 'i64'", decl->getStartLoc());
   }
 
-  decl->body->pass(this); // Sema on the body of the function.
+  decl->body->pass(this);
 
   inFunction = 0;
   localScope = localScope->getParent();
@@ -106,10 +104,8 @@ void Sema::visit(ParamVarDecl *decl) {
   const Type *targetType = parentFunctionType->getParamType(paramIndex);
 
   // Check that the type of the parameter is valid.
-  if (decl->T->compare(targetType) == 0) {
-    fatal("parameter type mismatch: " + decl->name, 
-    { decl->span.file, decl->span.line, decl->span.col });
-  }
+  if (decl->T->compare(targetType) == 0)
+    fatal("parameter type mismatch: " + decl->name, decl->getStartLoc());
 }
 
 /// Semantic Analysis over a VarDecl.
@@ -124,7 +120,7 @@ void Sema::visit(VarDecl *decl) {
   if (decl->T->compare(decl->init->T) == 0) {
     fatal("variable type mismatch: " + decl->name + ": expected " + 
         decl->T->toString() + ", got " + decl->init->T->toString(),
-    { decl->span.file, decl->span.line, decl->span.col });
+        decl->getStartLoc());
   }
 
   lvalueType = nullptr;
@@ -140,18 +136,15 @@ void Sema::visit(StructDecl *decl) {
   localScope = decl->scope;
 
   // Check that there are no duplicate fields.
-  for (size_t i = 0; i < decl->fields.size(); i++) {
-    for (size_t j = i + 1; j < decl->fields.size(); j++) {
-      if (decl->fields[i]->name == decl->fields[j]->name) {
-        fatal("duplicate field: " + decl->fields[i]->name, 
-        { decl->span.file, decl->span.line, decl->span.col });
-      }
+  for (std::size_t i = 0; i < decl->fields.size(); i++) {
+    for (std::size_t j = i + 1; j < decl->fields.size(); j++) {
+      if (decl->fields[i]->name == decl->fields[j]->name)
+        fatal("duplicate field: " + decl->fields[i]->name, decl->getStartLoc());
     }
   }
 
-  for (const std::unique_ptr<FieldDecl> &field : decl->fields) {
-    field->pass(this); // Sema on each field.
-  }
+  for (const std::unique_ptr<FieldDecl> &field : decl->fields)
+    field->pass(this);
 
   localScope = localScope->getParent();
 }
@@ -177,9 +170,8 @@ void Sema::visit(ExplicitCastExpr *expr) {
 
   // Type check the cast.
   if (!expr->expr->T->canCastTo(expr->T)) {
-    fatal("explicit cast type mismatch: " + expr->expr->T->toString() + 
-          " to " + expr->ident, { expr->span.file, 
-        expr->span.line, expr->span.col });
+    fatal("explicit cast type mismatch: " + expr->expr->T->toString() +
+        " to " + expr->ident, expr->getStartLoc());
   }
 }
 
@@ -200,33 +192,30 @@ void Sema::visit(CallExpr *expr) {
     fatal(expr->ident + " argument count mismatch: " + 
         std::to_string(callee->getNumParams()) + " required, but " + 
         std::to_string(expr->getNumArgs()) + " were provided", 
-        { expr->span.file, expr->span.line, expr->span.col });
+        expr->getStartLoc());
   }
 
   // Check that the types of the arguments match the types of the parameters.
-  for (size_t i = 0; i < expr->getNumArgs(); i++) {
+  for (std::size_t i = 0; i < expr->getNumArgs(); i++) {
     expr->getArg(i)->pass(this); // Sema on each argument.
 
     // Type check the function call argument with the parameter.
     if (expr->getArg(i)->T->compare(callee->params[i]->T) == 0) {
       fatal("argument type mismatch: " + expr->ident + ": expected " 
-          + callee->params[i]->T->toString() + ", got " 
-          + expr->getArg(i)->T->toString(), { expr->span.file, 
-          expr->span.line, expr->span.col });
+          + callee->params[i]->T->toString() + ", got "
+          + expr->getArg(i)->T->toString(), expr->getStartLoc());
     }
 
     // Check that an immutable reference is not passed to a mutable parameter.
     if (DeclRefExpr *ref = dynamic_cast<DeclRefExpr *>(expr->getArg(i))) {
       const VarDecl *decl = resolveReference(ref);
-      if (!decl) {
-        fatal("unresolved reference: " + ref->ident, { expr->span.file,
-            expr->span.line, expr->span.col });
-      }
+      if (!decl)
+        fatal("unresolved reference: " + ref->ident, expr->getStartLoc());
 
+      /// TODO: Change to pointer only.
       if (callee->params[i]->isMutable() && !decl->isMutable()) {
         fatal("attempted to pass immutable reference to mutable parameter: "
-            + lastReference, { expr->span.file, expr->span.line,
-            expr->span.col });
+            + lastReference, expr->getStartLoc());
       }
     }
   }
@@ -244,10 +233,8 @@ void Sema::visit(CallExpr *expr) {
 void Sema::visit(UnaryExpr *expr) {
   expr->base->pass(this); // Sema on the expression.
 
-  if (expr->T->compare(expr->base->T) == 0) {
-    fatal("unary expression type mismatch", { expr->span.file, 
-        expr->span.line, expr->span.col });
-  }
+  if (expr->T->compare(expr->base->T) == 0)
+    fatal("unary expression type mismatch", expr->getStartLoc());
 
   // Propagate the type of the expression.
   expr->T = expr->base->T;
@@ -255,10 +242,8 @@ void Sema::visit(UnaryExpr *expr) {
   // Check that reference operators '&' are only done to lvalues.
   if (expr->op == UnaryExpr::UnaryOp::Ref) {
     // Check that the operand is an lvalue.
-    if (!dynamic_cast<const DeclRefExpr *>(expr->base.get())) {
-      fatal("expected lvalue for unary operator: &", { expr->span.file, 
-          expr->span.line, expr->span.col });
-    }
+    if (!dynamic_cast<const DeclRefExpr *>(expr->base.get()))
+      fatal("expected lvalue for unary operator: &", expr->getStartLoc());
 
     // Nest the base type in a pointer type.
     expr->T = ctx->getType('#' + expr->T->toString());
@@ -267,10 +252,8 @@ void Sema::visit(UnaryExpr *expr) {
   // Check that dereference operators '#' are only done to pointers.
   if (expr->op == UnaryExpr::UnaryOp::DeRef) {
     // Check that the operand is a pointer type.
-    if (!expr->base->T->isPointerType()) {
-      fatal("expected pointer type for unary operator: #", { expr->span.file, 
-          expr->span.line, expr->span.col });
-    }
+    if (!expr->base->T->isPointerType())
+      fatal("expected pointer for unary operator '#'", expr->getStartLoc());
 
     // Dereference the base type.
     const PointerType *ptrType = dynamic_cast<const PointerType *>(expr->base->T);
@@ -291,8 +274,7 @@ void Sema::visit(BinaryExpr *expr) {
   int typeComp = expr->lhs->T->compare(expr->rhs->T);
   if (typeComp == 0) {
     fatal("binary expression type mismatch: " + expr->lhs->T->toString()
-        + " and " + expr->rhs->T->toString(), { expr->span.file, 
-        expr->span.line, expr->span.col });
+        + " and " + expr->rhs->T->toString(), expr->getStartLoc());
   } else if (typeComp == 2) {
     if (expr->rhs->T->canCastTo(expr->lhs->T)) {
       // Inject implicit cast on rhs to lhs type.
@@ -300,21 +282,32 @@ void Sema::visit(BinaryExpr *expr) {
           expr->lhs->T->toString(), expr->lhs->T, expr->rhs->span);
     } else {
       fatal("unable to type cast " + expr->rhs->T->toString() + " to "
-          + expr->lhs->T->toString(), { expr->span.file, 
-          expr->span.line, expr->span.col });
+          + expr->lhs->T->toString(), expr->getStartLoc());
     }
   }
 
   // If the operands are strings, check that the operator is a concatenation.
   if (expr->lhs->T->isStringType() && expr->rhs->T->isStringType()) {
-    if (expr->op != BinaryExpr::BinaryOp::Add) {
-      fatal("expected string concatenation operator: +", { expr->span.file,
-          expr->span.line, expr->span.col });
-    }
+    if (expr->op != BinaryExpr::BinaryOp::Add)
+      fatal("expected string concatenation '+'", expr->getStartLoc());
   }
 
   // Propagate the type of the expression as a boolean if it is a comparison.
   if (expr->isComparison()) {
+    // Check that operands to a logical comparison are of boolean type.
+    if (expr->isLogicComparison()) {
+      if (!expr->lhs->T->isBooleanType() || !expr->rhs->T->isBooleanType())
+        fatal("expected boolean type for logical comparison", 
+            expr->getStartLoc());
+    }
+
+    // Check that operands to a numerical comparison are of numerical type.
+    if (expr->isNumericalComparison()) {
+      if (!expr->lhs->T->isNumericalType() || !expr->rhs->T->isNumericalType())
+        fatal("expected numeric type for numerical comparison", 
+            expr->getStartLoc());
+    }
+
     expr->T = ctx->getType("bool");
     return;
   }
@@ -323,45 +316,39 @@ void Sema::visit(BinaryExpr *expr) {
   expr->T = expr->lhs->T;
 
   // Check that assignment is only done to mutable lvalues.
-  if (!expr->isAssignment()) {
+  if (!expr->isAssignment())
     return;
-  }
 
-  if (!expr->lhs->isLValue()) {
-    fatal("expected lvalue to variable assignment", { expr->span.file,
-        expr->span.line, expr->span.col });
-  }
+  if (!expr->lhs->isLValue())
+    fatal("expected lvalue to variable assignment", expr->getStartLoc());
 
   // Check that immutable references are not reassigned.
   const VarDecl *decl = resolveReference(expr->lhs.get());
-  if (!decl) {
-    fatal("unresolved reference: " + lastReference, { expr->span.file,
-        expr->span.line, expr->span.col });
-  }
+  if (!decl)
+    fatal("unresolved reference: " + lastReference, expr->getStartLoc());
 
   if (!decl->isMutable()) {
     fatal("attempted to reassign immutable variable: " + lastReference,
-        { expr->span.file, expr->span.line, expr->span.col });
+        expr->getStartLoc());
   }
 
   // Check that `str` types are not mutated.
   if (ArraySubscriptExpr *arr = dynamic_cast<ArraySubscriptExpr *>(expr->lhs.get())) {
-    if (arr->base->T->isStringType()) {
-      fatal("attempted to mutate string type", { expr->span.file,
-          expr->span.line, expr->span.col });
-    }
+    if (arr->base->T->isStringType())
+      fatal("attempted to mutate string type", expr->getStartLoc());
   }
 
   // Check that immutable fields are not mutated.
   if (MemberExpr *member = dynamic_cast<MemberExpr *>(expr->lhs.get())) {
     // By reference analysis, the member expression base is of a struct type.
-    StructDecl *SD = dynamic_cast<StructDecl *>(globalScope->getDecl(
-        member->base->T->toString()));
+    StructDecl *SD = dynamic_cast<StructDecl *>(
+      globalScope->getDecl(member->base->T->toString())
+    );
     assert(SD && "invalid struct declaration");
 
     if (!SD->isFieldMutable(member->getMember())) {
       fatal("attempted to reassign immutable field: " + member->getMember(),
-          { expr->span.file, expr->span.line, expr->span.col });
+          expr->getStartLoc());
     }
   }
 }
@@ -382,13 +369,12 @@ void Sema::visit(ArrayExpr *expr) {
   assert(AT && "expected array type");
 
   for (const std::unique_ptr<Expr> &e : expr->exprs) {
-    e->pass(this); // Sema on the expression.
+    e->pass(this);
 
     // Check that each element type matches the array type.
     if (e->T->compare(AT->getElementType()) == 0) {
       fatal("array expression type mismatch: " + e->T->toString() + " for " 
-          + AT->getElementType()->toString(), { expr->span.file, 
-          expr->span.line, expr->span.col });
+          + AT->getElementType()->toString(), expr->getStartLoc());
     }
 
     // Propagate the type of the expression.
@@ -405,16 +391,12 @@ void Sema::visit(ArraySubscriptExpr *expr) {
   expr->index->pass(this); // Sema on the index expression.
 
   // Enforce only certain types of array-like accessing.
-  if (!expr->base->T->canSubscript()) {
-    fatal("expected array type for array access", { expr->span.file,
-        expr->span.line, expr->span.col });
-  }
+  if (!expr->base->T->canSubscript())
+    fatal("expected array type for array access", expr->getStartLoc());
 
   // Enforce only integer literals for indexing.
-  if (!expr->index->T->isIntegerType()) {
-    fatal("expected integer index type", { expr->span.file, 
-        expr->span.line, expr->span.col });
-  }
+  if (!expr->index->T->isIntegerType())
+    fatal("expected integer index type", expr->getStartLoc());
 }
 
 /// Semantic Analysis over a StructInitExpr.
@@ -423,25 +405,24 @@ void Sema::visit(ArraySubscriptExpr *expr) {
 void Sema::visit(StructInitExpr *expr) {
   // By reference analysis, this expression refers to a struct already.
   const StructDecl *SD = dynamic_cast<const StructDecl *>(
-      localScope->getDecl(expr->name));
+      localScope->getDecl(expr->name)
+  );
   assert(SD && "expected struct declaration");
 
   // Type check each field.
   for (const auto &field : expr->fields) {
-    field.second->pass(this); // Sema on the field expression.
+    field.second->pass(this);
 
     // Check that the field exists in the struct.
     const Type *FT = SD->getFieldType(field.first);
-    if (!FT) {
-      fatal("undeclared field: " + field.first, { expr->span.file,
-          expr->span.line, expr->span.col });
-    }
+    if (!FT)
+      fatal("undeclared field: " + field.first, expr->getStartLoc());
 
     // Type check the field.
     if (field.second->T->compare(FT) == 0) {
       fatal("field type mismatch: " + field.first + ": expected " + 
-          FT->toString() + ", got " + field.second->T->toString(), 
-          { expr->span.file, expr->span.line, expr->span.col });
+          FT->toString() + ", got " + field.second->T->toString(),
+          expr->getStartLoc());
     }
   }
 }
@@ -449,28 +430,23 @@ void Sema::visit(StructInitExpr *expr) {
 /// Semantic Analysis over a MemberExpr.
 ///
 /// MemberExprs are valid if and only if the base is valid.
-void Sema::visit(MemberExpr *expr) {
-  expr->base->pass(this);
-}
+void Sema::visit(MemberExpr *expr) 
+{ expr->base->pass(this); }
 
 /// Semantic Analysis over a BreakStmt.
 ///
 /// BreakStmts are valid if and only if they are within a loop.
 void Sema::visit(BreakStmt *stmt) {
-  if (!this->inLoop) {
-    fatal("break statement outside of loop", 
-        { stmt->span.file, stmt->span.line, stmt->span.col });
-  }
+  if (!this->inLoop)
+    fatal("break statement outside of loop", stmt->getStartLoc());
 }
 
 /// Semantic Analysis over a ContinueStmt.
 ///
 /// ContinueStmts are valid if and only if they are within a loop.
 void Sema::visit(ContinueStmt *stmt) {
-  if (!this->inLoop) {
-    fatal("continue statement outside of loop", 
-        { stmt->span.file, stmt->span.line, stmt->span.col });
-  }
+  if (!this->inLoop)
+    fatal("continue statement outside of loop", stmt->getStartLoc());
 }
 
 /// Semantic Analysis over a CompoundStmt.
@@ -478,9 +454,9 @@ void Sema::visit(ContinueStmt *stmt) {
 /// CompoundStmts are valid if and only if all of their statements are valid.
 void Sema::visit(CompoundStmt *stmt) {
   localScope = stmt->scope;
-  for (const std::unique_ptr<Stmt> &s : stmt->stmts) {
-    s->pass(this); // Sema on each statement.
-  }
+
+  for (const std::unique_ptr<Stmt> &s : stmt->stmts)
+    s->pass(this);
 
   localScope = localScope->getParent();
 }
@@ -488,37 +464,30 @@ void Sema::visit(CompoundStmt *stmt) {
 /// Semantic Analysis over a DeclStmt.
 ///
 /// DeclStmts are valid if and only if the declaration is valid.
-void Sema::visit(DeclStmt *stmt) {
-  stmt->decl->pass(this); // Sema on the declaration.
-}
+void Sema::visit(DeclStmt *stmt) 
+{ stmt->decl->pass(this); }
 
 /// Semantic Analysis over an IfStmt.
 ///
 /// IfStmts are valid if and only if the condition is of a boolean type.
 void Sema::visit(IfStmt *stmt) {
-  stmt->cond->pass(this); // Sema on the condition.
+  stmt->cond->pass(this);
 
-  if (!stmt->cond->T->isBooleanType()) {
-    fatal("expected boolean type", { stmt->span.file, 
-        stmt->span.line, stmt->span.col });
-  }
+  if (!stmt->cond->T->isBooleanType())
+    fatal("expected boolean type", stmt->getStartLoc());
 
-  stmt->thenStmt->pass(this); // Sema on the then statement.
-  if (stmt->hasElse()) {
-    stmt->elseStmt->pass(this); // Sema on the else statement.
-  }
+  stmt->thenStmt->pass(this);
+  if (stmt->hasElse())
+    stmt->elseStmt->pass(this);
 }
 
 /// Semantic Analysis over a WhileStmt.
 ///
 /// WhileStmts are valid if and only if the condition is of a boolean type.
 void Sema::visit(WhileStmt *stmt) {
-  stmt->cond->pass(this); // Sema on the condition.
-
-  if (!stmt->cond->T->isBooleanType()) {
-    fatal("expected boolean type", { stmt->span.file, 
-        stmt->span.line, stmt->span.col });
-  }
+  stmt->cond->pass(this);
+  if (!stmt->cond->T->isBooleanType())
+    fatal("expected boolean type", stmt->getStartLoc());
 
   // Setup new loop flags.
   unsigned prevInLoop = this->inLoop;
@@ -526,7 +495,7 @@ void Sema::visit(WhileStmt *stmt) {
   this->inLoop = 1;
   this->loopKind = LoopKind::WHILE;
 
-  stmt->body->pass(this); // Sema on the body of the loop.
+  stmt->body->pass(this);
   this->inLoop = prevInLoop;
   this->loopKind = prevLoopKind;
 }
@@ -535,12 +504,10 @@ void Sema::visit(WhileStmt *stmt) {
 ///
 /// UntilStmts are valid if and only if the condition is of a boolean type.
 void Sema::visit(UntilStmt *stmt) {
-  stmt->cond->pass(this); // Sema on the condition.
+  stmt->cond->pass(this);
 
-  if (!stmt->cond->T->isBooleanType()) {
-    fatal("expected boolean type", { stmt->span.file, 
-        stmt->span.line, stmt->span.col });
-  }
+  if (!stmt->cond->T->isBooleanType())
+    fatal("expected boolean type", stmt->getStartLoc());
 
   // Setup new loop flags.
   unsigned prevInLoop = this->inLoop;
@@ -548,7 +515,7 @@ void Sema::visit(UntilStmt *stmt) {
   this->inLoop = 1;
   this->loopKind = LoopKind::UNTIL;
 
-  stmt->body->pass(this); // Sema on the body of the loop.
+  stmt->body->pass(this);
   this->inLoop = prevInLoop;
   this->loopKind = prevLoopKind;
 }
@@ -557,32 +524,30 @@ void Sema::visit(UntilStmt *stmt) {
 ///
 /// CaseStmts are valid if and only if the condition and body are valid.
 void Sema::visit(CaseStmt *stmt) {
-  stmt->expr->pass(this); // Sema on the condition.
-  stmt->body->pass(this); // Sema on the body of the case.
+  stmt->expr->pass(this);
+  stmt->body->pass(this);
 }
 
 /// Semantic Analysis over a DefaultStmt.
 ///
 /// DefaultStmts are valid if and only if the body is valid.
-void Sema::visit(DefaultStmt *stmt) {
-  stmt->body->pass(this); // Sema on the body of the default case.
-}
+void Sema::visit(DefaultStmt *stmt) 
+{ stmt->body->pass(this); }
 
 /// Semantic Analysis over a MatchStmt.
 ///
 /// MatchStmts are valid if and only if the condition and cases are valid.
 /// It also checks if the expression is boolean, both cases exist.
 void Sema::visit(MatchStmt *stmt) {
-  stmt->expr->pass(this); // Sema on the condition.
+  stmt->expr->pass(this);
 
-  for (std::unique_ptr<MatchCase> &s : stmt->cases) {
-    s->pass(this); // Sema on each case.
-  }
+  for (std::unique_ptr<MatchCase> &s : stmt->cases)
+    s->pass(this);
 
   // Check that boolean matches have a true and false case.
   if (stmt->expr->T->isBooleanType() && stmt->cases.size() != 2) {
     fatal("boolean match statement must have exactly two cases", 
-        { stmt->span.file, stmt->span.line, stmt->span.col });
+        stmt->getStartLoc());
   }
 }
 
@@ -591,35 +556,33 @@ void Sema::visit(MatchStmt *stmt) {
 /// RetStmts are valid if and only if the statement matches the function's
 /// return type.
 void Sema::visit(RetStmt *stmt) {
-  /// UNRECOVERABLE: Return statement outside of function.
-  if (!inFunction) {
+  // Return statement outside of function.
+  if (!inFunction)
     fatal("return statement outside of function");
-  }
 
-  stmt->expr->pass(this); // Sema on the expression.
+  stmt->expr->pass(this);
 
   // Check that the return type matches the function's return type.
   switch (stmt->T->compare(parentFunctionType->getReturnType())) {
-    case 2: // Attempt to implicitly cast the return type.
-      if (stmt->expr->T->canCastTo(parentFunctionType->getReturnType())) {
-        stmt->expr = std::make_unique<ImplicitCastExpr>(
-            std::move(stmt->expr),
-            parentFunctionType->getReturnType()->toString(), 
-            parentFunctionType->getReturnType(),
-            stmt->span
-        );
-        return;
-      } else {
-        warn("cannot cast downwards: " + stmt->expr->T->toString() + 
-            " to " + parentFunctionType->getReturnType()->toString(), 
-            { stmt->span.file, stmt->span.line, stmt->span.col });
-        break;
-      }
-    case 1: return;
-    default: break;
-  }
-
-  /// UNRECOVERABLE: If the type was not exact or could not be casted.
-  fatal("return type mismatch", { stmt->span.file, 
-          stmt->span.line, stmt->span.col });
+  case 2: // Attempt to implicitly cast the return type.
+    if (stmt->expr->T->canCastTo(parentFunctionType->getReturnType())) {
+      stmt->expr = std::make_unique<ImplicitCastExpr>(
+          std::move(stmt->expr),
+          parentFunctionType->getReturnType()->toString(), 
+          parentFunctionType->getReturnType(),
+          stmt->span
+      );
+      return;
+    } else {
+      warn("cannot cast downwards: " + stmt->expr->T->toString() + 
+          " to " + parentFunctionType->getReturnType()->toString(), 
+          stmt->getStartLoc());
+      break;
+    }
+  case 1: // Types match, no problems.
+    return;
+  } 
+  
+  // Fallthrough (no match and cannot cast).
+  fatal("return type mismatch", stmt->getStartLoc());
 }
