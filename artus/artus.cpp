@@ -43,7 +43,16 @@ SourceFile static parseInputFile(const std::string &path) {
   if (!file.is_open())
     fatal("file not found: " + path);
 
-  const std::string name = path.substr(path.find_last_of('/') + 1);
+  // Get the source file name.
+  std::string name = path.substr(path.find_last_of('/') + 1);
+
+  // Cut off the extension.
+  name = name.substr(0, name.find_last_of('.'));
+  
+  // Check if the file is within a 'std' directory.
+  if (path.find("std/" + name) != std::string::npos)
+    name = "std_" + name;
+
   char *SrcBuffer;
   int len;
   

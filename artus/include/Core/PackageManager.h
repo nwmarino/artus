@@ -22,6 +22,7 @@ class PackageManager final {
 /// A map of owned packages by their identifier.
 std::unordered_map<std::string, std::unique_ptr<PackageUnitDecl>> packages;
 
+/// Check the package with identifier \p id for cyclical imports.
 bool hasCycleUtil(const std::string &id, 
                   std::unordered_set<std::string> &visited,
                   std::unordered_set<std::string> &stack) const {
@@ -31,9 +32,8 @@ bool hasCycleUtil(const std::string &id,
 
     auto it = packages.find(id);
     if (it != packages.end()) {
-      const auto &imports = it->second->getImports();
-      for (ImportDecl *import : imports) {
-        const std::string &importId = import->getPath().curr;
+      for (ImportDecl *import : it->second->getImports()) {
+        const std::string &importId = import->getPath().toString();
         if (!visited.count(importId) && hasCycleUtil(importId, visited, stack))
           return true;
         else if (stack.count(importId))
@@ -43,18 +43,6 @@ bool hasCycleUtil(const std::string &id,
   }
 
   stack.erase(id);
-  return false;
-}
-
-bool hasCyclicalImports() const {
-  std::unordered_set<std::string> visited;
-  std::unordered_set<std::string> stack;
-
-  for (const auto &pkg : packages) {
-    if (hasCycleUtil(pkg.second->getIdentifier(), visited, stack))
-      return true;
-  }
-
   return false;
 }
 
@@ -68,6 +56,27 @@ public:
   PackageUnitDecl *getPackage(const std::string &id) const {
     auto it = packages.find(id);
     return it != packages.end() ? it->second.get() : nullptr;
+  }
+
+  std::vector<PackageUnitDecl *> getPackages() const {
+    std::vector<PackageUnitDecl *> pkgs = {};
+    for (const auto &pkg : packages)
+      pkgs.push_back(pkg.second.get());
+
+    return pkgs;
+  }
+
+  const std::string checkCyclicalImports() const {
+    std::unordered_set<std::string> visited;
+    std::unordered_set<std::string> stack;
+
+    for (const auto &pkgKV : packages) {
+      // For each package, check if it has a cycle.
+      if (hasCycleUtil(pkgKV.second->getIdentifier(), visited, stack))
+        return pkgKV.second->getIdentifier();
+    }
+
+    return "";
   }
 
 };

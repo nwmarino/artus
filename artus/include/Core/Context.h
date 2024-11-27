@@ -14,6 +14,7 @@
 #include <vector>
 
 #include "Input.h"
+#include "PackageManager.h"
 #include "UnitCache.h"
 #include "../AST/DeclBase.h"
 #include "../Lex/Lexer.h"
@@ -43,7 +44,7 @@ class Context final {
   std::unique_ptr<Lexer> lexer;
 
   /// A list of parsed package units.
-  std::unique_ptr<UnitCache> cache;
+  std::unique_ptr<PackageManager> PM;
 
   /// A map of all types in the current context.
   mutable std::map<std::string, const Type *> types;

@@ -62,6 +62,9 @@ class Codegen final : public ASTVisitor {
   llvm::AllocaInst *createAlloca(llvm::Function *fn, const std::string &var, 
                                  llvm::Type *T);
 
+  /// Creates the mappings for top-level declarations in a package unit.
+  void createMappings(PackageUnitDecl *pkg);
+
 public:
   Codegen(Context *ctx, llvm::TargetMachine *TM);
   ~Codegen();

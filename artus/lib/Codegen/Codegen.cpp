@@ -25,8 +25,7 @@ Codegen::Codegen(Context *ctx, llvm::TargetMachine *TM) {
   // Instantiate the LLVM context, IR builder, and module.
   context = std::make_unique<llvm::LLVMContext>();
   builder = std::make_unique<llvm::IRBuilder<>>(*context);
-  module = std::make_unique<llvm::Module>(
-      ctx->cache->getActive()->getIdentifier(), *context);
+  module = std::make_unique<llvm::Module>("module", *context);
 
   this->functions = {};
   this->allocas = {};
@@ -42,7 +41,11 @@ Codegen::Codegen(Context *ctx, llvm::TargetMachine *TM) {
   module->setTargetTriple(TM->getTargetTriple().getTriple());
   module->setDataLayout(TM->createDataLayout());
 
-  ctx->cache->getActive()->pass(this);
+  for (PackageUnitDecl *pkg : ctx->PM->getPackages())
+    createMappings(pkg);
+
+  for (PackageUnitDecl *pkg : ctx->PM->getPackages())
+    pkg->pass(this);
 }
 
 Codegen::~Codegen() {
@@ -58,31 +61,40 @@ llvm::AllocaInst *Codegen::createAlloca(llvm::Function *fn,
   return tmp.CreateAlloca(T, nullptr, var);
 }
 
-void Codegen::visit(PackageUnitDecl *decl) {
-  // Create the function table for this package.
-  for (Decl *d : decl->scope->getDecls()) {
-    if (FunctionDecl *functionDecl = dynamic_cast<FunctionDecl *>(d)) {
+void Codegen::createMappings(PackageUnitDecl *pkg) {
+  for (Decl *decl : pkg->decls) {
+    if (FunctionDecl *FD = dynamic_cast<FunctionDecl *>(decl)) {
       // Create the function type and function in the module.
-      llvm::Type *FT = functionDecl->T->toLLVMType(*context);
+      llvm::Type *FT = FD->T->toLLVMType(*context);
       llvm::Function *FN = llvm::Function::Create(
-          llvm::cast<llvm::FunctionType>(FT), 
-          llvm::Function::ExternalLinkage, 
-          functionDecl->getName(), 
-          module.get()
+        llvm::cast<llvm::FunctionType>(FT), 
+        llvm::Function::ExternalLinkage, 
+        FD->getName(), 
+        module.get()
       );
 
       // Set the function arguments names.
       unsigned idx = 0;
       for (llvm::Argument &arg : FN->args())
-        arg.setName(functionDecl->getParam(idx++)->getName());
+        arg.setName(FD->getParam(idx++)->getName());
 
       // Add the function to the function table.
-      functions[functionDecl->getName()] = FN;
+      functions[FD->getName()] = FN;
+    } else if (StructDecl *SD = dynamic_cast<StructDecl *>(decl)) {
+      // Create the struct type and struct in the module.
+      llvm::Type *T = SD->getType()->toLLVMType(*context);
+      llvm::StructType *ST = llvm::cast<llvm::StructType>(T);
+      if (!ST)
+        fatal("invalid struct type: " + SD->getName(), decl->getStartLoc());
+
+      // Add the struct to the struct table.
+      this->structs[SD->getName()] = ST;
     }
   }
+}
 
-  // Iterate over all declarations and generate code for them.
-  for (Decl *d : decl->scope->getDecls())
+void Codegen::visit(PackageUnitDecl *decl) {
+  for (Decl *d : decl->decls)
     d->pass(this);
 }
 
@@ -142,17 +154,7 @@ void Codegen::visit(VarDecl *decl) {
 
 void Codegen::visit(EnumDecl *decl) { /* no work to be done */ }
 void Codegen::visit(FieldDecl *decl) { /* no work to be done */ }
-
-void Codegen::visit(StructDecl *decl) {
-  // Create the struct type and struct in the module.
-  llvm::Type *T = decl->getType()->toLLVMType(*context);
-  llvm::StructType *ST = llvm::cast<llvm::StructType>(T);
-  if (!ST)
-    fatal("invalid struct type: " + decl->name, decl->getStartLoc());
-
-  // Add the struct to the struct table.
-  this->structs[decl->name] = ST;
-}
+void Codegen::visit(StructDecl *decl) { /* no work to be done */ }
 
 void Codegen::genericCastCGN(CastExpr *expr) {
   expr->expr->pass(this);

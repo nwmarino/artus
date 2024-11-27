@@ -15,6 +15,7 @@
 #include <vector>
 
 #include "../AST/Decl.h"
+#include "../Core/Logger.h"
 #include "../Lex/Token.h"
 
 namespace artus {
@@ -59,7 +60,13 @@ public:
   const std::vector<NamedDecl *> &getDecls() const { return decls; }
 
   /// Adds the declaration \p decl to this scope.
-  void addDecl(NamedDecl *decl) { decls.push_back(decl); }
+  void addDecl(NamedDecl *decl) {
+    // Check if a declaration with the same name already exists in the scope.
+    if (NamedDecl *d = getDecl(decl->getName()))
+      fatal("redeclaration of: " + decl->getName(), decl->getStartLoc());
+
+    decls.push_back(decl); 
+  }
 
   /// Deletes the declaration \p decl from this scope, if it exists.
   void deleteDecl(NamedDecl *decl) {

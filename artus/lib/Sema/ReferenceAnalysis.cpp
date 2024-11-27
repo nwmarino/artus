@@ -25,7 +25,7 @@ using namespace artus;
 
 ReferenceAnalysis::ReferenceAnalysis(Context *ctx)
     : ctx(ctx), globalScope(nullptr), localScope(nullptr) {
-  for (PackageUnitDecl *pkg : ctx->cache->getUnits())
+  for (PackageUnitDecl *pkg : ctx->PM->getPackages())
     pkg->pass(this);
 }
 
@@ -46,10 +46,34 @@ const Decl *ReferenceAnalysis::resolveReference(const std::string &ident,
   fatal("unresolved reference: " + ident, loc);
 }
 
+void ReferenceAnalysis::importDependencies(PackageUnitDecl *pkg) {
+  for (ImportDecl *imp : pkg->getImports()) {
+    PackageUnitDecl *depPkg = ctx->resolvePackage(imp->getPath().toString(), imp->getStartLoc());
+
+    importDependencies(depPkg);
+
+    for (Decl *decl : depPkg->decls) {
+      NamedDecl *ND = dynamic_cast<NamedDecl *>(decl);
+
+      if (ND && ND->canImport() && !ND->isPrivate())
+        pkg->scope->addDecl(ND);
+    }
+  }
+}
+
 void ReferenceAnalysis::visit(PackageUnitDecl *decl) {
   this->globalScope = decl->scope;
 
-  std::vector<ImportDecl *> imports = {};
+  // Check for duplicate imports.
+  for (std::size_t i = 0; i < decl->imports.size(); i++) {
+    for (std::size_t j = i + 1; j < decl->imports.size(); j++) {
+      if (decl->imports[i]->getPath().curr == decl->imports[j]->getPath().curr)
+        fatal("duplicate import: " + decl->imports[i]->getPath().curr,
+            decl->imports.at(j)->getStartLoc());
+    }
+  }
+
+  importDependencies(decl);
 
   // Reconstruct function types.
   for (Decl *d : decl->decls) {
@@ -76,36 +100,6 @@ void ReferenceAnalysis::visit(PackageUnitDecl *decl) {
         delete FD->T;
         FD->T = new FunctionType(RT, PT);
       }
-    }
-  }
-
-  // Check for duplicate imports.
-  for (std::size_t i = 0; i < imports.size(); i++) {
-    for (std::size_t j = i + 1; j < imports.size(); j++) {
-      if (imports[i]->getPath().curr == imports[j]->getPath().curr) {
-        fatal("duplicate import: " + imports[i]->getPath().curr,
-            imports.at(j)->getStartLoc());
-      }
-    }
-  }
-
-  // Resolve each import.
-  for (const std::unique_ptr<ImportDecl> &ID: decl->imports) {
-    // Skip library imports for now.
-    if (!ID->isLocal())
-      return;
-
-    // Resolve the package by the source path identifier.
-    PackageUnitDecl *pkg = ctx->resolvePackage(ID->getPath().curr,
-        ID->getStartLoc());
-
-    // Import all public, named declarations from the resolved package.
-    for (Decl *toImp : pkg->decls) {
-      NamedDecl *ND = dynamic_cast<NamedDecl *>(toImp);
-
-      // If the declaration is importable and public, import it.
-      if (ND->canImport() && !ND->isPrivate())
-        decl->addDecl(ND);
     }
   }
 

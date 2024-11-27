@@ -20,7 +20,7 @@ using namespace artus;
 
 Sema::Sema(Context *ctx) : ctx(ctx), parentFunctionType(nullptr), 
     lvalueType(nullptr) {
-  for (PackageUnitDecl *pkg : ctx->cache->getUnits())
+  for (PackageUnitDecl *pkg : ctx->PM->getPackages())
     pkg->pass(this);
 }
 

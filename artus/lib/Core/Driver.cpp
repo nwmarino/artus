@@ -8,6 +8,7 @@
 #include <cassert>
 #include <string>
 #include <system_error>
+#include <unordered_map>
 
 #include "llvm/Analysis/AliasAnalysis.h"
 #include "llvm/CodeGen/CommandFlags.h"
@@ -27,9 +28,11 @@
 #include "llvm/Target/TargetOptions.h"
 #include "llvm/TargetParser/Host.h"
 
+#include "../../include/AST/DeclBase.h"
 #include "../../include/Codegen/Codegen.h"
 #include "../../include/Core/Driver.h"
 #include "../../include/Core/Logger.h"
+#include "../../include/Core/PackageManager.h"
 #include "../../include/Parse/Parser.h"
 #include "../../include/Sema/ReferenceAnalysis.h"
 #include "../../include/Sema/Sema.h"
@@ -143,6 +146,10 @@ Driver::Driver(const InputContainer &input) : flags(input.flags) {
   Parser parser = Parser(this->ctx);
   parser.buildAST();
 
+  std::string pkgCycle = ctx->PM->checkCyclicalImports();
+  if (!pkgCycle.empty())
+    fatal("cyclical imports detected in package: " + pkgCycle);
+
   // Run reference analysis on each AST.
   ReferenceAnalysis refAnalysis = ReferenceAnalysis(this->ctx);
 
@@ -162,21 +169,14 @@ Driver::Driver(const InputContainer &input) : flags(input.flags) {
   if (flags.skipCGN)
     return;
   
-  // Run code generation passes and emit output.
-  while (ctx->cache->nextUnit()) {
-    Codegen codegen = Codegen(ctx, this->TM);
-    if (!emitFile(codegen.getModule())) {
-      fatal("Failed to emit file: " + \
-          ctx->cache->getActive()->getIdentifier());
-    }
-  }
+  Codegen cgn = Codegen(ctx, this->TM);
+  if (!emitFile(cgn.getModule()))
+    fatal("failed to emit file output");
 
   // Link the object files.
   if (flags.compile) {
     // Setup a shellout command to link the object files.
-    std::string cmd = "clang -o " + input.target + ' ';
-    for (const std::string &obj : objectFiles)
-      cmd += obj + ' ';
+    std::string cmd = "clang -o " + input.target + " module.o";
 
     // Run the command.
     if (system(cmd.c_str()))
@@ -184,7 +184,7 @@ Driver::Driver(const InputContainer &input) : flags(input.flags) {
     
     // Remove the object files.
     for (const std::string &obj : objectFiles) {
-      if (remove(obj.c_str()))
+      if (remove("module.o"))
         warn("failed to remove object file: " + obj);
     }
   }

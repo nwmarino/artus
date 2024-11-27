@@ -23,13 +23,15 @@
 
 #include <utility>
 
+#include "../../include/AST/DeclBase.h"
 #include "../../include/Core/Context.h"
 #include "../../include/Core/Logger.h"
+#include "../../include/Core/PackageManager.h"
 
 using namespace artus;
 
 Context::Context(std::vector<SourceFile> files) : files(std::move(files)) {
-  this->cache = std::make_unique<UnitCache>();
+  this->PM = std::make_unique<PackageManager>();
   this->resetTypes();
 }
 
@@ -97,17 +99,13 @@ bool Context::nextFile() {
 }
 
 void Context::addPackage(std::unique_ptr<PackageUnitDecl> pkg) 
-{ cache->addUnit(std::move(pkg)); }
+{ PM->addPackage(std::move(pkg)); }
 
 PackageUnitDecl *Context::resolvePackage(const std::string &id, 
                                          const SourceLocation &loc) const {
-  std::vector<PackageUnitDecl *> units = cache->getUnits();
-  for (PackageUnitDecl *unit : units) {
-    // Remove extension of the package.
-    const std::string cutId = id.substr(0, id.find_last_of('.'));
-    if (cutId == id)
-      return unit;
-  }
+  const std::string cutId = id.substr(0, id.find_last_of('.'));
+  if (PackageUnitDecl *PUD = PM->getPackage(cutId))
+    return PUD;
 
   fatal("unresolved package: " + id, loc);
 }
@@ -148,6 +146,6 @@ const Type *Context::getType(const std::string &name) {
 
 void Context::printAST() {
   ASTPrinter printer;
-  for (PackageUnitDecl *pkg : cache->getUnits())
+  for (PackageUnitDecl *pkg : PM->getPackages())
     printer.visit(pkg);
 }

@@ -25,7 +25,7 @@ struct SourcePath {
   SourcePath(const std::string &curr, SourcePath *next) 
       : curr(curr), next(next) {}
 
-  ~SourcePath() { delete this->next; }
+  ~SourcePath() = default;
 
   SourcePath &operator=(const SourcePath &other) {
     curr = other.curr;
@@ -42,6 +42,14 @@ struct SourcePath {
       return next->compare(*other.next);
 
     return !next && !other.next;
+  }
+
+  /// \returns A string representation of the source path, divided by `_`.
+  const std::string toString() const {
+    if (!this->next)
+      return this->curr;
+
+    return this->next->toString() + '_' + this->curr;
   }
 };
 

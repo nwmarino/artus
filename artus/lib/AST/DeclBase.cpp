@@ -80,8 +80,8 @@ ImportDecl::ImportDecl(const SourcePath &path, bool local, const Span &span)
 PackageUnitDecl::PackageUnitDecl(const std::string &id, DeclContext *ctx, 
                                  Scope *scope, 
                                  std::vector<std::unique_ptr<ImportDecl>> imports)
-    : DeclBase(), identifier(id), path(SourcePath(this->identifier, nullptr)),
-    ctx(ctx), scope(scope) {
+    : DeclBase(), identifier(id), ctx(ctx), scope(scope), 
+    imports(std::move(imports)) {
   for (Decl *decl : this->ctx->getDeclarations())
     this->decls.push_back(decl);
 }

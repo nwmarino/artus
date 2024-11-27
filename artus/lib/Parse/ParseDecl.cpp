@@ -489,13 +489,20 @@ std::unique_ptr<PackageUnitDecl> Parser::ParsePackageUnit() {
   DeclContext *DC = new DeclContext();
 
   // Parse the declarations of the package.
-  std::vector<std::unique_ptr<ImportDecl>> imports;
+  std::vector<std::unique_ptr<ImportDecl>> imports = {};
   while (!tok.is(TokenKind::Eof)) {
     std::unique_ptr<Decl> decl = ParseDeclaration();
     if (!decl)
       fatal("expected declaration", lastLoc);
 
-    DC->addDeclaration(std::move(decl));
+    if (ImportDecl *ID = dynamic_cast<ImportDecl *>(decl.get())) {
+      std::unique_ptr<ImportDecl> imp = std::unique_ptr<ImportDecl>{
+        dynamic_cast<ImportDecl *>(decl.release())
+      };
+
+      imports.push_back(std::move(imp));
+    } else
+      DC->addDeclaration(std::move(decl));
   }
 
   // Exit the scope of the package.

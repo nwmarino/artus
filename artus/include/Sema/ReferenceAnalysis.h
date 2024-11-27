@@ -34,6 +34,9 @@ class ReferenceAnalysis final : public ASTVisitor {
   /// \returns The type most similar to \p ident.
   const Type *resolveType(const std::string &ident, const SourceLocation &loc) const;
 
+  /// Recursively imports dependencies for a package unit declaration.
+  void importDependencies(PackageUnitDecl *pkg);
+
 public:
   ReferenceAnalysis(Context *ctx);
   ~ReferenceAnalysis() = default;
