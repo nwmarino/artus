@@ -142,6 +142,8 @@ Driver::Driver(const InputContainer &input) : flags(input.flags) {
   if (!this->TM)
     fatal("could not resolve a target machine");
 
+  const std::string instance = llvm::sys::getHostCPUName().str();
+
   // Parse the source program.
   Parser parser = Parser(this->ctx);
   parser.buildAST();
@@ -169,14 +171,14 @@ Driver::Driver(const InputContainer &input) : flags(input.flags) {
   if (flags.skipCGN)
     return;
   
-  Codegen cgn = Codegen(ctx, this->TM);
+  Codegen cgn = Codegen(ctx, instance, this->TM);
   if (!emitFile(cgn.getModule()))
     fatal("failed to emit file output");
 
   // Link the object files.
   if (flags.compile) {
     // Setup a shellout command to link the object files.
-    std::string cmd = "clang -o " + input.target + " module.o";
+    std::string cmd = "clang -o " + input.target + ' ' + instance + ".o";
 
     // Run the command.
     if (system(cmd.c_str()))
@@ -184,7 +186,7 @@ Driver::Driver(const InputContainer &input) : flags(input.flags) {
     
     // Remove the object files.
     for (const std::string &obj : objectFiles) {
-      if (remove("module.o"))
+      if (remove((instance + ".o").c_str()))
         warn("failed to remove object file: " + obj);
     }
   }

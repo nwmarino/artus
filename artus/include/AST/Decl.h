@@ -176,6 +176,9 @@ public:
   /// \returns The body of this function declaration, if it exists.
   const Stmt *getBody() const { return body.get(); }
 
+  /// \returns `true` if this function is an entry point.
+  bool isMain() const;
+
   /// \returns `true` if this function has a body, and `false` otherwise.
   bool hasBody() const;
 

@@ -82,8 +82,10 @@ PackageUnitDecl::PackageUnitDecl(const std::string &id, DeclContext *ctx,
                                  std::vector<std::unique_ptr<ImportDecl>> imports)
     : DeclBase(), identifier(id), ctx(ctx), scope(scope), 
     imports(std::move(imports)) {
-  for (Decl *decl : this->ctx->getDeclarations())
+  for (Decl *decl : this->ctx->getDeclarations()) {
     this->decls.push_back(decl);
+    decl->setParent(this);
+  }
 }
 
 PackageUnitDecl::~PackageUnitDecl() {

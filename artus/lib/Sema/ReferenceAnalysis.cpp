@@ -61,7 +61,14 @@ void ReferenceAnalysis::importDependencies(PackageUnitDecl *pkg) {
   }
 }
 
+void ReferenceAnalysis::checkParent(const Decl *decl, 
+                                    const SourceLocation &loc) const {
+  if (decl->getParent() != currPkg)
+    fatal("unset declaration parent", loc);
+}
+
 void ReferenceAnalysis::visit(PackageUnitDecl *decl) {
+  this->currPkg = decl;
   this->globalScope = decl->scope;
 
   // Check for duplicate imports.
@@ -107,24 +114,28 @@ void ReferenceAnalysis::visit(PackageUnitDecl *decl) {
   for (Decl *d : decl->decls)
     d->pass(this);
 
-  // Nullify the package scope.
+  this->currPkg = nullptr;
   this->globalScope = nullptr;
 }
 
 void ReferenceAnalysis::visit(ImportDecl *decl) { /* no work to be done */ }
 
 void ReferenceAnalysis::visit(FunctionDecl *decl) {
+  checkParent(decl, decl->getStartLoc());
   assert(decl->T->isAbsolute() && 
       ("invalid function type: " + decl->getName()).c_str());
+
   this->localScope = decl->scope;
-  for (const std::unique_ptr<ParamVarDecl> &p : decl->params) {
+  for (const std::unique_ptr<ParamVarDecl> &p : decl->params)
     p->pass(this);
-  }
+
   decl->body->pass(this);
   this->localScope = localScope->getParent();
 }
 
 void ReferenceAnalysis::visit(ParamVarDecl *decl) {
+  checkParent(decl, decl->getStartLoc());
+
   // Resolve the absolute type.
   if (!decl->T->isAbsolute())
     decl->T = resolveType(decl->T->toString(), decl->getStartLoc());
@@ -134,6 +145,8 @@ void ReferenceAnalysis::visit(ParamVarDecl *decl) {
 }
 
 void ReferenceAnalysis::visit(VarDecl *decl) {
+  checkParent(decl, decl->getStartLoc());
+
   // Resolve the absolute type.
   if (!decl->T->isAbsolute())
     decl->T = resolveType(decl->T->toString(), decl->getStartLoc());
@@ -146,9 +159,12 @@ void ReferenceAnalysis::visit(VarDecl *decl) {
       ("invalid variable type: " + decl->T->toString()).c_str());
 }
 
-void ReferenceAnalysis::visit(EnumDecl *decl) { /* no work to be done */ }
+void ReferenceAnalysis::visit(EnumDecl *decl) 
+{ checkParent(decl, decl->getStartLoc()); }
 
 void ReferenceAnalysis::visit(FieldDecl *decl) {
+  checkParent(decl, decl->getStartLoc());
+
   // Resolve the absolute type.
   if (!decl->T->isAbsolute())
     decl->T = resolveType(decl->T->toString(), decl->getStartLoc());
@@ -158,6 +174,7 @@ void ReferenceAnalysis::visit(FieldDecl *decl) {
 }
 
 void ReferenceAnalysis::visit(StructDecl *decl) {
+  checkParent(decl, decl->getStartLoc());
   this->localScope = decl->scope;
 
   for (const std::unique_ptr<FieldDecl> &f : decl->fields)
@@ -210,9 +227,10 @@ void ReferenceAnalysis::visit(DeclRefExpr *expr) {
   } else {
     const Decl *decl = resolveReference(expr->ident, expr->getStartLoc());
 
-    if (const VarDecl *VarDecl = dynamic_cast<const class VarDecl *>(decl))
+    if (const VarDecl *VarDecl = dynamic_cast<const class VarDecl *>(decl)) {
       expr->T = VarDecl->T; // Propogate the type.
-    else
+      expr->decl = VarDecl;
+    } else
       fatal("expected variable: " + expr->ident, expr->getStartLoc());
   }
 
@@ -230,6 +248,7 @@ void ReferenceAnalysis::visit(CallExpr *expr) {
     assert(FT && ("expected function type: " + expr->ident).c_str());
 
     expr->T = FT->getReturnType();
+    expr->decl = callee;
   } else
     fatal("expected function: " + expr->ident, expr->getStartLoc());
 

@@ -36,11 +36,14 @@ public:
 /// Base class for all inline, explicit declaration nodes.
 class Decl : public DeclBase {
 protected:
+  /// The package this declaration is contained in.
+  PackageUnitDecl *parent;
+
   /// Positional information about this node.
   const Span span;
 
 public:
-  Decl(const Span &span) : span(span) {}
+  Decl(const Span &span) : span(span), parent(nullptr) {}
   ~Decl() = default;
 
   /// \returns The source code span of this declaration.
@@ -51,6 +54,12 @@ public:
 
   /// \returns The SourceLocation of the end of this declaration's span.
   const SourceLocation getEndLoc() const { return getSpan().end; }
+
+  /// \returns The parent package of this declaration.
+  PackageUnitDecl *getParent() const { return parent; }
+
+  /// Sets this declaration's parent to \p p.
+  void setParent(PackageUnitDecl *p) { parent = p; }
 };
 
 /// Defines a context for owned declarations.

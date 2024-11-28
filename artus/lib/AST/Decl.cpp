@@ -105,6 +105,8 @@ FunctionDecl::~FunctionDecl() {
 const ParamVarDecl *FunctionDecl::getParam(size_t i) const 
 { return i < params.size() ? params[i].get() : nullptr; }
 
+bool FunctionDecl::isMain() const { return name == "main"; }
+
 bool FunctionDecl::hasBody() const { return body != nullptr; }
 
 //>==- EnumDecl Implementation --------------------------------------------==<//

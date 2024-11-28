@@ -23,6 +23,9 @@ class ReferenceAnalysis final : public ASTVisitor {
   Scope *globalScope;
   Scope *localScope;
 
+  /// Non-owning reference to the current package unit.
+  PackageUnitDecl *currPkg;
+
   /// Resolves a declaration most similar to \p ident. If the declaration is
   /// unresolved, then a fatal error is raised at the location \p loc.
   /// \returns The declaration most similar to \p ident.
@@ -36,6 +39,9 @@ class ReferenceAnalysis final : public ASTVisitor {
 
   /// Recursively imports dependencies for a package unit declaration.
   void importDependencies(PackageUnitDecl *pkg);
+
+  /// Checks the parent of a declaration to be the current package.
+  void checkParent(const Decl *dec, const SourceLocation &loc) const;
 
 public:
   ReferenceAnalysis(Context *ctx);
