@@ -192,5 +192,5 @@ Driver::Driver(const InputContainer &input) : flags(input.flags) {
 
 Driver::~Driver() {
   delete this->ctx;
-  delete this->TM;
+  //delete this->TM;
 }
