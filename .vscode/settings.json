@@ -83,8 +83,9 @@
     },
     "cmake.debugConfig": {
         "args": [
-            "../sample/fib.s",
-            "../sample/foo.s",
+            "../sample/fib.artus",
+            "../sample/foo.art",
+            "../sample/far.art",
         ]
     }
 }

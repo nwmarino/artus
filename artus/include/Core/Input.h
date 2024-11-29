@@ -15,8 +15,11 @@ namespace artus {
 
 /// Represents an input source file to the compiler.
 struct SourceFile {
-  /// Name of the source file.
+  /// Name of the source file, without the extension.
   std::string name;
+
+  /// The full name of the source file.
+  std::string filename;
 
   /// Full path to the source file.
   std::string path;

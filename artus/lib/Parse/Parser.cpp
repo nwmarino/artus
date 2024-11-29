@@ -19,7 +19,7 @@ bool Parser::nextToken() {
   }
 
   if (ctx->lexer->Lex(tok)) {
-    lastLoc = { .file=ctx->getActiveFileName(), .line=tok.loc.line,
+    lastLoc = { .file=ctx->getFullActiveFileName(), .line=tok.loc.line,
                 .col=tok.loc.col };
     return false;
   }

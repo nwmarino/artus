@@ -77,10 +77,10 @@ ImportDecl::ImportDecl(const SourcePath &path, bool local, const Span &span)
 //
 //>==----------------------------------------------------------------------==<//
 
-PackageUnitDecl::PackageUnitDecl(const std::string &id, DeclContext *ctx, 
-                                 Scope *scope, 
+PackageUnitDecl::PackageUnitDecl(const std::string &id, const std::string &filename, 
+                                 DeclContext *ctx, Scope *scope, 
                                  std::vector<std::unique_ptr<ImportDecl>> imports)
-    : DeclBase(), identifier(id), ctx(ctx), scope(scope), 
+    : DeclBase(), identifier(id), filename(filename), ctx(ctx), scope(scope), 
     imports(std::move(imports)) {
   for (Decl *decl : this->ctx->getDeclarations()) {
     decl->setParent(this);

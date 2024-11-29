@@ -44,10 +44,14 @@ SourceFile static parseInputFile(const std::string &path) {
     fatal("file not found: " + path);
 
   // Get the source file name.
-  std::string name = path.substr(path.find_last_of('/') + 1);
+  const std::string filename = path.substr(path.find_last_of('/') + 1);
+
+  // Check that the extension is .art or .artus.
+  if (!filename.ends_with(".art") && !filename.ends_with(".artus"))
+    fatal("bad file extension: " + filename + ", expected .art or .artus");
 
   // Cut off the extension.
-  name = name.substr(0, name.find_last_of('.'));
+  std::string name = filename.substr(0, filename.find_last_of('.'));
   
   // Check if the file is within a 'std' directory.
   if (path.find("std/" + name) != std::string::npos)
@@ -67,7 +71,7 @@ SourceFile static parseInputFile(const std::string &path) {
   SrcBuffer[len] = '\0';
 
   file.close();
-  return { .name=name, .path=path, .BufferStart=SrcBuffer };
+  return { .name=name, .filename=filename, .path=path, .BufferStart=SrcBuffer };
 }
 
 /// \returns A wrapper object containing flags and input source files parsed

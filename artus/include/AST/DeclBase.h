@@ -128,6 +128,9 @@ class PackageUnitDecl final : public DeclBase {
   /// The unique name or identifier associated with this package.
   const std::string identifier;
 
+  /// The full name of the package, as per its file.
+  const std::string filename;
+
   /// Declaration context for this package.
   DeclContext *ctx;
 
@@ -141,7 +144,8 @@ class PackageUnitDecl final : public DeclBase {
   Scope *scope;
 
 public:
-  PackageUnitDecl(const std::string &id, DeclContext *ctx, Scope *scope,
+  PackageUnitDecl(const std::string &id, const std::string &filename, 
+                  DeclContext *ctx, Scope *scope,
                   std::vector<std::unique_ptr<ImportDecl>> imports);
   ~PackageUnitDecl();
 
@@ -149,6 +153,9 @@ public:
 
   /// \returns The identifier of this package unit.
   const std::string &getIdentifier() const { return identifier; }
+
+  /// \returns The filename of this package unit.
+  const std::string &getFilename() const { return filename; }
 
   /// \returns The non-owning imports of this package.
   std::vector<ImportDecl *> getImports() const; 

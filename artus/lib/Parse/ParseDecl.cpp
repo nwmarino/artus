@@ -482,6 +482,7 @@ std::unique_ptr<Decl> Parser::ParseEnumDeclaration() {
 /// Parse a package unit.
 std::unique_ptr<PackageUnitDecl> Parser::ParsePackageUnit() {
   const std::string id = ctx->getActiveFileName();
+  const std::string filename = ctx->getFullActiveFileName();
 
   // Declare a new scope for the package.
   enterScope({ .isUnitScope = 1 });
@@ -511,5 +512,6 @@ std::unique_ptr<PackageUnitDecl> Parser::ParsePackageUnit() {
   Scope *scope = this->scope;
   exitScope();
 
-  return std::make_unique<PackageUnitDecl>(id, DC, scope, std::move(imports));
+  return std::make_unique<PackageUnitDecl>(id, filename, DC, scope, 
+      std::move(imports));
 }

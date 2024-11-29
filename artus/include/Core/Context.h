@@ -15,7 +15,6 @@
 
 #include "Input.h"
 #include "PackageManager.h"
-#include "UnitCache.h"
 #include "../AST/DeclBase.h"
 #include "../Lex/Lexer.h"
 #include "../Sema/Type.h"
@@ -87,10 +86,16 @@ public:
   const Type *getType(const std::string &name);
 
   /// \returns The name of the currently active source file.
-  inline const std::string &getActiveFileName() const { return active.name; }
+  inline const std::string &getActiveFileName() const 
+  { return active.name; }
+
+  /// \returns The full name of the currently active source file.
+  inline const std::string &getFullActiveFileName() const 
+  { return active.filename; }
 
   /// \returns The path of the currently active source file.
-  inline const std::string &getActiveFilePath() const { return active.path; }
+  inline const std::string &getActiveFilePath() const 
+  { return active.path; }
 
   /// Prints the current state of the AST embedded in this context.
   void printAST();

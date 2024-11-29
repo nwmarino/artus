@@ -55,10 +55,7 @@ Context::~Context() {
     delete []file.BufferStart;
 }
 
-void Context::resetTypes() {
-  // Clears all types. Defined types are owned by their declarations.
-  this->tyTable.clear();
-}
+void Context::resetTypes() { this->tyTable.clear(); }
 
 void Context::addDefinedType(const std::string &name, const Type *T,
                              const SourceLocation &loc) {
@@ -77,11 +74,12 @@ bool Context::nextFile() {
   files.pop_back();
 
   // Instantiate a new lexer process and assign the new active file data.
-  lexer = std::make_unique<Lexer>(nextFile.name, 
+  lexer = std::make_unique<Lexer>(nextFile.filename, 
       nextFile.BufferStart);
   eof = 0;
   active.BufferStart = nextFile.BufferStart;
   active.name = nextFile.name;
+  active.filename = nextFile.filename;
   active.path = nextFile.path;
   resetTypes();
   return true;
