@@ -473,6 +473,9 @@ class StructInitExpr final : public Expr {
   /// The list of field initializers.
   std::vector<std::pair<std::string, std::unique_ptr<Expr>>> fields;
 
+  /// A non-owning reference to the struct declaration.
+  const StructDecl *decl;
+
 public:
   StructInitExpr(const std::string &name, const Type *T,
                  std::vector<std::pair<std::string, std::unique_ptr<Expr>>> fields, 
@@ -480,6 +483,9 @@ public:
   ~StructInitExpr() = default;
 
   void pass(ASTVisitor *visitor) override { visitor->visit(this); }
+
+  /// \returns The name of the struct to be instantiated.
+  const std::string &getName() const { return name; }
 
   /// \returns The number of fields in this struct.
   std::size_t getNumFields() const { return fields.size(); }
@@ -492,6 +498,9 @@ public:
 
   /// \returns The fields of this initialization expression.
   std::vector<Expr *> getFieldExprs() const;
+
+  /// Sets the target struct declaration to \p d.
+  void setDecl(const StructDecl *d) { decl = d; }
 };
 
 /// A struct member access expression. For example, `foo.bar`.

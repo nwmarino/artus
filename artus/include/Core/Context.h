@@ -8,7 +8,7 @@
 #ifndef ARTUS_CORE_CONTEXT_H
 #define ARTUS_CORE_CONTEXT_H
 
-#include <map>
+#include <unordered_map>
 #include <memory>
 #include <string>
 #include <vector>
@@ -46,8 +46,11 @@ class Context final {
   /// A list of parsed package units.
   std::unique_ptr<PackageManager> PM;
 
-  /// A map of all types in the current context.
-  mutable std::map<std::string, const Type *> types;
+  /// A map of all built-in, owned types.
+  std::unordered_map<std::string, const Type *> bTyTable;
+
+  /// A map of all defined, non-owning types in the current context.
+  std::map<std::string, const Type *> tyTable;
 
   /// If 1, then the lexer has reached the end of the current source stream.
   unsigned int eof : 1;
@@ -55,11 +58,13 @@ class Context final {
   /// If 1, then AST passes have found a main function.
   unsigned int foundEntry : 1;
 
-  /// Resets the type table for a new package.
+  /// Resets the defined type table for a new package.
   void resetTypes();
 
-  /// Add a new defined type (struct/enum) to the context.
-  void addDefinedType(const std::string &name, const Type *T);
+  /// Add a new defined type (struct/enum) to the context. Raises a fatal error
+  /// at location \p loc if the type is already defined.
+  void addDefinedType(const std::string &name, const Type *T, 
+                      const SourceLocation &loc);
 
 public:
   Context(std::vector<SourceFile> files);

@@ -18,6 +18,7 @@
 namespace artus {
 
 /// Forward declarations.
+class Decl;
 class EnumType;
 
 /// Base class for all Types and their derivatives. Often nested in an 
@@ -544,6 +545,9 @@ protected:
   /// The name of the defined type.
   const std::string name;
 
+  /// Non-owning reference to the defining declaration.
+  const Decl *decl;
+
 public:
   DefinedType(const std::string &name) : name(name) {}
 
@@ -560,6 +564,12 @@ public:
   bool isPointerType() const override { return false; }
 
   bool isArrayType() const override { return false; }
+
+  /// \returns The declaration that defines this type.
+  const Decl *getDecl() const { return decl; }
+
+  /// Sets the declaration that defines this type to \p d.
+  void setDecl(const Decl *d) { decl = d; }
 
   const std::string toString() const override { return name; }
 };

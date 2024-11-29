@@ -37,16 +37,18 @@ Codegen::Codegen(Context *ctx, const std::string &instance,
   this->hostCondBlock = nullptr;
   this->hostMergeBlock = nullptr;
   this->needPtr = false;
+  this->currPkg = nullptr;
 
   // Setup the target triple and data layout for the module.
   module->setTargetTriple(TM->getTargetTriple().getTriple());
   module->setDataLayout(TM->createDataLayout());
 
-  // Create top-level declaration mappings for each package first.
   for (PackageUnitDecl *pkg : ctx->PM->getPackages())
-    createMappings(pkg);
+    createStructMappings(pkg);
 
-  // Generate code for each package.
+  for (PackageUnitDecl *pkg : ctx->PM->getPackages())
+    createFunctionMappings(pkg);
+
   for (PackageUnitDecl *pkg : ctx->PM->getPackages())
     pkg->pass(this);
 }
@@ -64,17 +66,42 @@ llvm::AllocaInst *Codegen::createAlloca(llvm::Function *fn,
   return tmp.CreateAlloca(T, nullptr, var);
 }
 
-void Codegen::createMappings(PackageUnitDecl *pkg) {
+void Codegen::createStructMappings(PackageUnitDecl *pkg) {
+  for (Decl *decl : pkg->decls) {
+    if (StructDecl *SD = dynamic_cast<StructDecl *>(decl)) {
+      // Create the struct type and struct in the module.
+      llvm::Type *T = SD->getType()->toLLVMType(*context);
+      llvm::StructType *ST = llvm::cast<llvm::StructType>(T);
+      if (!ST)
+        fatal("invalid struct type: " + SD->getName(), decl->getStartLoc());
+
+      ST->setName('_' + instance + SD->getParent()->getIdentifier() + '_' 
+          + SD->getName());
+
+      // Add the struct to the struct table.
+      sTable[SD->getParent()->getIdentifier()][SD->getName()] = ST;
+    }
+  }
+}
+
+void Codegen::createFunctionMappings(PackageUnitDecl *pkg) {
   for (Decl *decl : pkg->decls) {
     if (FunctionDecl *FD = dynamic_cast<FunctionDecl *>(decl)) {
       // Create a function identifier dependent on its package.
       const std::string uid = FD->isMain() ? FD->getName() : '_' + instance 
-          + FD->getParent()->getIdentifier() + FD->getName();
+          + FD->getParent()->getIdentifier() + '_' + FD->getName();
 
       // Create the function type and function in the module.
-      llvm::Type *FT = FD->T->toLLVMType(*context);
+      const FunctionType *AFT = dynamic_cast<const FunctionType *>(FD->getType());
+      assert(AFT && "expected function type for function declaration.");
+      llvm::Type *RT = getLLVMType(AFT->getReturnType());
+      std::vector<llvm::Type *> argTys;
+      for (const Type *T : AFT->getParamTypes())
+        argTys.push_back(getLLVMType(T));
+
+      llvm::FunctionType *FT = llvm::FunctionType::get(RT, argTys, false);
       llvm::Function *FN = llvm::Function::Create(
-        llvm::cast<llvm::FunctionType>(FT), 
+        FT, 
         llvm::Function::ExternalLinkage, 
         uid,
         module.get()
@@ -87,22 +114,38 @@ void Codegen::createMappings(PackageUnitDecl *pkg) {
 
       // Add the function to the function table.
       fTable[FD->getParent()->getIdentifier()][FD->getName()] = FN;
-    } else if (StructDecl *SD = dynamic_cast<StructDecl *>(decl)) {
-      // Create the struct type and struct in the module.
-      llvm::Type *T = SD->getType()->toLLVMType(*context);
-      llvm::StructType *ST = llvm::cast<llvm::StructType>(T);
-      if (!ST)
-        fatal("invalid struct type: " + SD->getName(), decl->getStartLoc());
-
-      // Add the struct to the struct table.
-      sTable[SD->getParent()->getIdentifier()][SD->getName()] = ST;
     }
   }
 }
 
+llvm::StructType *Codegen::getStruct(PackageUnitDecl *p, 
+                                     const std::string &name) const {
+  return sTable.at(p->getIdentifier()).at(name);
+}
+
+llvm::Function *Codegen::getFunction(PackageUnitDecl *p, 
+                                     const std::string &name) const {
+  return fTable.at(p->getIdentifier()).at(name);
+}
+
+llvm::Type *Codegen::getLLVMType(const Type *Ty) const {
+  if (Ty->isStructType()) {
+    const StructType *ST = dynamic_cast<const StructType *>(Ty);
+    if (!ST)
+      fatal("expected struct type for struct type lookup");
+
+    return getStruct(ST->getDecl()->getParent(), ST->toString());
+  }
+
+  return Ty->toLLVMType(*context);
+}
+
 void Codegen::visit(PackageUnitDecl *decl) {
+  this->currPkg = decl;
   for (Decl *d : decl->decls)
     d->pass(this);
+  
+  this->currPkg = nullptr;
 }
 
 void Codegen::visit(ImportDecl *decl) { /* no work to be done */ }
@@ -150,13 +193,15 @@ void Codegen::visit(ParamVarDecl *decl) {
 void Codegen::visit(VarDecl *decl) {
   decl->init->pass(this);
 
+  llvm::Type *Ty = getLLVMType(decl->getType());
   llvm::AllocaInst *alloca = createAlloca(
-      builder->GetInsertBlock()->getParent(), decl->name,
-      decl->T->toLLVMType(*context)
+    builder->GetInsertBlock()->getParent(), 
+    decl->getName(),
+    Ty
   );
 
   builder->CreateStore(tmp, alloca);
-  allocas[decl->name] = alloca;
+  allocas[decl->getName()] = alloca;
 }
 
 void Codegen::visit(EnumDecl *decl) { /* no work to be done */ }
@@ -210,7 +255,7 @@ void Codegen::visit(DeclRefExpr *expr) {
     return;
   }
 
-  tmp = builder->CreateLoad(expr->T->toLLVMType(*context), alloca);
+  tmp = builder->CreateLoad(getLLVMType(expr->getType()), alloca);
 }
 
 void Codegen::visit(CallExpr *expr) {
@@ -487,8 +532,9 @@ void Codegen::visit(ArraySubscriptExpr *expr) {
 }
 
 void Codegen::visit(StructInitExpr *expr) {
-  llvm::Type *T = expr->T->toLLVMType(*context);
-  llvm::Value *structVal = llvm::UndefValue::get(T);
+  llvm::StructType *ST = sTable[expr->decl->getParent()->getIdentifier()]
+      [expr->getName()];
+  llvm::Value *structVal = llvm::UndefValue::get(ST);
 
   for (std::size_t i = 0; i < expr->getNumFields(); ++i) {
     expr->getField(i)->pass(this);
@@ -504,9 +550,14 @@ void Codegen::visit(MemberExpr *expr) {
   expr->base->pass(this);
   llvm::Value *basePtr = tmp;
   this->needPtr = oldNeedPtr;
+  
+  const DeclRefExpr *baseExpr = dynamic_cast<const DeclRefExpr *>(expr->base.get());
+  assert(baseExpr && "expected decl ref expression for member access base");
 
-  llvm::StructType *ST = llvm::cast<llvm::StructType>(
-      expr->base->getType()->toLLVMType(*context));
+  const StructType *AST = dynamic_cast<const StructType *>(baseExpr->getType());
+  llvm::StructType *ST = sTable[AST->getDecl()->getParent()->getIdentifier()]
+      [AST->toString()];
+  assert(ST && "expected struct type for member access expression");
 
   int idx = expr->index;
   if (idx == -1) {

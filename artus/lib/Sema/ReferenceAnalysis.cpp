@@ -32,10 +32,18 @@ ReferenceAnalysis::ReferenceAnalysis(Context *ctx)
 const Type *ReferenceAnalysis::resolveType(const std::string &ident, 
                                            const SourceLocation &loc) const {
   const Type *resolvedType = ctx->getType(ident);
-  if (!resolvedType || !resolvedType->isAbsolute())
-    fatal("unresolved type: " + ident, loc);
+  if (resolvedType && resolvedType->isAbsolute())
+    return resolvedType;
 
-  return resolvedType;
+  // Before crashing, try to resolve a local type declaration.
+  if (const Decl *decl = resolveReference(ident, loc)) {
+    if (const StructDecl *SD = dynamic_cast<const StructDecl *>(decl))
+      return SD->getType();
+    else if (const EnumDecl *ED = dynamic_cast<const EnumDecl *>(decl))
+      return ED->getType();
+  }
+
+  fatal("unresolved type: " + ident, loc);
 }
 
 const Decl *ReferenceAnalysis::resolveReference(const std::string &ident, 
@@ -63,13 +71,19 @@ void ReferenceAnalysis::importDependencies(PackageUnitDecl *pkg) {
 
 void ReferenceAnalysis::checkParent(const Decl *decl, 
                                     const SourceLocation &loc) const {
-  if (decl->getParent() != currPkg)
-    fatal("unset declaration parent", loc);
+  if (decl->getParent() != currPkg) {
+    if (const NamedDecl *ND = dynamic_cast<const NamedDecl *>(decl))
+      fatal("unset declaration parent: " + ND->getName(), loc);
+    else
+      fatal("unset declaration parent", loc);
+  }
 }
+    
 
 void ReferenceAnalysis::visit(PackageUnitDecl *decl) {
   this->currPkg = decl;
   this->globalScope = decl->scope;
+  this->localScope = this->globalScope;
 
   // Check for duplicate imports.
   for (std::size_t i = 0; i < decl->imports.size(); i++) {
@@ -116,6 +130,7 @@ void ReferenceAnalysis::visit(PackageUnitDecl *decl) {
 
   this->currPkg = nullptr;
   this->globalScope = nullptr;
+  this->localScope = nullptr;
 }
 
 void ReferenceAnalysis::visit(ImportDecl *decl) { /* no work to be done */ }
@@ -145,7 +160,8 @@ void ReferenceAnalysis::visit(ParamVarDecl *decl) {
 }
 
 void ReferenceAnalysis::visit(VarDecl *decl) {
-  checkParent(decl, decl->getStartLoc());
+  if (!decl->getParent())
+    decl->setParent(currPkg);
 
   // Resolve the absolute type.
   if (!decl->T->isAbsolute())
@@ -374,6 +390,7 @@ void ReferenceAnalysis::visit(StructInitExpr *expr) {
 
   // Type is null by parser, resolve it.
   expr->T = resolveType(expr->name, expr->getStartLoc());
+  expr->setDecl(SD);
 
   assert(expr->T->isAbsolute() &&
       ("invalid struct type: " + expr->T->toString()).c_str());

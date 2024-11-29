@@ -59,7 +59,7 @@ public:
   PackageUnitDecl *getParent() const { return parent; }
 
   /// Sets this declaration's parent to \p p.
-  void setParent(PackageUnitDecl *p) { parent = p; }
+  virtual void setParent(PackageUnitDecl *p) { parent = p; }
 };
 
 /// Defines a context for owned declarations.

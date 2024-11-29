@@ -68,7 +68,7 @@ protected:
 public:
   ScopedDecl(const std::string &name, Scope *scope, bool priv, 
              const Span &span);
-  ~ScopedDecl();
+  virtual ~ScopedDecl() = default;
 
   /// \returns The scope this declaration is linked to.
   Scope *getScope() const { return scope; }
@@ -160,7 +160,7 @@ public:
                std::vector<std::unique_ptr<ParamVarDecl>> params,
                std::unique_ptr<Stmt> body, bool priv, const Span &span);
 
-  ~FunctionDecl();
+  ~FunctionDecl() override;
 
   void pass(ASTVisitor *visitor) override { visitor->visit(this); }
 
@@ -201,7 +201,7 @@ class EnumDecl final : public NamedDecl {
 public:
   EnumDecl(const std::string &name, std::vector<std::string> variants, 
            const Type *T, bool priv, const Span &span);
-  ~EnumDecl() = default;
+  ~EnumDecl();
 
   void pass(ASTVisitor *visitor) override { visitor->visit(this); }
 
@@ -263,7 +263,7 @@ public:
   StructDecl(const std::string &name, const Type *T, Scope *scope,
              std::vector<std::unique_ptr<FieldDecl>> fields, bool priv, 
              const Span &span);
-  ~StructDecl() = default;
+  ~StructDecl() override;
 
   void pass(ASTVisitor *visitor) override { visitor->visit(this); }
 
@@ -284,6 +284,8 @@ public:
 
   /// \returns The type of this struct.
   const Type *getType() const { return T; }
+
+  void setParent(PackageUnitDecl *p) override;
 
   bool canImport() const override { return true; }
 };

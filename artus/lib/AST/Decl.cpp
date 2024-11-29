@@ -32,8 +32,6 @@ ScopedDecl::ScopedDecl(const std::string &name, Scope *scope, bool priv,
                        const Span &span)
     : NamedDecl(name, priv, span), scope(scope) {}
 
-ScopedDecl::~ScopedDecl() { delete scope; }
-
 //>==- VarDecl Implementation ---------------------------------------------==<//
 //
 // Variable declarations are inline declarations that define a variable symbol.
@@ -125,6 +123,8 @@ EnumDecl::EnumDecl(const std::string &name, std::vector<std::string> variants,
                    const Type *T, bool priv, const Span &span)
     : NamedDecl(name, priv, span), variants(std::move(variants)), T(T) {}
 
+EnumDecl::~EnumDecl() { delete this->T; }
+
 int EnumDecl::getVariantIndex(const std::string &variant) const {
   for (std::size_t i = 0; i < variants.size(); ++i) {
     if (variants[i] == variant)
@@ -167,6 +167,11 @@ StructDecl::StructDecl(const std::string &name, const Type *T, Scope *scope,
                        const Span &span)
     : ScopedDecl(name, scope, priv, span), fields(std::move(fields)), T(T) {}
 
+StructDecl::~StructDecl() { 
+  delete this->scope;
+  delete this->T; 
+}
+
 const FieldDecl *StructDecl::getField(std::size_t i) const 
 { return i < fields.size() ? fields[i].get() : nullptr; }
 
@@ -195,4 +200,10 @@ bool StructDecl::isFieldMutable(const std::string &name) const {
   }
 
   return false;
+}
+
+void StructDecl::setParent(PackageUnitDecl *p) {
+  this->parent = p;
+  for (const std::unique_ptr<FieldDecl> &field : this->fields)
+    field->setParent(p);
 }

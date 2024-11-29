@@ -67,14 +67,29 @@ class Codegen final : public ASTVisitor {
   /// The name of the current compilation instance.
   const std::string instance;
 
+  /// The active package unit.
+  PackageUnitDecl *currPkg;
+
   /// Creates an alloca instruction for a variable \p var in the entry block of 
   /// the function \p fn.
   [[nodiscard]] 
   llvm::AllocaInst *createAlloca(llvm::Function *fn, const std::string &var, 
                                  llvm::Type *T);
 
-  /// Creates the mappings for top-level declarations in a package unit.
-  void createMappings(PackageUnitDecl *pkg);
+  /// Creates struct mappings for a package unit.
+  void createStructMappings(PackageUnitDecl *pkg);
+
+  /// Creates function mappings for a package unit.
+  void createFunctionMappings(PackageUnitDecl *pkg);
+
+  /// \returns The struct with name \p name defined in package \p p.
+  llvm::StructType *getStruct(PackageUnitDecl *p, const std::string &name) const;
+
+  /// \returns The function with name \p name defined in package \p p.
+  llvm::Function *getFunction(PackageUnitDecl *p, const std::string &name) const;
+
+  /// \returns The corresponding LLVM type for type \p ty.
+  llvm::Type *getLLVMType(const Type *Ty) const;
 
 public:
   Codegen(Context *ctx, const std::string &instance, llvm::TargetMachine *TM);

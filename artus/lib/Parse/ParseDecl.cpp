@@ -389,14 +389,15 @@ std::unique_ptr<Decl> Parser::ParseStructDeclaration() {
     fieldTypes.push_back(field->getType());
 
   // Create a type for this struct definition.
-  const StructType *ST = new StructType(structName, fieldTypes);
-  this->ctx->addDefinedType(structName, ST);
+  StructType *ST = new StructType(structName, fieldTypes);
+  this->ctx->addDefinedType(structName, ST, structToken.loc);
 
   // Create the struct declaration.
   std::unique_ptr<StructDecl> structDecl = std::make_unique<StructDecl>(
       structName, ST, scope, std::move(fields), isPrivate,
       createSpan(structToken.loc));
 
+  ST->setDecl(structDecl.get());
   this->scope->addDecl(structDecl.get());
   return structDecl;
 }
@@ -460,8 +461,8 @@ std::unique_ptr<Decl> Parser::ParseEnumDeclaration() {
   nextToken(); // Consume the '}' token.
 
   // Create the enum type.
-  const EnumType *ET = new EnumType(enumName, variants);
-  this->ctx->addDefinedType(enumName, ET);
+  EnumType *ET = new EnumType(enumName, variants);
+  this->ctx->addDefinedType(enumName, ET, enumToken.loc);
 
   bool isPrivate = false;
   if (this->makePriv) {
@@ -473,6 +474,7 @@ std::unique_ptr<Decl> Parser::ParseEnumDeclaration() {
   std::unique_ptr<EnumDecl> enumDecl = std::make_unique<EnumDecl>(enumName,
       std::move(variants), ET, isPrivate, createSpan(enumToken.loc));
 
+  ET->setDecl(enumDecl.get());
   this->scope->addDecl(enumDecl.get());
   return enumDecl;
 }

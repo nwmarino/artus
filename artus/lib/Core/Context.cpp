@@ -32,11 +32,23 @@ using namespace artus;
 
 Context::Context(std::vector<SourceFile> files) : files(std::move(files)) {
   this->PM = std::make_unique<PackageManager>();
+
+  // Add basic types to the context.
+  this->bTyTable["bool"] = new BasicType(BasicType::BasicTypeKind::INT1);
+  this->bTyTable["char"] = new BasicType(BasicType::BasicTypeKind::INT8);
+  this->bTyTable["i32"] = new BasicType(BasicType::BasicTypeKind::INT32);
+  this->bTyTable["i64"] = new BasicType(BasicType::BasicTypeKind::INT64);
+  this->bTyTable["u8"] = new BasicType(BasicType::BasicTypeKind::UINT8);
+  this->bTyTable["u32"] = new BasicType(BasicType::BasicTypeKind::UINT32);
+  this->bTyTable["u64"] = new BasicType(BasicType::BasicTypeKind::UINT64);
+  this->bTyTable["f64"] = new BasicType(BasicType::BasicTypeKind::FP64);
+  this->bTyTable["str"] = new BasicType(BasicType::BasicTypeKind::STR);
+
   this->resetTypes();
 }
 
 Context::~Context() {
-  for (auto &type : types)
+  for (auto &type : bTyTable)
     delete type.second;
 
   for (SourceFile &file : files)
@@ -44,40 +56,16 @@ Context::~Context() {
 }
 
 void Context::resetTypes() {
-  // Clear the previous state of the type table.
-  for (auto &type : types)
-    delete type.second;
-
-  this->types.clear();
-
-  // Add basic types to the context.
-  this->types["bool"] = new BasicType(BasicType::BasicTypeKind::INT1);
-  this->types["char"] = new BasicType(BasicType::BasicTypeKind::INT8);
-  this->types["i32"] = new BasicType(BasicType::BasicTypeKind::INT32);
-  this->types["i64"] = new BasicType(BasicType::BasicTypeKind::INT64);
-  this->types["u8"] = new BasicType(BasicType::BasicTypeKind::UINT8);
-  this->types["u32"] = new BasicType(BasicType::BasicTypeKind::UINT32);
-  this->types["u64"] = new BasicType(BasicType::BasicTypeKind::UINT64);
-  this->types["f64"] = new BasicType(BasicType::BasicTypeKind::FP64);
-  this->types["str"] = new BasicType(BasicType::BasicTypeKind::STR);
-
-  // Add pointer types of basic types to the context.
-  this->types["#bool"] = new PointerType(this->types["bool"]);
-  this->types["#char"] = new PointerType(this->types["char"]);
-  this->types["#i32"] = new PointerType(this->types["i32"]);
-  this->types["#i64"] = new PointerType(this->types["i64"]);
-  this->types["#u8"] = new PointerType(this->types["u8"]);
-  this->types["#u32"] = new PointerType(this->types["u32"]);
-  this->types["#u64"] = new PointerType(this->types["u64"]);
-  this->types["#f64"] = new PointerType(this->types["f64"]);
-  this->types["#str"] = new PointerType(this->types["str"]);
+  // Clears all types. Defined types are owned by their declarations.
+  this->tyTable.clear();
 }
 
-void Context::addDefinedType(const std::string &name, const Type *T) {
-  if (types.find(name) == types.end() || !types[name]->isAbsolute())
-    types[name] = T;
+void Context::addDefinedType(const std::string &name, const Type *T,
+                             const SourceLocation &loc) {
+  if (tyTable.find(name) == tyTable.end() || !tyTable[name]->isAbsolute())
+    tyTable[name] = T;
   else
-    fatal("redefinition of type: " + name);
+    fatal("redefinition of type: " + name, loc);
 }
 
 bool Context::nextFile() {
@@ -95,6 +83,7 @@ bool Context::nextFile() {
   active.BufferStart = nextFile.BufferStart;
   active.name = nextFile.name;
   active.path = nextFile.path;
+  resetTypes();
   return true;
 }
 
@@ -112,8 +101,10 @@ PackageUnitDecl *Context::resolvePackage(const std::string &id,
 
 const Type *Context::getType(const std::string &name) {
   // Check if the type already exists.
-  if (types.find(name) != types.end())
-    return this->types[name];
+  if (bTyTable.find(name) != bTyTable.end())
+    return this->bTyTable[name];
+  else if (tyTable.find(name) != tyTable.end())
+    return this->tyTable[name];
 
   // Handle array types, i.e. i64[3]
   if (name.find('[') != std::string::npos) {
@@ -128,20 +119,20 @@ const Type *Context::getType(const std::string &name) {
 
     // Instantiate and return the new array type.
     const ArrayType *AT = new ArrayType(T, std::stoi(size));
-    this->types[name] = AT;
+    this->bTyTable[name] = AT;
     return AT;
   }
 
   // Handle pointers not defined in the type table.
   if (name[0] == '#') {
     const std::string nestedType = name.substr(1);
-    this->types[name] = new PointerType(getType(nestedType));
-    return this->types[name];
+    this->bTyTable[name] = new PointerType(getType(nestedType));
+    return this->bTyTable[name];
   }
 
   // Return a type reference since the type could not be found.
-  this->types[name] = new TypeRef(name);
-  return this->types[name];
+  this->tyTable[name] = new TypeRef(name);
+  return this->tyTable[name];
 }
 
 void Context::printAST() {
