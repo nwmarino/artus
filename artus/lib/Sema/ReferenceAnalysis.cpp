@@ -54,19 +54,25 @@ const Decl *ReferenceAnalysis::resolveReference(const std::string &ident,
   fatal("unresolved reference: " + ident, loc);
 }
 
-void ReferenceAnalysis::importDependencies(PackageUnitDecl *pkg) {
-  for (ImportDecl *imp : pkg->getImports()) {
-    PackageUnitDecl *depPkg = ctx->resolvePackage(imp->getPath().toString(), imp->getStartLoc());
-
-    importDependencies(depPkg);
-
-    for (Decl *decl : depPkg->decls) {
-      NamedDecl *ND = dynamic_cast<NamedDecl *>(decl);
-
-      if (ND && ND->canImport() && !ND->isPrivate())
-        pkg->scope->addDecl(ND);
-    }
+void ReferenceAnalysis::importDependencies(PackageUnitDecl *pkg) const {
+  for (ImportDecl *ID : pkg->getImports()) {
+    PackageUnitDecl *depPkg = ctx->resolvePackage(ID->getPath().toString(), 
+        ID->getStartLoc());
+    for (NamedDecl *ND : getImportDecls(depPkg))
+      pkg->scope->addDecl(ND); 
   }
+}
+
+std::vector<NamedDecl *>
+ReferenceAnalysis::getImportDecls(PackageUnitDecl *pkg) const {
+  std::vector<NamedDecl *> decls = {};
+  for (Decl *d : pkg->decls) {
+    NamedDecl *ND = dynamic_cast<NamedDecl *>(d);
+    if (ND && ND->canImport() && !ND->isPrivate())
+      decls.push_back(ND);
+  }
+
+  return decls;
 }
 
 void ReferenceAnalysis::checkParent(const Decl *decl, 
@@ -78,7 +84,6 @@ void ReferenceAnalysis::checkParent(const Decl *decl,
       fatal("unset declaration parent", loc);
   }
 }
-    
 
 void ReferenceAnalysis::visit(PackageUnitDecl *decl) {
   this->currPkg = decl;

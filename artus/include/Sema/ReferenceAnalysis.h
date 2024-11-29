@@ -1,10 +1,10 @@
-//>==- ReferenceAnalysis.h -----------------------------------------------<//
+//>==- ReferenceAnalysis.h ------------------------------------------------==<//
 //
 // This header file declares an AST pass that resolves name and type
 // references throughout a parsed AST. The provided AST is not assumed
 // semantically valid.
 //
-//>==--------------------------------------------------------------------==<//
+//>==----------------------------------------------------------------------==<//
 
 #ifndef ARTUS_SEMA_REFERENCEANALYSIS_H
 #define ARTUS_SEMA_REFERENCEANALYSIS_H
@@ -37,11 +37,15 @@ class ReferenceAnalysis final : public ASTVisitor {
   /// \returns The type most similar to \p ident.
   const Type *resolveType(const std::string &ident, const SourceLocation &loc) const;
 
-  /// Recursively imports dependencies for a package unit declaration.
-  void importDependencies(PackageUnitDecl *pkg);
+  /// Imports all dependencies of package \p pkg.
+  void importDependencies(PackageUnitDecl *pkg) const;
 
-  /// Checks the parent of a declaration to be the current package.
-  void checkParent(const Decl *dec, const SourceLocation &loc) const;
+  /// \returns All recursively imported declarations of package \p pkg.
+  std::vector<NamedDecl *> getImportDecls(PackageUnitDecl *pkg) const;
+
+  /// Checks the parent of declaration \p decl to be the current package. Raises
+  /// a fatal error at the location \p loc if the parent is not equivelant.
+  void checkParent(const Decl *decl, const SourceLocation &loc) const;
 
 public:
   ReferenceAnalysis(Context *ctx);
