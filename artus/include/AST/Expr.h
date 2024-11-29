@@ -29,8 +29,11 @@ public:
   Expr(const Type *T, const Span &span) : ValueStmt(T, span), lvalue(false) {}
   ~Expr() = default;
 
-  /// Returns true if this expression is an lvalue.
+  /// \returns `true` if this expression is an lvalue.
   bool isLValue() const { return lvalue; }
+
+  /// Sets this expression as an lvalue.
+  void setLValue() { lvalue = true; }
 };
 
 /// Base class for all Cast Expressions.
@@ -124,7 +127,7 @@ public:
   const std::string &getSpecifier() const { return specifier; }
   
   /// \returns `true` if this reference has a specifier.
-  bool hasSpecifier() const { return specifier != ""; }
+  bool hasSpecifier() const { return !specifier.empty(); }
 };
 
 /// A call expression. For example, `@foo()`.
@@ -148,7 +151,8 @@ public:
   std::size_t getNumArgs() const { return args.size(); }
 
   /// \returns The argument at the given index.
-  Expr *getArg(size_t i) const { return args[i].get(); }
+  Expr *getArg(std::size_t i) const 
+  { return i < getNumArgs() ? args.at(i).get() : nullptr; }
 
   /// \returns The arguments of this call.
   std::vector<Expr *> getArgs() const;

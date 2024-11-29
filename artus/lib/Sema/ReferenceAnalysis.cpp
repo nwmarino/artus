@@ -111,10 +111,13 @@ void ReferenceAnalysis::visit(PackageUnitDecl *decl) {
           RT = resolveType(RT->toString(), FD->getStartLoc());
 
         // Check that each parameter type is absolute.
+        unsigned idx = 0;
         for (const Type *T : PT) {
           // Resolve the absolute parameter type.
           if (!T->isAbsolute())
-            T = resolveType(T->toString(), FD->getStartLoc());
+            PT[idx] = resolveType(T->toString(), FD->getStartLoc());
+
+          idx++;
         }
 
         // Reconstruct the function type.
@@ -137,8 +140,8 @@ void ReferenceAnalysis::visit(ImportDecl *decl) { /* no work to be done */ }
 
 void ReferenceAnalysis::visit(FunctionDecl *decl) {
   checkParent(decl, decl->getStartLoc());
-  assert(decl->T->isAbsolute() && 
-      ("invalid function type: " + decl->getName()).c_str());
+  if (!decl->getType()->isAbsolute())
+    fatal("invalid function type: " + decl->getName());
 
   this->localScope = decl->scope;
   for (const std::unique_ptr<ParamVarDecl> &p : decl->params)
@@ -238,8 +241,8 @@ void ReferenceAnalysis::visit(DeclRefExpr *expr) {
     expr->T = ET;
 
     // Resolve the enum declaration.
-    expr->decl = resolveReference(expr->getType()->toString(), 
-        expr->getStartLoc());;
+    expr->decl = resolveReference(expr->getType()->toString(),
+        expr->getStartLoc());
   } else {
     const Decl *decl = resolveReference(expr->ident, expr->getStartLoc());
 
@@ -250,8 +253,10 @@ void ReferenceAnalysis::visit(DeclRefExpr *expr) {
       fatal("expected variable: " + expr->ident, expr->getStartLoc());
   }
 
-  assert(expr->T->isAbsolute() &&
-      ("invalid reference type: " + expr->T->toString()).c_str());
+  expr->setLValue();
+  if (!expr->getType()->isAbsolute())
+    fatal("unresolved reference type: " + expr->getType()->toString(), 
+        expr->getStartLoc());
 }
 
 void ReferenceAnalysis::visit(CallExpr *expr) {
@@ -271,9 +276,13 @@ void ReferenceAnalysis::visit(CallExpr *expr) {
   // Pass on each of the arguments.
   for (std::size_t i = 0; i < expr->getNumArgs(); i++)
     expr->getArg(i)->pass(this);
+  
+  if (!expr->getType()->isAbsolute())
+    fatal("unresolved call expression type: " + expr->getType()->toString(), 
+        expr->getStartLoc());
 
-  assert(expr->T->isAbsolute() &&
-      ("invalid call expression type: " + expr->T->toString()).c_str());
+  if (expr->getType()->isStructType())
+    expr->setLValue();
 }
 
 void ReferenceAnalysis::visit(UnaryExpr *expr) 
@@ -426,8 +435,11 @@ void ReferenceAnalysis::visit(MemberExpr *expr) {
   // Assign the field index.
   expr->index = SD->getFieldIndex(expr->getMember());
 
-  assert(expr->T->isAbsolute() &&
-      ("invalid member type: " + expr->T->toString()).c_str());
+  if (!expr->getType()->isAbsolute())
+    fatal("unresolved member expression type: " + expr->getType()->toString(), 
+        expr->getStartLoc());
+
+  expr->setLValue();
 }
 
 void ReferenceAnalysis::visit(CompoundStmt *stmt) {

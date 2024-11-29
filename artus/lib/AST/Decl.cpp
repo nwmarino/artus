@@ -107,6 +107,12 @@ bool FunctionDecl::isMain() const { return name == "main"; }
 
 bool FunctionDecl::hasBody() const { return body != nullptr; }
 
+void FunctionDecl::setParent(PackageUnitDecl *p) {
+  parent = p;
+  for (const std::unique_ptr<ParamVarDecl> &param : this->params)
+    param->setParent(p);
+}
+
 //>==- EnumDecl Implementation --------------------------------------------==<//
 //
 // Enum declarations may appear as follows:

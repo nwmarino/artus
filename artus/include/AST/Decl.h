@@ -182,6 +182,8 @@ public:
   /// \returns `true` if this function has a body, and `false` otherwise.
   bool hasBody() const;
 
+  void setParent(PackageUnitDecl *p) override;
+
   bool canImport() const override { return true; }
 };
 

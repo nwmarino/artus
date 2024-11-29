@@ -1,3 +1,3 @@
 struct MyStruct {
-  val: i64,
+  mut val: i64,
 }

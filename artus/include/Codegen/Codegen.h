@@ -76,10 +76,10 @@ class Codegen final : public ASTVisitor {
   llvm::AllocaInst *createAlloca(llvm::Function *fn, const std::string &var, 
                                  llvm::Type *T);
 
-  /// Creates struct mappings for a package unit.
+  /// Creates struct mappings for package \p pkg.
   void createStructMappings(PackageUnitDecl *pkg);
 
-  /// Creates function mappings for a package unit.
+  /// Creates function mappings for package \p pkg.
   void createFunctionMappings(PackageUnitDecl *pkg);
 
   /// \returns The struct with name \p name defined in package \p p.

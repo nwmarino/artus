@@ -17,7 +17,6 @@
 #include "../../include/AST/Stmt.h"
 #include "../../include/Codegen/Codegen.h"
 #include "../../include/Core/Logger.h"
-#include "../../include/Sema/Scope.h"
 
 using namespace artus;
 
