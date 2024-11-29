@@ -84,7 +84,27 @@ entry:
       if (isEof())
         fatal("expected closing double quote after string", loc);
 
-      tmp += *BufferPos++;
+      if (*BufferPos == '\\') {
+        BufferPos++;
+        switch (*BufferPos) {
+        case 'n': 
+          tmp += "\n"; 
+          break;
+        case 't':
+          tmp += "\t";
+          break;
+        case '"':
+          tmp += '"';
+          break;
+        default: 
+          tmp += "\\"; 
+          break;
+        }
+      } else
+        tmp += *BufferPos;
+
+
+      BufferPos++;
       skp++;
     }
     break;

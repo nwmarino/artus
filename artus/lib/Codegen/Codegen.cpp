@@ -495,7 +495,9 @@ void Codegen::visit(CharLiteral *expr)
 { tmp = llvm::ConstantInt::get(*context, llvm::APInt(8, expr->value, true)); }
 
 void Codegen::visit(StringLiteral *expr) 
-{ tmp = builder->CreateGlobalStringPtr(expr->value); }
+{ 
+  tmp = builder->CreateGlobalStringPtr(expr->getValue());
+}
 
 void Codegen::visit(NullExpr *expr) {
   tmp = llvm::ConstantPointerNull::get(llvm::PointerType::get(

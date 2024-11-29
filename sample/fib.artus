@@ -1,6 +1,7 @@
 import std::io
+import foo
 
 fn @main() -> i64 {
-  @print("Hello world")
+  @zee
   ret 0
 }
