@@ -44,6 +44,22 @@ fix a: i64 = nums[0]
 ```
 
 ## Functions
+```
+function-decl: 
+        'fn' '@' <identifier> '(' [param-list] ')' '->' [type] <stmt>
+      | 'fn' '@' <identifier> '(' [param-list] ')' <stmt>
+      | 'fn' '@' <identifier> '->' [type] <stmt>
+      | 'fn' '@' <identifier> <stmt>
+
+param-list: 
+        param [',' param-list]
+
+param:
+        'mut' <identifier> ':' [type]
+      | <identifier> ':' [type]
+
+type:   <identifier>
+```
 ```go
 // main
 fn @main() -> i64 { entry: ... }
@@ -59,6 +75,14 @@ fn @foo(a: i64, mut b: i64[2]) -> i64 { entry: ... }
 ```
 
 ## Variables
+```
+var-decl:
+        'fix' <identifier> ':' [type] '=' <expr>
+      | 'mut' <identifier> ':' [type]
+      | 'mut' <identifier> ':' [type] '=' <expr>
+
+type:   <identifier>
+```
 ```go
 // immutable assignment
 fix <identifier>: <type> = <expr>
@@ -74,7 +98,13 @@ ret <expr>
 ```
 
 ## Control Flow
-If Statements
+
+### If Statements
+```
+if-stmt:
+        'if' <expr> <stmt>
+      | 'if' <expr> <stmt> 'else' <stmt>
+```
 ```go
 if cond {
     ...
@@ -95,39 +125,48 @@ if cond {
 }
 ```
 
-While Loops
+### Loops
+
+#### While Loops
+```
+while-stmt:
+        'while' <expr> <stmt>
+```
 ```go
 while cond {
     ...
 }
 ```
 
-Until Loops
+#### Until Loops
+```
+until-stmt:
+        'until' <expr> <stmt>
+```
 ```go
 until cond {
     ...
 }
 ```
 
-Match Statements
+### Match Statements
 ```
 match-stmt:
-        | 'match' <expr> '{' [match-case-list] '}'
+        'match' <expr> '{' [match-case-list] '}'
 
 match-case-list:
-        | match-case [',' match-case-list]
+        match-case [',' match-case-list]
 
 match-case:
-        | case-stmt
-        | default-stmt
+        case-stmt
+      | default-stmt
 
 case-stmt:
-        | <expr> => <stmt>
+        <expr> => <stmt>
 
 default-stmt:
-        | '_' => <stmt>
+        '_' => <stmt>
 ```
-
 ```go
 match <expr> {
     <expr> => ...,
