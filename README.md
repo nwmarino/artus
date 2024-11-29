@@ -25,7 +25,7 @@
 | `#` `&` `!` `-` | 7 | Unary Ops
 
 ## Pointers
-```rs
+```go
 /// ptr address-of
 mut x: i64 = 5
 mut y: #i64 = &x
@@ -35,7 +35,7 @@ mut y: #i64 = &x
 ```
 
 ## Arrays
-```rs
+```go
 // array initialization
 mut nums: i64[3] = [0, 1, 2]
 
@@ -44,7 +44,7 @@ fix a: i64 = nums[0]
 ```
 
 ## Functions
-```rs
+```go
 // main
 fn @main() -> i64 { entry: ... }
 
@@ -59,7 +59,7 @@ fn @foo(a: i64, mut b: i64[2]) -> i64 { entry: ... }
 ```
 
 ## Variables
-```rs
+```go
 // immutable assignment
 fix <identifier>: <type> = <expr>
 
@@ -68,14 +68,14 @@ mut <identifier>: <type> = <expr>
 ```
 
 ## Statements
-```rs
+```go
 // return stmt
 ret <expr>
 ```
 
 ## Control Flow
 If Statements
-```rs
+```go
 if cond {
     ...
 }
@@ -96,21 +96,39 @@ if cond {
 ```
 
 While Loops
-```lua
+```go
 while cond {
     ...
 }
 ```
 
 Until Loops
-```lua
+```go
 until cond {
     ...
 }
 ```
 
 Match Statements
-```rs
+```
+match-stmt:
+        | 'match' <expr> '{' [match-case-list] '}'
+
+match-case-list:
+        | match-case [',' match-case-list]
+
+match-case:
+        | case-stmt
+        | default-stmt
+
+case-stmt:
+        | <expr> => <stmt>
+
+default-stmt:
+        | '_' => <stmt>
+```
+
+```go
 match <expr> {
     <expr> => ...,
     <expr> => { ... },
