@@ -28,6 +28,8 @@ std::unique_ptr<Expr> Parser::ParseDefaultInitExpression(const Type *T) {
   // Handle basic types.
   if (const BasicType *BT = dynamic_cast<const BasicType *>(T)) {
     switch (BT->getKind()) {
+    case BasicType::VOID:
+      return nullptr;
     case BasicType::INT1:
       return std::make_unique<BooleanLiteral>(0, T, createSpan(lastLoc));
     case BasicType::INT8:

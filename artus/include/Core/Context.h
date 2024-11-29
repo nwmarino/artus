@@ -15,6 +15,7 @@
 
 #include "Input.h"
 #include "PackageManager.h"
+#include "../AST/Decl.h"
 #include "../AST/DeclBase.h"
 #include "../Lex/Lexer.h"
 #include "../Sema/Type.h"
@@ -51,6 +52,9 @@ class Context final {
   /// A map of all defined, non-owning types in the current context.
   std::map<std::string, const Type *> tyTable;
 
+  /// A map of built-in libraries.
+  std::map<std::string, std::unique_ptr<PackageUnitDecl>> stdTable;
+
   /// If 1, then the lexer has reached the end of the current source stream.
   unsigned int eof : 1;
 
@@ -64,6 +68,9 @@ class Context final {
   /// at location \p loc if the type is already defined.
   void addDefinedType(const std::string &name, const Type *T, 
                       const SourceLocation &loc);
+
+  /// \returns The print function for std io, and adds it to scope \p ioScope.
+  std::unique_ptr<NamedDecl> getPrintFunction(Scope *ioScope);
 
 public:
   Context(std::vector<SourceFile> files);

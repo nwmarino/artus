@@ -30,6 +30,9 @@ public:
   /// \returns `true` if this type is absolute and not a qualified reference.
   virtual bool isAbsolute() const { return true; }
 
+  /// \returns `true` if the type is void.
+  virtual bool isVoidType() const { return false; }
+
   /// \returns `true` if this most shallow type is definitively a boolean type.
   virtual bool isBooleanType() const = 0;
 
@@ -134,6 +137,7 @@ class BasicType final : public Type {
 public:
   /// Possible kinds of basic types.
   enum BasicTypeKind {
+    VOID = -1,
     INT1 = 0,
     INT8,
     INT32,
@@ -153,17 +157,20 @@ private:
   BasicType(BasicTypeKind kind) : kind(kind) {}
 
 public:
+  /// \returns `true` if the basic type kind is void.
+  bool isVoidType() const override { return kind == VOID; }
+
   /// \returns `true` if the basic type kind is a boolean.
   bool isBooleanType() const override { return kind == INT1; }
 
   /// \returns `true` if the basic type kind is an integer or a character.
-  bool isIntegerType() const override { return kind <= UINT64; }
+  bool isIntegerType() const override { return kind <= UINT64 && kind != VOID; }
 
   /// \returns `true` if the basic type kind is a floating point.
   bool isFloatingPointType() const override { return kind == FP64; }
 
   /// \returns `true` if the basic type is a non-str string.
-  bool isNumericalType() const override { return kind <= FP64; }
+  bool isNumericalType() const override { return kind <= FP64 && kind != VOID; }
 
   /// \returns `true` if the basic type kind is a string.
   bool isStringType() const override { return kind == STR; }
@@ -178,6 +185,8 @@ public:
   /// return 64.
   unsigned getBitWidth() const override {
     switch (kind) {
+    case VOID:
+      return 0;
     case INT1: 
       return 1;
     case INT8: 
@@ -205,6 +214,8 @@ public:
   /// \returns The string representation of the basic type.
   const std::string toString() const override {
     switch (kind) {
+    case VOID:
+      return "void";
     case INT1: 
       return "bool";
     case INT8: 
@@ -249,6 +260,9 @@ public:
   /// `false` otherwise. Optionally, a `strict` flag can be passed to indicate
   /// that the cast must be exact.
   bool canCastTo(const Type *other, bool strict = false) const override {
+    if (this->isVoidType() || other->isVoidType())
+      return false;
+
     if (const BasicType *otherType = dynamic_cast<const BasicType *>(other)) {
       switch (strict ? 1 : 2) {
       case 1: 
@@ -265,6 +279,8 @@ public:
 
   llvm::Type *toLLVMType(llvm::LLVMContext &ctx) const override {
     switch (kind) {
+    case VOID:
+      return llvm::Type::getVoidTy(ctx);
     case INT1: 
       return llvm::Type::getInt1Ty(ctx);
     case INT8: 

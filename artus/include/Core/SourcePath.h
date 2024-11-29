@@ -49,7 +49,7 @@ struct SourcePath {
     if (!this->next)
       return this->curr;
 
-    return this->next->toString() + '_' + this->curr;
+    return this->curr + '_' + this->next->toString();
   }
 };
 

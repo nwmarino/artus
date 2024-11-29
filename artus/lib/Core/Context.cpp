@@ -21,12 +21,17 @@
 //
 //>==----------------------------------------------------------------------==<//
 
+#include <memory>
 #include <utility>
 
+#include "../../include/AST/Decl.h"
 #include "../../include/AST/DeclBase.h"
+#include "../../include/AST/Expr.h"
 #include "../../include/Core/Context.h"
 #include "../../include/Core/Logger.h"
 #include "../../include/Core/PackageManager.h"
+#include "../../include/Sema/Scope.h"
+#include "../../include/Sema/Type.h"
 
 using namespace artus;
 
@@ -34,6 +39,7 @@ Context::Context(std::vector<SourceFile> files) : files(std::move(files)) {
   this->PM = std::make_unique<PackageManager>();
 
   // Add basic types to the context.
+  this->bTyTable["void"] = new BasicType(BasicType::BasicTypeKind::VOID);
   this->bTyTable["bool"] = new BasicType(BasicType::BasicTypeKind::INT1);
   this->bTyTable["char"] = new BasicType(BasicType::BasicTypeKind::INT8);
   this->bTyTable["i32"] = new BasicType(BasicType::BasicTypeKind::INT32);
@@ -43,6 +49,18 @@ Context::Context(std::vector<SourceFile> files) : files(std::move(files)) {
   this->bTyTable["u64"] = new BasicType(BasicType::BasicTypeKind::UINT64);
   this->bTyTable["f64"] = new BasicType(BasicType::BasicTypeKind::FP64);
   this->bTyTable["str"] = new BasicType(BasicType::BasicTypeKind::STR);
+
+  // Add standard library functions.
+  DeclContext *ioCtx = new DeclContext();
+  Scope *ioScope = new Scope(nullptr, {}, { .isUnitScope = 1 });
+  ioCtx->addDeclaration(getPrintFunction(ioScope));
+  this->stdTable["std_io"] = std::make_unique<PackageUnitDecl>(
+    "std_io",
+    "std_io",
+    ioCtx,
+    ioScope,
+    std::vector<std::unique_ptr<ImportDecl>>()
+  );
 
   this->resetTypes();
 }
@@ -63,6 +81,29 @@ void Context::addDefinedType(const std::string &name, const Type *T,
     tyTable[name] = T;
   else
     fatal("redefinition of type: " + name, loc);
+}
+
+std::unique_ptr<NamedDecl> Context::getPrintFunction(Scope *ioScope) {
+  FunctionType *FT = new FunctionType(this->bTyTable["void"], 
+      {this->bTyTable["str"]});
+
+  std::unique_ptr<ParamVarDecl> param = std::make_unique<ParamVarDecl>(
+      "s", this->bTyTable["str"], false, Span());
+
+  std::vector<std::unique_ptr<ParamVarDecl>> params = {};
+  params.push_back(std::move(param));
+
+  std::unique_ptr<FunctionDecl> printFN = std::make_unique<FunctionDecl>(
+    "print", 
+    FT, 
+    new Scope(nullptr, {}, { .isFunctionScope = 1}), 
+    std::move(params), 
+    false, 
+    Span()
+  );
+
+  ioScope->addDecl(printFN.get());
+  return printFN;
 }
 
 bool Context::nextFile() {
@@ -91,6 +132,16 @@ void Context::addPackage(std::unique_ptr<PackageUnitDecl> pkg)
 PackageUnitDecl *Context::resolvePackage(const std::string &id, 
                                          const SourceLocation &loc) const {
   const std::string cutId = id.substr(0, id.find_last_of('.'));
+
+  // Check if the package is std.
+  if (id.starts_with("std_")) {
+    if (stdTable.find(id) != stdTable.end())
+      return stdTable.at(id).get();
+    else {
+      fatal("unresolved standard library package: " + id, loc);
+    }
+  } 
+
   if (PackageUnitDecl *PUD = PM->getPackage(cutId))
     return PUD;
 

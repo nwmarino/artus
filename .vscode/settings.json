@@ -1,5 +1,5 @@
 {
-    "cmake.sourceDirectory": "/home/nwmar/Repos/artus/artus",
+    "cmake.sourceDirectory": "/home/nwmar/Repositories/artus/artus",
     "files.associations": {
         "string": "cpp",
         "array": "cpp",
@@ -84,8 +84,6 @@
     "cmake.debugConfig": {
         "args": [
             "../sample/fib.artus",
-            "../sample/foo.art",
-            "../sample/far.art",
         ]
     }
 }

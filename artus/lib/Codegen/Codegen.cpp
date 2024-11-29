@@ -42,6 +42,8 @@ Codegen::Codegen(Context *ctx, const std::string &instance,
   module->setTargetTriple(TM->getTargetTriple().getTriple());
   module->setDataLayout(TM->createDataLayout());
 
+  this->addStd();
+
   for (PackageUnitDecl *pkg : ctx->PM->getPackages())
     createStructMappings(pkg);
 
@@ -56,6 +58,41 @@ Codegen::~Codegen() {
   this->module.reset();
   this->builder.reset();
   this->context.reset();
+}
+
+void Codegen::addStd() {
+  addStdIO();
+}
+
+void Codegen::addStdIO() {
+  llvm::FunctionType *printfFT = llvm::FunctionType::get(builder->getInt32Ty(), 
+      builder->getInt8Ty()->getPointerTo(), false);
+  llvm::FunctionCallee printfFN = module->getOrInsertFunction("printf", 
+      printfFT);
+
+  llvm::FunctionType *printFT = llvm::FunctionType::get(
+    builder->getVoidTy(),
+    builder->getInt8Ty()->getPointerTo(), 
+    false
+  );
+
+  llvm::Function *printFN = llvm::Function::Create(
+    printFT, 
+    llvm::Function::ExternalLinkage, 
+    "print",
+    *module
+  );
+
+  llvm::BasicBlock *entry = llvm::BasicBlock::Create(*context, "entry", printFN);
+  builder->SetInsertPoint(entry);
+
+  llvm::Function::arg_iterator args = printFN->arg_begin();
+  llvm::Value *arg = args++;
+
+  builder->CreateCall(printfFN, { arg });
+  builder->CreateRetVoid();
+
+  this->fTable["std_io"]["print"] = printFN;
 }
 
 llvm::AllocaInst *Codegen::createAlloca(llvm::Function *fn, 

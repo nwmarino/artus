@@ -70,6 +70,10 @@ class Codegen final : public ASTVisitor {
   /// The active package unit.
   PackageUnitDecl *currPkg;
 
+  /// Adds built-in functions for each standard library.
+  void addStd();
+  void addStdIO();
+
   /// Creates an alloca instruction for a variable \p var in the entry block of 
   /// the function \p fn.
   [[nodiscard]] 

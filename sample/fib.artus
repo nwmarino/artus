@@ -1,7 +1,6 @@
-import foo
-import far
+import std::io
 
 fn @main() -> i64 {
-  fix x: MyStruct = MyStruct { val: 0 }
-  ret x.val
+  @print("Hello world")
+  ret 0
 }
