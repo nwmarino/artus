@@ -10,6 +10,8 @@
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Verifier.h"
 #include "llvm/IR/DerivedTypes.h"
+#include <llvm/IR/GlobalVariable.h>
+#include <llvm/IR/Type.h>
 
 #include "../../include/AST/Decl.h"
 #include "../../include/AST/DeclBase.h"
@@ -61,21 +63,29 @@ Codegen::~Codegen() {
 }
 
 void Codegen::addStd() {
-  addStdIO();
+  addStdIO_print();
+  addStdIO_println();
+  addStdIO_readln();
 }
 
-void Codegen::addStdIO() {
-  llvm::FunctionType *printfFT = llvm::FunctionType::get(builder->getInt32Ty(), 
-      builder->getInt8Ty()->getPointerTo(), false);
-  llvm::FunctionCallee printfFN = module->getOrInsertFunction("printf", 
-      printfFT);
+void Codegen::addStdIO_print() {
+  // Get the printf function.
+  llvm::FunctionType *printfFT = llvm::FunctionType::get(
+    builder->getInt32Ty(),   
+    builder->getInt8Ty()->getPointerTo(),
+    false
+  );
+  llvm::FunctionCallee printfFN = module->getOrInsertFunction(
+    "printf", 
+    printfFT
+  );
 
+  // Build the print function.
   llvm::FunctionType *printFT = llvm::FunctionType::get(
     builder->getVoidTy(),
     builder->getInt8Ty()->getPointerTo(), 
     false
   );
-
   llvm::Function *printFN = llvm::Function::Create(
     printFT, 
     llvm::Function::ExternalLinkage, 
@@ -83,16 +93,150 @@ void Codegen::addStdIO() {
     *module
   );
 
-  llvm::BasicBlock *entry = llvm::BasicBlock::Create(*context, "entry", printFN);
+  // Create the entry block for print.
+  llvm::BasicBlock *entry = llvm::BasicBlock::Create(
+    *context, "entry", printFN
+  );
   builder->SetInsertPoint(entry);
 
   llvm::Function::arg_iterator args = printFN->arg_begin();
   llvm::Value *arg = args++;
 
+  // Create a call to the original printf function with the string arg.
   builder->CreateCall(printfFN, { arg });
   builder->CreateRetVoid();
 
+  // Add the print function to the ftable.
   this->fTable["std_io"]["print"] = printFN;
+}
+
+void Codegen::addStdIO_println() {
+  // Get the printf function.
+  llvm::FunctionType *printfFT = llvm::FunctionType::get(
+    builder->getInt32Ty(), 
+    builder->getInt8Ty()->getPointerTo(),
+    true
+  );
+  llvm::FunctionCallee printfFN = module->getOrInsertFunction(
+    "printf", 
+    printfFT
+  );
+
+  // Build the println function.
+  llvm::FunctionType *printlnFT = llvm::FunctionType::get(
+    builder->getVoidTy(),
+    builder->getInt8Ty()->getPointerTo(), 
+    false
+  );
+  llvm::Function *printlnFN = llvm::Function::Create(
+    printlnFT, 
+    llvm::Function::ExternalLinkage, 
+    "println",
+    *module
+  );
+
+  // Create the entry block for println.
+  llvm::BasicBlock *entry = llvm::BasicBlock::Create(
+    *context, "entry", printlnFN
+  );
+  builder->SetInsertPoint(entry);
+  
+  // Create a format string with the argument and a newline.
+  llvm::Function::arg_iterator args = printlnFN->arg_begin();
+  llvm::Value *arg = args++;
+  llvm::Value *format = builder->CreateGlobalStringPtr("%s\n");
+
+  // Call the original printf function with the formatted arguments.
+  builder->CreateCall(printfFN, { format, arg });
+  builder->CreateRetVoid();
+
+  // Add the println function to the ftable.
+  this->fTable["std_io"]["println"] = printlnFN;
+}
+
+void Codegen::addStdIO_readln() {
+  // Get the fgets function.
+  llvm::FunctionType *fgetsFT = llvm::FunctionType::get(
+    builder->getInt8Ty()->getPointerTo(), 
+    {
+      builder->getInt8Ty()->getPointerTo(), // char *str
+      builder->getInt32Ty(),                // int n
+      builder->getInt8Ty()->getPointerTo()  // FILE *stream
+    },
+    false);
+  llvm::FunctionCallee fgetsFN = module->getOrInsertFunction(
+    "fgets", fgetsFT
+  );
+
+  // Declare stdin.
+  llvm::Type *filePtrTy = llvm::PointerType::getUnqual(builder->getInt8Ty());
+  llvm::GlobalVariable *stdinVar = module->getNamedGlobal("stdin");
+  if (!stdinVar) {
+    stdinVar = new llvm::GlobalVariable(
+      *module,
+      filePtrTy,
+      true,
+      llvm::GlobalValue::ExternalLinkage,
+      nullptr,
+      "stdin"
+    );
+  }
+
+  // Create the readln function.
+  llvm::FunctionType *readlnFT = llvm::FunctionType::get(
+    builder->getInt8Ty()->getPointerTo(),
+    false
+  );
+  llvm::Function *readlnFN = llvm::Function::Create(
+    readlnFT,
+    llvm::Function::ExternalLinkage,
+    "readln",
+    *module
+  );
+
+  // Create the entry block
+  llvm::BasicBlock *entry = llvm::BasicBlock::Create(
+    *context,
+    "entry",
+    readlnFN
+  );
+  builder->SetInsertPoint(entry);
+
+  // Make a 256 large buffer for stdin.
+  llvm::Value *buffer = builder->CreateAlloca(
+    llvm::ArrayType::get(builder->getInt8Ty(), 256), 
+    nullptr,
+    "buffer"
+  );
+
+  // Cast the buffer to int8_t*
+  llvm::Value *bufferPtr = builder->CreateGEP(
+    llvm::ArrayType::get(builder->getInt8Ty(), 256),
+    buffer,
+    {
+      builder->getInt32(0),
+      builder->getInt32(0)
+    }
+  );
+
+  llvm::Value *stdinLoad = builder->CreateLoad(filePtrTy, stdinVar);
+
+  // Call the original fgets function with the buffer, and stdin.
+  llvm::Value *fgetsCall = builder->CreateCall(
+    fgetsFN,
+    {
+      bufferPtr,
+      builder->getInt32(256),
+      stdinLoad
+      //builder->CreatePointerCast(builder->getInt32(0), llvm::Type::getInt8Ty(*context)->getPointerTo())
+    }
+  );
+
+  // Return the input string received by the fgets call.
+  builder->CreateRet(builder->CreateLoad(builder->getInt8Ty()->getPointerTo(), bufferPtr));
+
+  // Add the readln function to the ftable.
+  this->fTable["std_io"]["readln"] = readlnFN;
 }
 
 llvm::AllocaInst *Codegen::createAlloca(llvm::Function *fn, 

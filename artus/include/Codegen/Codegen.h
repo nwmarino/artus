@@ -72,7 +72,9 @@ class Codegen final : public ASTVisitor {
 
   /// Adds built-in functions for each standard library.
   void addStd();
-  void addStdIO();
+  void addStdIO_print();
+  void addStdIO_println();
+  void addStdIO_readln();
 
   /// Creates an alloca instruction for a variable \p var in the entry block of 
   /// the function \p fn.

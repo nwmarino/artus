@@ -54,6 +54,8 @@ Context::Context(std::vector<SourceFile> files) : files(std::move(files)) {
   DeclContext *ioCtx = new DeclContext();
   Scope *ioScope = new Scope(nullptr, {}, { .isUnitScope = 1 });
   ioCtx->addDeclaration(getPrintFunction(ioScope));
+  ioCtx->addDeclaration(getPrintlnFunction(ioScope));
+  ioCtx->addDeclaration(getReadlnFunction(ioScope));
   this->stdTable["std_io"] = std::make_unique<PackageUnitDecl>(
     "std_io",
     "std_io",
@@ -96,7 +98,7 @@ std::unique_ptr<NamedDecl> Context::getPrintFunction(Scope *ioScope) {
   std::unique_ptr<FunctionDecl> printFN = std::make_unique<FunctionDecl>(
     "print", 
     FT, 
-    new Scope(nullptr, {}, { .isFunctionScope = 1}), 
+    new Scope(ioScope, {}, { .isFunctionScope = 1}), 
     std::move(params), 
     false, 
     Span()
@@ -104,6 +106,45 @@ std::unique_ptr<NamedDecl> Context::getPrintFunction(Scope *ioScope) {
 
   ioScope->addDecl(printFN.get());
   return printFN;
+}
+
+std::unique_ptr<NamedDecl> Context::getPrintlnFunction(Scope *ioScope) {
+  FunctionType *FT = new FunctionType(this->bTyTable["void"], 
+      {this->bTyTable["str"]});
+
+  std::unique_ptr<ParamVarDecl> param = std::make_unique<ParamVarDecl>(
+      "s", this->bTyTable["str"], false, Span());
+
+  std::vector<std::unique_ptr<ParamVarDecl>> params = {};
+  params.push_back(std::move(param));
+
+  std::unique_ptr<FunctionDecl> printlnFN = std::make_unique<FunctionDecl>(
+    "println", 
+    FT, 
+    new Scope(ioScope, {}, { .isFunctionScope = 1}), 
+    std::move(params),
+    false,
+    Span()
+  );
+
+  ioScope->addDecl(printlnFN.get());
+  return printlnFN;
+}
+
+std::unique_ptr<NamedDecl> Context::getReadlnFunction(Scope *ioScope) {
+  FunctionType *FT = new FunctionType(this->bTyTable["str"], {});
+
+  std::unique_ptr<FunctionDecl> readlnFN = std::make_unique<FunctionDecl>(
+    "readln", 
+    FT, 
+    new Scope(ioScope, {}, { .isFunctionScope = 1}), 
+    std::vector<std::unique_ptr<ParamVarDecl>>(),
+    false,
+    Span()
+  );
+
+  ioScope->addDecl(readlnFN.get());
+  return readlnFN;
 }
 
 bool Context::nextFile() {

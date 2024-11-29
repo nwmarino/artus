@@ -1,6 +1,0 @@
-import std::io
-
-fn @zee() -> i64 {
-  @print("hey\n")
-  ret 1
-}

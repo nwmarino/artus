@@ -1,7 +1,7 @@
 import std::io
-import foo
 
 fn @main() -> i64 {
-  @zee
+  fix x: str = @readln
+  @println(x)
   ret 0
 }

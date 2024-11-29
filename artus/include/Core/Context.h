@@ -69,8 +69,14 @@ class Context final {
   void addDefinedType(const std::string &name, const Type *T, 
                       const SourceLocation &loc);
 
-  /// \returns The print function for std io, and adds it to scope \p ioScope.
+  /// \returns The `print` function for std io, and adds it to scope \p ioScope.
   std::unique_ptr<NamedDecl> getPrintFunction(Scope *ioScope);
+
+  /// \returns The `println` function for std io, and adds it to scope \p ioScope.
+  std::unique_ptr<NamedDecl> getPrintlnFunction(Scope *ioScope);
+
+  /// \returns The `readln` function for std oi, and adds it to scope \p ioScope.
+  std::unique_ptr<NamedDecl> getReadlnFunction(Scope *ioScope);
 
 public:
   Context(std::vector<SourceFile> files);

@@ -103,7 +103,6 @@ entry:
       } else
         tmp += *BufferPos;
 
-
       BufferPos++;
       skp++;
     }
