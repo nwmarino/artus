@@ -1,5 +1,16 @@
 # artus
 
+Artus is a statically-typed toy programming language with your typical
+programming paradigms. It supports programs across multiple source files by the
+way of a modular package system, and compiles down to most instruction sets
+through LLVM.
+
+Artus uses CMake (version 3.31) version to produce an executable, and requires linking
+against LLVM 18.1.8-4.
+
+To fully compile and link source programs, the compiler shells out to `clang` and
+thus requires it on the system if binaries are desired without an external linker.
+
 ## Types
 | Identifier | Name | Example |
 |------------|------|---------|
@@ -50,6 +61,22 @@ fn @malloc(size: i32) -> #void
 
 // free allocated memory
 fn @free(ptr: #void) -> void
+```
+
+## Packages
+```go
+// main.artus
+import utils
+
+fn @main() -> i64 {
+  ret @foo
+}
+
+// utils.artus
+
+fn @foo() -> i64 {
+  ret 0
+}
 ```
 
 ## Pointers

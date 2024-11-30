@@ -64,7 +64,29 @@ entry:
     next.literalKind = LiteralKind::Character;
 
     BufferPos++;
-    tmp = *BufferPos;
+
+    if (*BufferPos == '\\') {
+      BufferPos++;
+      switch (*BufferPos) {
+      case '0':
+        tmp += '\0';
+        break;
+      case 'n': 
+        tmp += '\n'; 
+        break;
+      case 't': 
+        tmp += '\t'; 
+        break;
+      case '\'': 
+        tmp += '\''; 
+        break;
+      default: 
+        tmp += '\\'; 
+        break;
+      }
+    } else {
+      tmp += *BufferPos;
+    }
 
     BufferPos++;
     if (*BufferPos != '\'')

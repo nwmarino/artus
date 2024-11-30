@@ -54,6 +54,9 @@ Codegen::Codegen(Context *ctx, const std::string &instance,
 
   for (PackageUnitDecl *pkg : ctx->PM->getPackages())
     pkg->pass(this);
+
+  if (llvm::verifyModule(*module))
+    fatal("module verification failed");
 }
 
 Codegen::~Codegen() {

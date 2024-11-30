@@ -478,7 +478,7 @@ public:
     return false;
   }
 
-  bool canSubscript() const override { return pointeeType->isArrayType(); }
+  bool canSubscript() const override { return pointeeType->canSubscript(); }
 
   llvm::Type *toLLVMType(llvm::LLVMContext &ctx) const override
   { return llvm::PointerType::get(pointeeType->toLLVMType(ctx), 0); }
