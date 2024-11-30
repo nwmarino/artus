@@ -24,6 +24,34 @@
 | `*` `/` | 6 | Multiplicative Ops
 | `#` `&` `!` `-` | 7 | Unary Ops
 
+## std
+
+### io
+
+import with: `import std::io`
+
+```go
+// Prints string <s>
+fn @print(s: #str) -> void
+
+// Prints string <s> with a newline
+fn @println(s: #str) -> void
+
+// Reads a string into pointer s
+fn @read_str(s: #str) -> void
+```
+
+### memory
+import with: `import std::memory`
+
+```go
+// allocate memory
+fn @malloc(size: i32) -> #void
+
+// free allocated memory
+fn @free(ptr: #void) -> void
+```
+
 ## Pointers
 ```go
 /// ptr address-of
@@ -62,10 +90,10 @@ type:   <identifier>
 ```
 ```go
 // main
-fn @main() -> i64 { entry: ... }
+fn @main() -> i64 { ... }
 
 // otherwise
-fn @foo(a: i64, mut b: i64[2]) -> i64 { entry: ... }
+fn @foo(a: i64, mut b: i64[2]) -> i64 { ... }
 
 // function calls, empty:
 @foo
@@ -85,16 +113,10 @@ type:   <identifier>
 ```
 ```go
 // immutable assignment
-fix <identifier>: <type> = <expr>
+fix x: i64 = 0
 
 // mutable assignment
-mut <identifier>: <type> = <expr>
-```
-
-## Statements
-```go
-// return stmt
-ret <expr>
+mut y: i64 = 1
 ```
 
 ## Control Flow
@@ -168,9 +190,10 @@ default-stmt:
         '_' => <stmt>
 ```
 ```go
-match <expr> {
-    <expr> => ...,
-    <expr> => { ... },
+fix x: i64 = 0
+match x {
+    0 => ...,
+    1 => { ... },
     _ => { ... },
 }
 ```
