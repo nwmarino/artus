@@ -75,8 +75,8 @@ class Context final {
   /// \returns The `println` function for std io, and adds it to scope \p ioScope.
   std::unique_ptr<NamedDecl> getPrintlnFunction(Scope *ioScope);
 
-  /// \returns The `readln` function for std oi, and adds it to scope \p ioScope.
-  std::unique_ptr<NamedDecl> getReadlnFunction(Scope *ioScope);
+  /// \returns The `read_str` function for std oi, and adds it to scope \p ioScope.
+  std::unique_ptr<NamedDecl> getReadStrFunction(Scope *ioScope);
 
   /// \returns The `malloc` function for std memory, and adds it to scope \p memScope.
   std::unique_ptr<NamedDecl> getMallocFunction(Scope *memScope);

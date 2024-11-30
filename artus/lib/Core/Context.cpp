@@ -67,7 +67,7 @@ Context::Context(std::vector<SourceFile> files) : files(std::move(files)) {
   Scope *ioScope = new Scope(nullptr, {}, { .isUnitScope = 1 });
   ioCtx->addDeclaration(std::move(getPrintFunction(ioScope)));
   ioCtx->addDeclaration(std::move(getPrintlnFunction(ioScope)));
-  ioCtx->addDeclaration(std::move(getReadlnFunction(ioScope)));
+  ioCtx->addDeclaration(std::move(getReadStrFunction(ioScope)));
   this->stdTable["std_io"] = std::make_unique<PackageUnitDecl>(
     "std_io",
     "std_io",
@@ -111,10 +111,10 @@ void Context::addDefinedType(const std::string &name, const Type *T,
 
 std::unique_ptr<NamedDecl> Context::getPrintFunction(Scope *ioScope) {
   FunctionType *FT = new FunctionType(this->bTyTable["void"], 
-      {this->bTyTable["str"]});
+      {this->bTyTable["#str"]});
 
   std::unique_ptr<ParamVarDecl> param = std::make_unique<ParamVarDecl>(
-      "s", this->bTyTable["str"], false, Span());
+      "s", this->bTyTable["#str"], false, Span());
 
   std::vector<std::unique_ptr<ParamVarDecl>> params = {};
   params.push_back(std::move(param));
@@ -134,10 +134,10 @@ std::unique_ptr<NamedDecl> Context::getPrintFunction(Scope *ioScope) {
 
 std::unique_ptr<NamedDecl> Context::getPrintlnFunction(Scope *ioScope) {
   FunctionType *FT = new FunctionType(this->bTyTable["void"], 
-      {this->bTyTable["str"]});
+      {this->bTyTable["#str"]});
 
   std::unique_ptr<ParamVarDecl> param = std::make_unique<ParamVarDecl>(
-      "s", this->bTyTable["str"], false, Span());
+      "s", this->bTyTable["#str"], false, Span());
 
   std::vector<std::unique_ptr<ParamVarDecl>> params = {};
   params.push_back(std::move(param));
@@ -155,20 +155,28 @@ std::unique_ptr<NamedDecl> Context::getPrintlnFunction(Scope *ioScope) {
   return printlnFN;
 }
 
-std::unique_ptr<NamedDecl> Context::getReadlnFunction(Scope *ioScope) {
-  FunctionType *FT = new FunctionType(this->bTyTable["str"], {});
+std::unique_ptr<NamedDecl> Context::getReadStrFunction(Scope *ioScope) {
+  FunctionType *FT = new FunctionType(this->bTyTable["void"], 
+    { this->bTyTable["#str"] });
 
-  std::unique_ptr<FunctionDecl> readlnFN = std::make_unique<FunctionDecl>(
-    "readln", 
+  std::unique_ptr<ParamVarDecl> buffer = std::make_unique<ParamVarDecl>(
+    "s", this->bTyTable["#str"], false, Span()
+  );
+
+  std::vector<std::unique_ptr<ParamVarDecl>> params = {};
+  params.push_back(std::move(buffer));
+
+  std::unique_ptr<FunctionDecl> readstrFN = std::make_unique<FunctionDecl>(
+    "read_str", 
     FT, 
     new Scope(ioScope, {}, { .isFunctionScope = 1}), 
-    std::vector<std::unique_ptr<ParamVarDecl>>(),
+    std::move(params),
     false,
     Span()
   );
 
-  ioScope->addDecl(readlnFN.get());
-  return readlnFN;
+  ioScope->addDecl(readstrFN.get());
+  return readstrFN;
 }
 
 std::unique_ptr<NamedDecl> Context::getMallocFunction(Scope *memScope) {

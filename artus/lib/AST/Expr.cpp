@@ -94,7 +94,10 @@ std::vector<Expr *> CallExpr::getArgs() const {
 //>==----------------------------------------------------------------------==<//
 
 UnaryExpr::UnaryExpr(std::unique_ptr<Expr> base, UnaryOp op, const Span &span)
-    : Expr(base->getType(), span), base(std::move(base)), op(op) {}
+    : Expr(base->getType(), span), base(std::move(base)), op(op) {
+  if (op == UnaryOp::DeRef)
+    this->setLValue();
+}
 
 //>==- BinaryExpr Implementation ------------------------------------------==<//
 //

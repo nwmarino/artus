@@ -65,7 +65,7 @@ Codegen::~Codegen() {
 void Codegen::addStd() {
   addStdIO_print();
   addStdIO_println();
-  //addStdIO_readln();
+  addStdIO_readln();
   addStdMEM_malloc();
   addStdMEM_free();
 }
@@ -154,6 +154,58 @@ void Codegen::addStdIO_println() {
 
   // Add the println function to the ftable.
   this->fTable["std_io"]["println"] = printlnFN;
+}
+
+void Codegen::addStdIO_readln() {
+  std::vector<llvm::Type *> readstrArgs = { builder->getInt8Ty()->getPointerTo() };
+  llvm::FunctionType *readstrFT = llvm::FunctionType::get(
+    builder->getVoidTy(), readstrArgs, false
+  );
+
+  llvm::Function *readstrFN = llvm::Function::Create(
+    readstrFT,
+    llvm::Function::ExternalLinkage, 
+    "read_str", 
+    *module
+  );
+
+  llvm::BasicBlock *entry = llvm::BasicBlock::Create(
+    *context, 
+    "entry", 
+    readstrFN
+  );
+  builder->SetInsertPoint(entry);
+
+  llvm::Value *formatStr = builder->CreateGlobalStringPtr("%s");
+
+  llvm::Function::arg_iterator args = readstrFN->arg_begin();
+  llvm::Value *strPtr = args++;
+
+  std::vector<llvm::Value *> scanfArgs = {};
+  scanfArgs.push_back(formatStr);
+  scanfArgs.push_back(strPtr);
+
+  // Define the scanf function type: int (char*, ...)
+  std::vector<llvm::Type *> scanfArgsTypes = { builder->getInt8Ty()->getPointerTo() };
+  llvm::FunctionType *scanfFT = llvm::FunctionType::get(
+    builder->getInt32Ty(), 
+    scanfArgsTypes, 
+    true
+  );
+  
+  llvm::Function *scanfFN = llvm::Function::Create(
+    scanfFT, 
+    llvm::Function::ExternalLinkage, 
+    "scanf",
+    *module
+  );
+
+  builder->CreateCall(scanfFN, scanfArgs);
+  builder->CreateRetVoid();
+
+  llvm::verifyFunction(*readstrFN);
+
+  this->fTable["std_io"]["read_str"] = readstrFN;
 }
 
 void Codegen::addStdMEM_malloc() {

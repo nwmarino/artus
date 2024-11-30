@@ -74,7 +74,7 @@ class Codegen final : public ASTVisitor {
   void addStd();
   void addStdIO_print();
   void addStdIO_println();
-  //void addStdIO_readln();
+  void addStdIO_readln();
   void addStdMEM_malloc();
   void addStdMEM_free();
 

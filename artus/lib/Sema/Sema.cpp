@@ -288,7 +288,9 @@ void Sema::visit(BinaryExpr *expr) {
 
   // If the operands are strings, check that the operator is a concatenation.
   if (expr->lhs->T->isStringType() && expr->rhs->T->isStringType()) {
-    if (expr->op != BinaryExpr::BinaryOp::Add)
+    if (expr->op != BinaryExpr::BinaryOp::Assign && 
+        expr->op != BinaryExpr::BinaryOp::AddAssign &&
+        expr->op != BinaryExpr::BinaryOp::Add)
       fatal("expected string concatenation '+'", expr->getStartLoc());
   }
 

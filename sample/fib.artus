@@ -2,7 +2,9 @@ import std::io
 import std::memory
 
 fn @main() -> i64 {
-  fix x: #str = (#str) @malloc(10)
+  mut x: #str = (#str) @malloc(100)
+  @read_str(x)
+  @println(x)
   @free(x)
   ret 0
 }
