@@ -50,17 +50,41 @@ Context::Context(std::vector<SourceFile> files) : files(std::move(files)) {
   this->bTyTable["f64"] = new BasicType(BasicType::BasicTypeKind::FP64);
   this->bTyTable["str"] = new BasicType(BasicType::BasicTypeKind::STR);
 
+  // Add shallow pointer types to the context.
+  this->bTyTable["#void"] = new PointerType(this->bTyTable["void"]);
+  this->bTyTable["#bool"] = new PointerType(this->bTyTable["bool"]);
+  this->bTyTable["#char"] = new PointerType(this->bTyTable["char"]);
+  this->bTyTable["#i32"] = new PointerType(this->bTyTable["i32"]);
+  this->bTyTable["#i64"] = new PointerType(this->bTyTable["i64"]);
+  this->bTyTable["#u8"] = new PointerType(this->bTyTable["u8"]);
+  this->bTyTable["#u32"] = new PointerType(this->bTyTable["u32"]);
+  this->bTyTable["#u64"] = new PointerType(this->bTyTable["u64"]);
+  this->bTyTable["#f64"] = new PointerType(this->bTyTable["f64"]);
+  this->bTyTable["#str"] = new PointerType(this->bTyTable["str"]);
+
   // Add standard library functions.
   DeclContext *ioCtx = new DeclContext();
   Scope *ioScope = new Scope(nullptr, {}, { .isUnitScope = 1 });
-  ioCtx->addDeclaration(getPrintFunction(ioScope));
-  ioCtx->addDeclaration(getPrintlnFunction(ioScope));
-  ioCtx->addDeclaration(getReadlnFunction(ioScope));
+  ioCtx->addDeclaration(std::move(getPrintFunction(ioScope)));
+  ioCtx->addDeclaration(std::move(getPrintlnFunction(ioScope)));
+  ioCtx->addDeclaration(std::move(getReadlnFunction(ioScope)));
   this->stdTable["std_io"] = std::make_unique<PackageUnitDecl>(
     "std_io",
     "std_io",
     ioCtx,
     ioScope,
+    std::vector<std::unique_ptr<ImportDecl>>()
+  );
+
+  DeclContext *memCtx = new DeclContext();
+  Scope *memScope = new Scope(nullptr, {}, { .isUnitScope = 1 });
+  memCtx->addDeclaration(std::move(getMallocFunction(memScope)));
+  memCtx->addDeclaration(std::move(getFreeFunction(memScope)));
+  this->stdTable["std_memory"] = std::make_unique<PackageUnitDecl>(
+    "std_memory",
+    "std_memory",
+    memCtx,
+    memScope,
     std::vector<std::unique_ptr<ImportDecl>>()
   );
 
@@ -145,6 +169,53 @@ std::unique_ptr<NamedDecl> Context::getReadlnFunction(Scope *ioScope) {
 
   ioScope->addDecl(readlnFN.get());
   return readlnFN;
+}
+
+std::unique_ptr<NamedDecl> Context::getMallocFunction(Scope *memScope) {
+  FunctionType *FT = new FunctionType(this->bTyTable["#void"], 
+      {this->bTyTable["i64"]});
+
+  std::unique_ptr<ParamVarDecl> param = std::make_unique<ParamVarDecl>(
+    "size", this->bTyTable["i64"], false, Span()
+  );
+
+  std::vector<std::unique_ptr<ParamVarDecl>> params = {};
+  params.push_back(std::move(param));
+
+  std::unique_ptr<FunctionDecl> mallocFN = std::make_unique<FunctionDecl>(
+    "malloc",
+    FT,
+    new Scope(memScope, {}, { .isFunctionScope = 1}),
+    std::move(params),
+    false,
+    Span()
+  );
+
+  memScope->addDecl(mallocFN.get());
+  return mallocFN;
+}
+
+std::unique_ptr<NamedDecl> Context::getFreeFunction(Scope *memScope) {
+  FunctionType *FT = new FunctionType(this->bTyTable["void"], 
+      {this->bTyTable["#void"]});
+
+  std::unique_ptr<ParamVarDecl> param = std::make_unique<ParamVarDecl>(
+      "ptr", this->bTyTable["#void"], false, Span());
+
+  std::vector<std::unique_ptr<ParamVarDecl>> params = {};
+  params.push_back(std::move(param));
+
+  std::unique_ptr<FunctionDecl> freeFN = std::make_unique<FunctionDecl>(
+    "free",
+    FT,
+    new Scope(memScope, {}, { .isFunctionScope = 1}),
+    std::move(params),
+    false,
+    Span()
+  );
+
+  memScope->addDecl(freeFN.get());
+  return freeFN;
 }
 
 bool Context::nextFile() {

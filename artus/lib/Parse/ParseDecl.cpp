@@ -250,6 +250,7 @@ std::unique_ptr<Decl> Parser::ParseVarDeclaration(bool isMut) {
   nextToken(); // Consume the ':' token.
 
   const Type *varType = ParseType();
+  this->parentVarType = varType;
   std::unique_ptr<Expr> initExpr = nullptr;
 
   // Immutable variables must be initialized.
@@ -285,6 +286,7 @@ std::unique_ptr<Decl> Parser::ParseVarDeclaration(bool isMut) {
       std::move(initExpr), isMut, createSpan(varToken.loc));  
 
   scope->addDecl(decl.get());
+  this->parentVarType = nullptr;
   return decl;
 }
 

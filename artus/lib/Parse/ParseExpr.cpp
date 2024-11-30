@@ -81,6 +81,8 @@ std::unique_ptr<Expr> Parser::ParsePrimaryExpression() {
     return ParseCallExpression();
   else if (tok.is(TokenKind::OpenBracket))
     return ParseArrayExpression(nullptr);
+  else if (tok.is(TokenKind::OpenParen))
+    return ParseCastExpression();
 
   // Identifier expressions: references, boolean literals, null, casts.
   if (tok.is(TokenKind::Identifier)) {
@@ -204,7 +206,11 @@ std::unique_ptr<Expr> Parser::ParseReferenceExpression() {
 
 /// Parse a cast expression.
 std::unique_ptr<Expr> Parser::ParseCastExpression() {
-  assert(tok.is(TokenKind::Identifier) && "expected identifier");
+  if (tok.is(TokenKind::OpenParen))
+    nextToken(); // Eat the '(' token.
+
+  if (!tok.is(TokenKind::Identifier) && !tok.is(TokenKind::Hash))
+    fatal("expected identifier after '('", tok.loc);
 
   // Cannot cast an expression that is already under a cast.
   if (isUnderCast)
@@ -214,6 +220,9 @@ std::unique_ptr<Expr> Parser::ParseCastExpression() {
 
   // Resolve the cast type, if it exists yet.
   const Type *castType = ParseType();
+
+  if (tok.is(TokenKind::CloseParen))
+    nextToken(); // Eat the ')' token.
   
   // Resolve the base expression.
   isUnderCast = 1;
@@ -233,6 +242,8 @@ std::unique_ptr<Expr> Parser::ParseCastExpression() {
 /// unary-op:
 ///   '-' <expr>
 ///   '!' <expr>
+///   '&' <expr>
+///   '#' <expr>
 std::unique_ptr<Expr> Parser::ParseUnaryExpression() {
   UnaryExpr::UnaryOp op = getUnaryOp();
   if (op == UnaryExpr::UnaryOp::Unknown)
@@ -382,8 +393,8 @@ std::unique_ptr<Expr> Parser::ParseNullExpression() {
   nextToken();
 
   const Type *T = nullptr;
-  if (parentFunctionType)
-    T = parentFunctionType->getReturnType();
+  if (parentVarType)
+    T = parentVarType;
 
   return std::make_unique<NullExpr>(T, createSpan(nullToken.loc));
 }

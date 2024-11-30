@@ -56,6 +56,9 @@ class Parser final {
   /// The type of the parent function declaration, if it exists.
   const FunctionType *parentFunctionType;
 
+  /// The type of the parent variable declaration, if it exists.
+  const Type *parentVarType;
+
   /// Consumes the current token and moves to the next token in the stream.
   /// \returns `true` if the parser has begun lexing a new unit, and `false`
   /// otherwise.

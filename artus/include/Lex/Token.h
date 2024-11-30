@@ -18,6 +18,7 @@
 /// Reference for reserved identifiers in the language.
 inline std::vector<std::string> __RESERVED = {
   // Type-related literals and identifiers.
+  "void",
   "bool",
   "char",
   "str",

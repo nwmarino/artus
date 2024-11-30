@@ -74,7 +74,9 @@ class Codegen final : public ASTVisitor {
   void addStd();
   void addStdIO_print();
   void addStdIO_println();
-  void addStdIO_readln();
+  //void addStdIO_readln();
+  void addStdMEM_malloc();
+  void addStdMEM_free();
 
   /// Creates an alloca instruction for a variable \p var in the entry block of 
   /// the function \p fn.

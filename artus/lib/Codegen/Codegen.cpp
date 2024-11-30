@@ -7,11 +7,11 @@
 
 #include "llvm/ADT/APInt.h"
 #include "llvm/IR/Constants.h"
-#include "llvm/IR/Instructions.h"
-#include "llvm/IR/Verifier.h"
 #include "llvm/IR/DerivedTypes.h"
-#include <llvm/IR/GlobalVariable.h>
-#include <llvm/IR/Type.h>
+#include "llvm/IR/GlobalVariable.h"
+#include "llvm/IR/Instructions.h"
+#include "llvm/IR/Type.h"
+#include "llvm/IR/Verifier.h"
 
 #include "../../include/AST/Decl.h"
 #include "../../include/AST/DeclBase.h"
@@ -23,7 +23,7 @@
 using namespace artus;
 
 Codegen::Codegen(Context *ctx, const std::string &instance, 
-    llvm::TargetMachine *TM) : instance(instance) {
+                 llvm::TargetMachine *TM) : instance(instance) {
   // Instantiate the LLVM context, IR builder, and module.
   context = std::make_unique<llvm::LLVMContext>();
   builder = std::make_unique<llvm::IRBuilder<>>(*context);
@@ -65,7 +65,9 @@ Codegen::~Codegen() {
 void Codegen::addStd() {
   addStdIO_print();
   addStdIO_println();
-  addStdIO_readln();
+  //addStdIO_readln();
+  addStdMEM_malloc();
+  addStdMEM_free();
 }
 
 void Codegen::addStdIO_print() {
@@ -154,89 +156,76 @@ void Codegen::addStdIO_println() {
   this->fTable["std_io"]["println"] = printlnFN;
 }
 
-void Codegen::addStdIO_readln() {
-  // Get the fgets function.
-  llvm::FunctionType *fgetsFT = llvm::FunctionType::get(
-    builder->getInt8Ty()->getPointerTo(), 
-    {
-      builder->getInt8Ty()->getPointerTo(), // char *str
-      builder->getInt32Ty(),                // int n
-      builder->getInt8Ty()->getPointerTo()  // FILE *stream
-    },
-    false);
-  llvm::FunctionCallee fgetsFN = module->getOrInsertFunction(
-    "fgets", fgetsFT
-  );
-
-  // Declare stdin.
-  llvm::Type *filePtrTy = llvm::PointerType::getUnqual(builder->getInt8Ty());
-  llvm::GlobalVariable *stdinVar = module->getNamedGlobal("stdin");
-  if (!stdinVar) {
-    stdinVar = new llvm::GlobalVariable(
-      *module,
-      filePtrTy,
-      true,
-      llvm::GlobalValue::ExternalLinkage,
-      nullptr,
-      "stdin"
-    );
-  }
-
-  // Create the readln function.
-  llvm::FunctionType *readlnFT = llvm::FunctionType::get(
-    builder->getInt8Ty()->getPointerTo(),
+void Codegen::addStdMEM_malloc() {
+  llvm::FunctionType *mallocFT = llvm::FunctionType::get(
+    llvm::Type::getInt8Ty(*context)->getPointerTo(),
+    { llvm::Type::getInt64Ty(*context) },
     false
   );
-  llvm::Function *readlnFN = llvm::Function::Create(
-    readlnFT,
+
+  llvm::Function *mallocFN = llvm::Function::Create(
+    mallocFT,
     llvm::Function::ExternalLinkage,
-    "readln",
+    "__malloc",
     *module
   );
 
-  // Create the entry block
-  llvm::BasicBlock *entry = llvm::BasicBlock::Create(
-    *context,
-    "entry",
-    readlnFN
+  llvm::Argument *sizeArg = mallocFN->arg_begin();
+  sizeArg->setName("size");
+
+  llvm::BasicBlock *entryBlock = llvm::BasicBlock::Create(
+    *context, "entry", mallocFN
   );
-  builder->SetInsertPoint(entry);
+  builder->SetInsertPoint(entryBlock);
 
-  // Make a 256 large buffer for stdin.
-  llvm::Value *buffer = builder->CreateAlloca(
-    llvm::ArrayType::get(builder->getInt8Ty(), 256), 
-    nullptr,
-    "buffer"
+  // Declare the standard malloc function: void* malloc(size_t size).
+  llvm::FunctionType *std_mallocFT = llvm::FunctionType::get(
+    llvm::Type::getInt8Ty(*context)->getPointerTo(),
+    { llvm::Type::getInt64Ty(*context) },
+    false
   );
+  llvm::FunctionCallee mallocCallee = module->getOrInsertFunction("malloc", std_mallocFT);
+  llvm::Value *mallocCall = builder->CreateCall(mallocCallee, { sizeArg });
+  builder->CreateRet(mallocCall);
 
-  // Cast the buffer to int8_t*
-  llvm::Value *bufferPtr = builder->CreateGEP(
-    llvm::ArrayType::get(builder->getInt8Ty(), 256),
-    buffer,
-    {
-      builder->getInt32(0),
-      builder->getInt32(0)
-    }
-  );
+  this->fTable["std_memory"]["malloc"] = mallocFN;
+}
 
-  llvm::Value *stdinLoad = builder->CreateLoad(filePtrTy, stdinVar);
-
-  // Call the original fgets function with the buffer, and stdin.
-  llvm::Value *fgetsCall = builder->CreateCall(
-    fgetsFN,
-    {
-      bufferPtr,
-      builder->getInt32(256),
-      stdinLoad
-      //builder->CreatePointerCast(builder->getInt32(0), llvm::Type::getInt8Ty(*context)->getPointerTo())
-    }
+void Codegen::addStdMEM_free() {
+  llvm::FunctionType *freeFT = llvm::FunctionType::get(
+    llvm::Type::getVoidTy(*context),
+    { llvm::Type::getInt8Ty(*context)->getPointerTo() },
+    false
   );
 
-  // Return the input string received by the fgets call.
-  builder->CreateRet(builder->CreateLoad(builder->getInt8Ty()->getPointerTo(), bufferPtr));
+  llvm::Function *freeFN = llvm::Function::Create(
+    freeFT,
+    llvm::Function::ExternalLinkage,
+    "__free",
+    *module
+  );
 
-  // Add the readln function to the ftable.
-  this->fTable["std_io"]["readln"] = readlnFN;
+  llvm::Argument *ptrArg = freeFN->arg_begin();
+  ptrArg->setName("ptr");
+
+  // Create a basic block and set the insertion point
+  llvm::BasicBlock *entryBlock = llvm::BasicBlock::Create(
+    *context, "entry", freeFN
+  );
+  builder->SetInsertPoint(entryBlock);
+
+  // Declare the standard free function: void free(void* ptr).
+  llvm::FunctionType *std_freeFT = llvm::FunctionType::get(
+      llvm::Type::getVoidTy(*context),
+      { llvm::Type::getInt8Ty(*context)->getPointerTo() },
+      false
+  );
+
+  llvm::FunctionCallee freeCallee = module->getOrInsertFunction("free", std_freeFT);
+  builder->CreateCall(freeCallee, { ptrArg });
+  builder->CreateRetVoid();
+
+  this->fTable["std_memory"]["free"] = freeFN;
 }
 
 llvm::AllocaInst *Codegen::createAlloca(llvm::Function *fn, 

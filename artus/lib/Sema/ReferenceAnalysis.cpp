@@ -93,7 +93,7 @@ void ReferenceAnalysis::visit(PackageUnitDecl *decl) {
   // Check for duplicate imports.
   for (std::size_t i = 0; i < decl->imports.size(); i++) {
     for (std::size_t j = i + 1; j < decl->imports.size(); j++) {
-      if (decl->imports[i]->getPath().curr == decl->imports[j]->getPath().curr)
+      if (decl->imports[i]->getPath().compare(decl->imports[j]->getPath()))
         fatal("duplicate import: " + decl->imports[i]->getPath().curr,
             decl->imports.at(j)->getStartLoc());
     }

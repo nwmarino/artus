@@ -78,6 +78,12 @@ class Context final {
   /// \returns The `readln` function for std oi, and adds it to scope \p ioScope.
   std::unique_ptr<NamedDecl> getReadlnFunction(Scope *ioScope);
 
+  /// \returns The `malloc` function for std memory, and adds it to scope \p memScope.
+  std::unique_ptr<NamedDecl> getMallocFunction(Scope *memScope);
+
+  /// \returns The `free` function for std memory, and adds it to scope \p memScope.
+  std::unique_ptr<NamedDecl> getFreeFunction(Scope *memScope);
+
 public:
   Context(std::vector<SourceFile> files);
   ~Context();

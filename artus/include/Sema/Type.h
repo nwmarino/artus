@@ -456,8 +456,12 @@ public:
 
   int compare(const Type *other) const override {
     if (const PointerType *otherTy = dynamic_cast<const PointerType *>(other)) {
-      if (pointeeType->compare(otherTy->pointeeType) == 0)
+      if (pointeeType->compare(otherTy->pointeeType) == 0) {
+        if (pointeeType->isVoidType() || otherTy->pointeeType->isVoidType())
+          return 2;
+
         return 0;
+      }
 
       return 1;
     }
@@ -465,9 +469,12 @@ public:
   }
 
   bool canCastTo(const Type *other, bool strict = false) const override {
-    if (const PointerType *otherTy = dynamic_cast<const PointerType *>(other))
-      return pointeeType->canCastTo(otherTy->pointeeType, strict);
+    if (const PointerType *otherTy = dynamic_cast<const PointerType *>(other)) {
+      if (this->getPointeeType()->isVoidType() || otherTy->getPointeeType()->isVoidType())
+        return true;
 
+      return pointeeType->canCastTo(otherTy->pointeeType, strict);
+    }
     return false;
   }
 
